@@ -123,27 +123,27 @@ $$;
 
 -- ---- PROFILES -----------------------------------------------
 
--- Un utilisateur voit uniquement son propre profil
+DROP POLICY IF EXISTS "profiles_select_own"   ON public.profiles;
+DROP POLICY IF EXISTS "profiles_update_own"   ON public.profiles;
+DROP POLICY IF EXISTS "profiles_insert_admin" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_delete_admin" ON public.profiles;
+
 CREATE POLICY "profiles_select_own"
   ON public.profiles FOR SELECT
   USING (id = auth.uid() OR public.is_admin());
 
--- Un utilisateur met à jour uniquement son propre profil
 CREATE POLICY "profiles_update_own"
   ON public.profiles FOR UPDATE
   USING (id = auth.uid())
   WITH CHECK (
     id = auth.uid()
-    -- empêche un patient de se promouvoir admin
     AND is_admin = (SELECT is_admin FROM public.profiles WHERE id = auth.uid())
   );
 
--- Seul un admin peut créer un profil manuellement (hors trigger)
 CREATE POLICY "profiles_insert_admin"
   ON public.profiles FOR INSERT
   WITH CHECK (public.is_admin());
 
--- Seul un admin peut supprimer un profil
 CREATE POLICY "profiles_delete_admin"
   ON public.profiles FOR DELETE
   USING (public.is_admin());
@@ -151,8 +151,11 @@ CREATE POLICY "profiles_delete_admin"
 
 -- ---- RESOURCES ----------------------------------------------
 
--- Un patient ne voit que les ressources qui lui sont assignées.
--- Un admin voit tout.
+DROP POLICY IF EXISTS "resources_select"       ON public.resources;
+DROP POLICY IF EXISTS "resources_insert_admin" ON public.resources;
+DROP POLICY IF EXISTS "resources_update_admin" ON public.resources;
+DROP POLICY IF EXISTS "resources_delete_admin" ON public.resources;
+
 CREATE POLICY "resources_select"
   ON public.resources FOR SELECT
   USING (
@@ -164,7 +167,6 @@ CREATE POLICY "resources_select"
     )
   );
 
--- Seul un admin peut créer / modifier / supprimer des ressources
 CREATE POLICY "resources_insert_admin"
   ON public.resources FOR INSERT
   WITH CHECK (public.is_admin());
@@ -180,8 +182,10 @@ CREATE POLICY "resources_delete_admin"
 
 -- ---- PATIENT_RESOURCES --------------------------------------
 
--- Un patient voit uniquement ses propres assignations.
--- Un admin voit toutes les assignations.
+DROP POLICY IF EXISTS "patient_resources_select"       ON public.patient_resources;
+DROP POLICY IF EXISTS "patient_resources_insert_admin" ON public.patient_resources;
+DROP POLICY IF EXISTS "patient_resources_delete_admin" ON public.patient_resources;
+
 CREATE POLICY "patient_resources_select"
   ON public.patient_resources FOR SELECT
   USING (
@@ -189,7 +193,6 @@ CREATE POLICY "patient_resources_select"
     OR public.is_admin()
   );
 
--- Seul un admin peut assigner ou désassigner des ressources
 CREATE POLICY "patient_resources_insert_admin"
   ON public.patient_resources FOR INSERT
   WITH CHECK (public.is_admin());
