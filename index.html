@@ -255,19 +255,8 @@
         <p class="card__sub">Accédez à vos ressources personnalisées.<br>Aucun mot de passe requis.</p>
       </header>
 
-      <!-- Vue formulaire -->
+      <!-- Vue formulaire : email + mot de passe uniquement -->
       <div id="viewForm">
-
-        <!-- Toggle Magic Link / Mot de passe -->
-        <div class="mode-toggle">
-          <button type="button" class="mode-toggle__btn is-active" id="btnModeMagic">
-            ✉️ Lien magique
-          </button>
-          <button type="button" class="mode-toggle__btn" id="btnModePassword">
-            🔑 Mot de passe
-          </button>
-        </div>
-
         <form class="form" id="loginForm" novalidate>
           <div class="field">
             <label for="emailInput">Adresse courriel</label>
@@ -278,14 +267,13 @@
               spellcheck="false" required
             >
           </div>
-
-          <!-- Champ mot de passe (masqué par défaut) -->
-          <div class="field" id="passwordField" style="display:none">
+          <div class="field">
             <label for="passwordInput">Mot de passe</label>
             <input
               type="password" id="passwordInput" name="password"
               placeholder="••••••••"
               autocomplete="current-password"
+              required
             >
           </div>
 
@@ -295,35 +283,16 @@
           </div>
 
           <button type="submit" class="btn-primary" id="submitBtn">
-            <span class="btn-label" id="submitLabel">Recevoir mon lien d'accès</span>
+            <span class="btn-label">Se connecter</span>
             <span class="spinner" aria-hidden="true"></span>
           </button>
         </form>
 
-        <div class="sep"><span id="sepLabel">Connexion sécurisée</span></div>
-
-        <p class="form-note" id="formNote">
+        <div class="sep"><span>Connexion sécurisée</span></div>
+        <p class="form-note">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          Lien unique valide 60 minutes · Usage unique
+          Vous n'avez pas encore de compte ? Contactez la clinique.
         </p>
-      </div>
-
-      <!-- Vue confirmation -->
-      <div class="confirmation" id="viewConfirmation" aria-live="assertive">
-        <div class="conf-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 6L9 17l-5-5"/>
-          </svg>
-        </div>
-        <p class="conf-title">Vérifiez votre courriel</p>
-        <p style="font-size:.875rem;color:var(--muted);line-height:1.6">
-          Un lien de connexion a été envoyé à<br>
-          <span class="conf-email" id="confirmedEmail"></span>
-        </p>
-        <p class="conf-note">
-          📬 Vérifiez aussi votre dossier <strong>courrier indésirable</strong> si vous ne voyez pas le courriel.
-        </p>
-        <button class="btn-ghost" id="btnRetry">Renvoyer ou changer d'adresse</button>
       </div>
     </div>
   </main>
@@ -363,21 +332,16 @@
 
     let mode = 'magic'; // 'magic' | 'password'
 
-    // ── Toggle mode ──────────────────────────────────────
-    btnModeMagic.addEventListener('click', () => setMode('magic'));
-    btnModePassword.addEventListener('click', () => setMode('password'));
+    const loader         = document.getElementById('pageLoader');
+    const form           = document.getElementById('loginForm');
+    const emailInput     = document.getElementById('emailInput');
+    const passwordInput  = document.getElementById('passwordInput');
+    const submitBtn      = document.getElementById('submitBtn');
+    const emailError     = document.getElementById('emailError');
+    const emailErrorText = document.getElementById('emailErrorText');
+    document.getElementById('year').textContent = new Date().getFullYear();
 
-    function setMode(m) {
-      mode = m;
-      btnModeMagic.classList.toggle('is-active', m === 'magic');
-      btnModePassword.classList.toggle('is-active', m === 'password');
-      passwordField.style.display = m === 'password' ? '' : 'none';
-      submitLabel.textContent = m === 'magic' ? 'Recevoir mon lien d\'accès' : 'Se connecter';
-      formNote.style.display = m === 'magic' ? '' : 'none';
-      clearError();
-    }
-
-    // ── Vérification session ─────────────────────────────
+    // ── Vérification session existante ───────────────────
     async function checkSession() {
       if (!IS_CONFIGURED) return;
       loader.classList.add('is-active');
@@ -392,63 +356,40 @@
     }
     checkSession();
 
-    // ── Soumission ───────────────────────────────────────
+    // ── Connexion par mot de passe ───────────────────────
     form.addEventListener('submit', async e => {
       e.preventDefault();
       clearError();
-      const email = emailInput.value.trim().toLowerCase();
-      if (!email) { showError('Veuillez entrer votre adresse courriel.'); emailInput.focus(); return; }
+      const email    = emailInput.value.trim().toLowerCase();
+      const password = passwordInput.value;
+
+      if (!email)    { showError('Veuillez entrer votre adresse courriel.'); emailInput.focus(); return; }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('Adresse courriel invalide.'); emailInput.focus(); return; }
+      if (!password) { showError('Veuillez entrer votre mot de passe.'); passwordInput.focus(); return; }
 
       setLoading(true);
       try {
-        if (mode === 'magic') {
-          // ── Mode lien magique ──
-          const { error } = await supabase.auth.signInWithOtp({
-            email,
-            options: { emailRedirectTo: `${window.location.origin}/auth/callback.html`, shouldCreateUser: true },
-          });
-          if (error) throw error;
-          confirmedEmail.textContent = email;
-          viewForm.style.display = 'none';
-          viewConfirm.classList.add('is-visible');
-
-        } else {
-          // ── Mode mot de passe ──
-          const password = passwordInput.value;
-          if (!password) { showError('Veuillez entrer votre mot de passe.'); passwordInput.focus(); setLoading(false); return; }
-
-          const { error } = await supabase.auth.signInWithPassword({ email, password });
-          if (error) {
-            if (error.message.includes('Invalid login credentials')) {
-              showError('Courriel ou mot de passe incorrect.');
-            } else {
-              showError('Erreur de connexion : ' + error.message);
-            }
-            return;
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          if (error.message.includes('Invalid login credentials') || error.message.includes('invalid_credentials')) {
+            showError('Courriel ou mot de passe incorrect.');
+          } else {
+            showError('Erreur de connexion. Réessayez.');
           }
-          window.location.replace('/library.html');
+          return;
         }
-      } catch (err) {
-        showError('Une erreur est survenue. Réessayez.');
+        window.location.replace('/library.html');
+      } catch (_) {
+        showError('Impossible de joindre le serveur. Vérifiez votre connexion.');
       } finally { setLoading(false); }
-    });
-
-    btnRetry.addEventListener('click', () => {
-      viewConfirm.classList.remove('is-visible');
-      viewForm.style.display = '';
-      emailInput.value = '';
-      emailInput.focus();
     });
 
     function showError(msg) {
       emailErrorText.textContent = msg;
       emailError.classList.add('is-visible');
-      emailInput.classList.add('is-error');
     }
     function clearError() {
       emailError.classList.remove('is-visible');
-      emailInput.classList.remove('is-error');
     }
     function setLoading(s) {
       submitBtn.disabled = s;

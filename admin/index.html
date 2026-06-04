@@ -602,6 +602,9 @@
                   <td style="color:var(--muted)">${fmtDate(p.created_at)}</td>
                   <td>
                     <div class="td-actions">
+                      <button class="btn btn--ghost btn--sm" onclick="sendMagicLink('${esc(p.email)}', this)">
+                        ✉️ Envoyer un lien
+                      </button>
                       <button class="btn btn--ghost btn--sm" onclick="openAssignSection('${p.id}')">
                         Gérer les accès
                       </button>
@@ -615,6 +618,29 @@
     }
 
     // Expose pour les onclick inline
+    // ── Envoyer un lien magique à un patient ──────────────
+    window.sendMagicLink = async (email, btn) => {
+      btn.disabled = true;
+      btn.textContent = '⏳ Envoi…';
+      try {
+        const { error } = await sb.auth.signInWithOtp({
+          email,
+          options: {
+            shouldCreateUser: false,
+            emailRedirectTo: `${window.location.origin}/auth/callback.html`,
+          },
+        });
+        if (error) throw error;
+        btn.textContent = '✅ Lien envoyé';
+        toast(`Lien d'accès envoyé à ${email}`, 'success');
+        setTimeout(() => { btn.textContent = '✉️ Envoyer un lien'; btn.disabled = false; }, 3000);
+      } catch (err) {
+        toast('Erreur : ' + err.message, 'error');
+        btn.textContent = '✉️ Envoyer un lien';
+        btn.disabled = false;
+      }
+    };
+
     window.openAssignSection = (patientId) => {
       // Aller à la section Assignations et ouvrir ce patient
       document.querySelectorAll('.sidebar__link').forEach(l => l.classList.remove('is-active'));
