@@ -656,12 +656,13 @@
       // Afficher le bouton Admin si is_admin = true
       const { data: profile } = await supabase
         .from('profiles').select('is_admin').eq('id', user.id).single();
-      if (profile?.is_admin) {
+      const userIsAdmin = profile?.is_admin === true;
+      if (userIsAdmin) {
         document.getElementById('btnAdmin').style.display = 'flex';
       }
 
-      // 3. Charger les ressources assignées
-      await loadResources(user.id);
+      // 3. Charger les ressources (toutes si admin, assignées si patient)
+      await loadResources(user.id, userIsAdmin);
     }
 
     function hideLoader() {
@@ -677,26 +678,39 @@
       greeting.innerHTML = `${salut}, <strong>${firstName}</strong>`;
     }
 
-    async function loadResources(userId) {
+    async function loadResources(userId, isAdmin = false) {
       try {
-        const { data, error } = await supabase
-          .from('patient_resources')
-          .select(`
-            assigned_at,
-            resource:resources (
-              id, title, description, type,
-              condition_tag, bunny_video_id, pdf_url,
-              thumbnail_url, duration_sec, sort_order
-            )
-          `)
-          .order('assigned_at', { ascending: false });
+        let resources;
 
-        if (error) throw error;
+        if (isAdmin) {
+          // Admin : toutes les ressources publiées
+          const { data, error } = await supabase
+            .from('resources')
+            .select('*')
+            .order('condition_tag')
+            .order('sort_order');
+          if (error) throw error;
+          resources = data;
+        } else {
+          // Patient : seulement les ressources assignées
+          const { data, error } = await supabase
+            .from('patient_resources')
+            .select(`
+              assigned_at,
+              resource:resources (
+                id, title, description, type,
+                condition_tag, bunny_video_id, pdf_url,
+                thumbnail_url, duration_sec, sort_order
+              )
+            `)
+            .order('assigned_at', { ascending: false });
+          if (error) throw error;
+          resources = data
+            .map(row => ({ ...row.resource, assigned_at: row.assigned_at }))
+            .filter(r => r && r.id);
+        }
 
-        allResources = data
-          .map(row => ({ ...row.resource, assigned_at: row.assigned_at }))
-          .filter(r => r && r.id)
-          .sort((a, b) => a.sort_order - b.sort_order);
+        allResources = resources.sort((a, b) => a.sort_order - b.sort_order);
 
         renderFilters();
         renderGrid('all');
