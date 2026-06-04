@@ -277,6 +277,109 @@
     .modal__video { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; }
     .modal__video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
 
+    /* ── TABS ── */
+    .tabs {
+      display: flex; gap: 0; background: var(--white);
+      border-bottom: 2px solid var(--border);
+      padding: 0 2rem; position: sticky; top: var(--nav-h); z-index: 40;
+      box-shadow: 0 2px 8px rgba(13,33,55,0.04);
+    }
+    .tab-btn {
+      display: flex; align-items: center; gap: .5rem;
+      padding: 1rem 1.25rem; font-size: .875rem; font-weight: 600;
+      color: var(--muted); border-bottom: 3px solid transparent;
+      margin-bottom: -2px; transition: all 200ms; white-space: nowrap;
+    }
+    .tab-btn:hover { color: var(--blue); }
+    .tab-btn.is-active { color: var(--blue); border-bottom-color: var(--blue); }
+    .tab-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .tab-panel { display: none; }
+    .tab-panel.is-active { display: block; }
+
+    /* ── GRILLE EXERCICES ── */
+    .exercise-grid {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 1.5rem;
+    }
+
+    /* ── CARTE EXERCICE ── */
+    .ex-card {
+      background: var(--surface); border-radius: var(--radius);
+      border: 1px solid var(--border); box-shadow: var(--shadow-card);
+      overflow: hidden; display: flex; flex-direction: column;
+      transition: box-shadow 200ms, border-color 200ms;
+    }
+    .ex-card:hover { box-shadow: var(--shadow-hover); border-color: rgba(24,95,165,.2); }
+
+    .ex-card__thumb {
+      position: relative; aspect-ratio: 16/9; background: var(--navy);
+      overflow: hidden; flex-shrink: 0; cursor: pointer;
+    }
+    .ex-card__thumb-bg {
+      width: 100%; height: 100%;
+      background: linear-gradient(135deg, #0d2137 0%, #1a4a7a 100%);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ex-card__thumb-bg svg { width: 44px; height: 44px; opacity: .3; }
+    .ex-card__overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(13,33,55,.75) 0%, transparent 55%); }
+    .ex-card__play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2; }
+    .ex-card__play-btn { width: 52px; height: 52px; background: rgba(255,255,255,.15); border: 2px solid rgba(255,255,255,.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); transition: all 200ms; }
+    .ex-card__thumb:hover .ex-card__play-btn { background: var(--blue); border-color: var(--blue); transform: scale(1.08); }
+    .ex-card__play-btn svg { width: 18px; height: 18px; fill: white; margin-left: 3px; }
+    .ex-card__title-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: .8rem 1rem .65rem; font-size: .875rem; font-weight: 700; color: white; line-height: 1.3; z-index: 2; }
+
+    .ex-card__body { padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: .75rem; flex: 1; }
+
+    /* Paramètres de prescription */
+    .ex-params {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: .4rem .75rem;
+    }
+    .ex-param {
+      display: flex; flex-direction: column; gap: .1rem;
+      background: var(--bg); border-radius: 8px; padding: .45rem .65rem;
+    }
+    .ex-param__label { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+    .ex-param__value { font-size: .875rem; font-weight: 700; color: var(--text); }
+
+    /* Badge groupe musculaire */
+    .muscle-badge {
+      display: inline-flex; align-items: center; gap: .3rem;
+      padding: .2rem .65rem; border-radius: 100px;
+      background: var(--blue-light); color: var(--blue);
+      font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+    }
+
+    /* Note du professionnel */
+    .ex-note {
+      background: #fffbeb; border-left: 3px solid #f59e0b;
+      border-radius: 0 8px 8px 0; padding: .6rem .75rem;
+      font-size: .8rem; color: #92400e; line-height: 1.5;
+    }
+    .ex-note strong { display: block; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .2rem; color: #b45309; }
+
+    /* Bouton compléter */
+    .btn-complete {
+      display: flex; align-items: center; justify-content: center; gap: .5rem;
+      width: 100%; padding: .7rem 1rem; border-radius: var(--radius);
+      font-size: .85rem; font-weight: 700; letter-spacing: .01em;
+      border: 2px solid var(--border); color: var(--muted);
+      transition: all 200ms; margin-top: auto;
+    }
+    .btn-complete:hover:not(.is-done) {
+      border-color: var(--blue); color: var(--blue); background: var(--blue-light);
+    }
+    .btn-complete.is-done {
+      border-color: #16a34a; background: #f0fdf4; color: #16a34a;
+    }
+    .btn-complete svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Compteur de séances */
+    .ex-streak {
+      text-align: center; font-size: .75rem; color: var(--muted);
+      font-weight: 500;
+    }
+    .ex-streak strong { color: var(--blue); }
+
     /* ── TOAST ── */
     .toast-wrap { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 300; display: flex; flex-direction: column; gap: .5rem; pointer-events: none; }
     .toast { background: var(--navy); color: white; padding: .7rem 1rem; border-radius: var(--radius-sm); font-size: .83rem; font-weight: 500; box-shadow: 0 4px 20px rgba(0,0,0,.2); pointer-events: auto; animation: toastIn 220ms ease; }
@@ -289,9 +392,11 @@
     .page-loader__spin { width: 42px; height: 42px; border: 3px solid var(--blue-light); border-top-color: var(--blue); border-radius: 50%; animation: spin .8s linear infinite; }
 
     /* ── RESPONSIVE ── */
-    @media (max-width: 1024px) { .grid { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width: 1024px) { .grid { grid-template-columns: repeat(2,1fr); } .exercise-grid { grid-template-columns: repeat(2,1fr); } }
     @media (max-width: 768px) {
       .grid { grid-template-columns: 1fr; }
+      .exercise-grid { grid-template-columns: 1fr; }
+      .tabs { padding: 0 1rem; }
       .hero { padding: 1.75rem 1.25rem; }
       .hero__title { font-size: 1.3rem; }
       .main { padding: 1.5rem 1.25rem 4rem; }
@@ -333,17 +438,41 @@
   <!-- Hero -->
   <div class="hero">
     <div class="hero__inner">
-      <h1 class="hero__title">Mes ressources cliniques</h1>
-      <p class="hero__sub">Ressources sélectionnées par votre équipe selon votre condition.</p>
+      <h1 class="hero__title" id="heroTitle">Mes ressources cliniques</h1>
+      <p class="hero__sub" id="heroSub">Ressources sélectionnées par votre équipe selon votre condition.</p>
     </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn is-active" data-tab="bibliotheque">
+      <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      Ma bibliothèque
+    </button>
+    <button class="tab-btn" data-tab="programme">
+      <svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+      Mon programme
+    </button>
   </div>
 
   <!-- Contenu -->
   <main class="main">
-    <div class="filters" id="filters"></div>
-    <div class="grid" id="grid" role="list">
-      <div class="state-wrap"><div class="spinner"></div></div>
+
+    <!-- Onglet bibliothèque -->
+    <div class="tab-panel is-active" id="tab-bibliotheque">
+      <div class="filters" id="filters"></div>
+      <div class="grid" id="grid" role="list">
+        <div class="state-wrap"><div class="spinner"></div></div>
+      </div>
     </div>
+
+    <!-- Onglet programme -->
+    <div class="tab-panel" id="tab-programme">
+      <div class="exercise-grid" id="exerciseGrid">
+        <div class="state-wrap"><div class="spinner"></div></div>
+      </div>
+    </div>
+
   </main>
 
   <!-- Modal -->
@@ -541,6 +670,193 @@
     function svgPdf()   { return `<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`; }
 
     init().catch(() => { loader.classList.add('is-hidden'); renderError(); });
+
+    // ══════════════════════════════════════════════════════
+    // ONGLETS
+    // ══════════════════════════════════════════════════════
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('is-active', b === btn));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('is-active', p.id === 'tab-' + tab));
+        if (tab === 'programme') {
+          document.getElementById('heroTitle').textContent = 'Mon programme';
+          document.getElementById('heroSub').textContent = 'Exercices prescrits par votre professionnel.';
+          if (!programmeLoaded) loadProgramme();
+        } else {
+          document.getElementById('heroTitle').textContent = 'Mes ressources cliniques';
+          document.getElementById('heroSub').textContent = 'Ressources sélectionnées par votre équipe selon votre condition.';
+        }
+      });
+    });
+
+    // ══════════════════════════════════════════════════════
+    // MODULE PROGRAMME
+    // ══════════════════════════════════════════════════════
+    let programmeLoaded = false;
+    let currentUserId   = null;
+
+    // Récupérer l'userId après init
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) currentUserId = session.user.id;
+    });
+
+    async function loadProgramme() {
+      programmeLoaded = true;
+      const grid = document.getElementById('exerciseGrid');
+
+      try {
+        // Récupérer les exercices prescrits avec leurs paramètres
+        const { data, error } = await supabase
+          .from('patient_exercises')
+          .select(`
+            id, sets, reps, rest_sec, frequency, notes, sort_order,
+            exercise:exercises (id, title, description, bunny_video_id, thumbnail_url, muscle_group)
+          `)
+          .order('sort_order');
+        if (error) throw error;
+
+        if (!data || !data.length) {
+          grid.innerHTML = `<div class="state-wrap">
+            <div class="state-icon"><svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div>
+            <p class="state-title">Aucun exercice prescrit</p>
+            <p class="state-text">Votre professionnel n'a pas encore créé votre programme.</p>
+          </div>`;
+          return;
+        }
+
+        // Récupérer les logs d'aujourd'hui
+        const todayStart = new Date();
+        todayStart.setHours(0,0,0,0);
+        const { data: logs } = await supabase
+          .from('exercise_logs')
+          .select('exercise_id, completed_at')
+          .gte('completed_at', todayStart.toISOString());
+
+        const completedToday = new Set((logs||[]).map(l => l.exercise_id));
+
+        // Compter le total de séances par exercice
+        const { data: allLogs } = await supabase
+          .from('exercise_logs')
+          .select('exercise_id');
+        const logCounts = {};
+        (allLogs||[]).forEach(l => { logCounts[l.exercise_id] = (logCounts[l.exercise_id]||0)+1; });
+
+        grid.innerHTML = data.map(pe => renderExerciseCard(pe, completedToday.has(pe.exercise.id), logCounts[pe.exercise.id]||0)).join('');
+
+        // Boutons compléter
+        grid.querySelectorAll('.btn-complete').forEach(btn => {
+          btn.addEventListener('click', () => toggleComplete(btn));
+        });
+
+        // Thumbs cliquables → modal
+        grid.querySelectorAll('.ex-card__thumb[data-video]').forEach(thumb => {
+          thumb.addEventListener('click', () => {
+            const url = `https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${thumb.dataset.video}?autoplay=true&responsive=true`;
+            openModal(thumb.dataset.title, url);
+          });
+        });
+
+      } catch(e) {
+        grid.innerHTML = `<div class="state-wrap"><p class="state-title">Erreur de chargement</p></div>`;
+      }
+    }
+
+    function renderExerciseCard(pe, doneToday, totalCount) {
+      const ex = pe.exercise;
+      const hasVideo = !!ex.bunny_video_id;
+      const thumb = `<div class="ex-card__thumb"${hasVideo ? ` data-video="${esc(ex.bunny_video_id)}" data-title="${esc(ex.title)}"` : ''} style="${hasVideo?'cursor:pointer':''}">
+        <div class="ex-card__thumb-bg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.5" stroke-linecap="round">
+            <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+            <line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+          </svg>
+        </div>
+        ${hasVideo ? `<div class="ex-card__overlay"></div>
+        <div class="ex-card__play"><div class="ex-card__play-btn"><svg viewBox="0 0 24 24" fill="white" style="width:18px;height:18px;margin-left:3px"><polygon points="5 3 19 12 5 21 5 3"/></svg></div></div>
+        <p class="ex-card__title-overlay">${esc(ex.title)}</p>` : ''}
+      </div>`;
+
+      const params = [
+        pe.sets    ? { label:'Séries', value: pe.sets + ' séries' } : null,
+        pe.reps    ? { label:'Répétitions', value: pe.reps + ' reps' } : null,
+        pe.rest_sec? { label:'Repos', value: fmtRest(pe.rest_sec) } : null,
+        pe.frequency?{ label:'Fréquence', value: pe.frequency } : null,
+      ].filter(Boolean);
+
+      return `<div class="ex-card">
+        ${thumb}
+        <div class="ex-card__body">
+          ${ex.muscle_group ? `<span class="muscle-badge">💪 ${esc(ex.muscle_group)}</span>` : ''}
+          ${!hasVideo ? `<h3 style="font-size:.95rem;font-weight:700;color:var(--text);letter-spacing:-.01em">${esc(ex.title)}</h3>` : ''}
+          ${ex.description ? `<p style="font-size:.8rem;color:var(--muted);line-height:1.55">${esc(ex.description)}</p>` : ''}
+          ${params.length ? `<div class="ex-params">${params.map(p=>`<div class="ex-param"><span class="ex-param__label">${p.label}</span><span class="ex-param__value">${p.value}</span></div>`).join('')}</div>` : ''}
+          ${pe.notes ? `<div class="ex-note"><strong>📝 Note du professionnel</strong>${esc(pe.notes)}</div>` : ''}
+          <button class="btn-complete${doneToday?' is-done':''}" data-exercise="${esc(ex.id)}" data-done="${doneToday}">
+            <svg viewBox="0 0 24 24">${doneToday?'<path d="M20 6L9 17l-5-5"/>':'<circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>'}</svg>
+            ${doneToday ? 'Complété aujourd\'hui ✓' : 'Marquer comme complété'}
+          </button>
+          ${totalCount > 0 ? `<p class="ex-streak"><strong>${totalCount}</strong> séance${totalCount>1?'s':''} complétée${totalCount>1?'s':''} au total</p>` : ''}
+        </div>
+      </div>`;
+    }
+
+    async function toggleComplete(btn) {
+      const exerciseId = btn.dataset.exercise;
+      const isDone = btn.dataset.done === 'true';
+      btn.disabled = true;
+
+      if (!isDone) {
+        // Marquer comme complété
+        const { error } = await supabase.from('exercise_logs').insert({
+          patient_id: currentUserId, exercise_id: exerciseId,
+        });
+        if (!error) {
+          btn.dataset.done = 'true';
+          btn.classList.add('is-done');
+          btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Complété aujourd'hui ✓`;
+          toast('Exercice complété ! 💪', 'success');
+          // Mettre à jour le compteur
+          const streak = btn.parentElement.querySelector('.ex-streak');
+          if (streak) {
+            const n = parseInt(streak.querySelector('strong').textContent) + 1;
+            streak.innerHTML = `<strong>${n}</strong> séance${n>1?'s':''} complétée${n>1?'s':''} au total`;
+          } else {
+            const newStreak = document.createElement('p');
+            newStreak.className = 'ex-streak';
+            newStreak.innerHTML = `<strong>1</strong> séance complétée au total`;
+            btn.after(newStreak);
+          }
+        }
+      } else {
+        // Décocher — supprimer le log d'aujourd'hui
+        const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+        const { error } = await supabase.from('exercise_logs')
+          .delete()
+          .eq('patient_id', currentUserId)
+          .eq('exercise_id', exerciseId)
+          .gte('completed_at', todayStart.toISOString());
+        if (!error) {
+          btn.dataset.done = 'false';
+          btn.classList.remove('is-done');
+          btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg> Marquer comme complété`;
+        }
+      }
+      btn.disabled = false;
+    }
+
+    function fmtRest(sec) {
+      if (sec >= 60) return `${Math.floor(sec/60)} min${sec%60 ? ' '+sec%60+'s' : ''}`;
+      return `${sec} sec`;
+    }
+
+    function openModal(title, url) {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalVideo').innerHTML = `<iframe src="${url}" allowfullscreen allow="autoplay"></iframe>`;
+      document.getElementById('modalOverlay').classList.add('is-open');
+      document.getElementById('modalOverlay').setAttribute('aria-hidden','false');
+      document.body.style.overflow = 'hidden';
+    }
   </script>
 </body>
 </html>
