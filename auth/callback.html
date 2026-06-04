@@ -1,1 +1,178 @@
-<!-- Page de redirection — Supabase renvoie ici après clic sur le magic link -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion en cours… — Neurodisk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue:      #185FA5;
+      --blue-mid:  #d0e3f5;
+      --bg:        #f3f7fc;
+      --text:      #1a2b3c;
+      --muted:     #5a7085;
+      --error:     #c0392b;
+      --error-bg:  #fdf0ee;
+      --font:      'Segoe UI', Arial, Helvetica, sans-serif;
+    }
+    html, body { height: 100%; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100%;
+      padding: 1rem;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 40px rgba(24,95,165,0.16);
+      padding: 2.75rem 2.5rem;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+    .icon {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.25rem;
+    }
+    .icon--loading { background: #e8f0f9; }
+    .icon--success { background: #e6f5ed; }
+    .icon--error   { background: var(--error-bg); }
+
+    .spinner {
+      width: 28px; height: 28px;
+      border: 3px solid var(--blue-mid);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .icon--success svg { stroke: #1a8c4e; }
+    .icon--error   svg { stroke: var(--error); }
+
+    h1 { font-size: 1.15rem; font-weight: 600; margin-bottom: 0.5rem; }
+    p  { font-size: 0.875rem; color: var(--muted); line-height: 1.6; }
+
+    .btn {
+      display: inline-block;
+      margin-top: 1.25rem;
+      padding: 0.7rem 1.75rem;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 100px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+    }
+    .btn:hover { background: #124d8a; }
+  </style>
+</head>
+<body>
+  <div class="card" id="card">
+
+    <!-- État : chargement (affiché par défaut) -->
+    <div id="stateLoading">
+      <div class="icon icon--loading">
+        <div class="spinner"></div>
+      </div>
+      <h1>Connexion en cours…</h1>
+      <p>Vérification de votre lien d'accès, veuillez patienter.</p>
+    </div>
+
+    <!-- État : succès (masqué par défaut) -->
+    <div id="stateSuccess" style="display:none">
+      <div class="icon icon--success">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 6L9 17l-5-5"/>
+        </svg>
+      </div>
+      <h1>Connexion réussie !</h1>
+      <p>Redirection vers votre bibliothèque…</p>
+    </div>
+
+    <!-- État : erreur (masqué par défaut) -->
+    <div id="stateError" style="display:none">
+      <div class="icon icon--error">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <h1>Lien invalide ou expiré</h1>
+      <p id="errorMessage">Ce lien de connexion n'est plus valide. Les liens expirent après 60 minutes et ne peuvent être utilisés qu'une seule fois.</p>
+      <a href="/" class="btn">Demander un nouveau lien</a>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const SUPABASE_URL      = '__SUPABASE_URL__';
+    const SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
+
+    function show(id) {
+      ['stateLoading', 'stateSuccess', 'stateError'].forEach(s => {
+        document.getElementById(s).style.display = s === id ? '' : 'none';
+      });
+    }
+
+    async function handleCallback() {
+      try {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+          auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+        });
+
+        // detectSessionInUrl: true échange automatiquement le token OTP de l'URL
+        // contre une session. On attend que l'échange soit terminé.
+        const { data, error } = await supabase.auth.getSession();
+
+        if (error || !data.session) {
+          // Tenter l'échange explicite si la session n'est pas encore là
+          const hash = window.location.hash;
+          const params = new URLSearchParams(hash.replace('#', '?'));
+          const accessToken  = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+
+          if (accessToken && refreshToken) {
+            const { error: setErr } = await supabase.auth.setSession({
+              access_token:  accessToken,
+              refresh_token: refreshToken,
+            });
+            if (setErr) throw setErr;
+          } else {
+            throw new Error('Aucun token trouvé dans l\'URL.');
+          }
+        }
+
+        // Session établie — afficher succès et rediriger
+        show('stateSuccess');
+        setTimeout(() => {
+          window.location.replace('/library.html');
+        }, 1200);
+
+      } catch (err) {
+        show('stateError');
+        const msg = document.getElementById('errorMessage');
+        if (err?.message && !err.message.includes('token')) {
+          msg.textContent = err.message;
+        }
+      }
+    }
+
+    handleCallback();
+  </script>
+</body>
+</html>

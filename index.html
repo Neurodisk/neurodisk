@@ -1,1 +1,593 @@
-<!-- Page de connexion — formulaire magic link (email) -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion — Bibliothèque Neurodisk</title>
+  <meta name="description" content="Accédez à vos ressources cliniques personnalisées.">
+  <style>
+    /* ── Reset minimal ──────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    img { display: block; max-width: 100%; }
+    button { cursor: pointer; font: inherit; border: none; }
+    input  { font: inherit; }
+
+    /* ── Variables ──────────────────────────────────────── */
+    :root {
+      --blue:         #185FA5;
+      --blue-dark:    #124d8a;
+      --blue-light:   #e8f0f9;
+      --blue-mid:     #d0e3f5;
+      --white:        #ffffff;
+      --bg:           #f3f7fc;
+      --text:         #1a2b3c;
+      --text-muted:   #5a7085;
+      --border:       #ccdaeb;
+      --success:      #1a8c4e;
+      --success-bg:   #e6f5ed;
+      --error:        #c0392b;
+      --error-bg:     #fdf0ee;
+      --radius:       12px;
+      --radius-pill:  100px;
+      --shadow:       0 4px 24px rgba(24, 95, 165, 0.10);
+      --shadow-lg:    0 8px 40px rgba(24, 95, 165, 0.16);
+      --font:         'Segoe UI', Arial, Helvetica, sans-serif;
+      --transition:   200ms ease;
+    }
+
+    /* ── Base ───────────────────────────────────────────── */
+    html, body {
+      height: 100%;
+    }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+
+    /* ── Layout ─────────────────────────────────────────── */
+    .page {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    /* ── Card ───────────────────────────────────────────── */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 440px;
+      padding: 2.75rem 2.5rem;
+    }
+
+    /* ── Logo / En-tête ─────────────────────────────────── */
+    .card__header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+      text-decoration: none;
+    }
+    .logo__icon {
+      width: 40px;
+      height: 40px;
+      background: var(--blue);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo__icon svg {
+      width: 22px;
+      height: 22px;
+      fill: none;
+      stroke: var(--white);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .logo__name {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--blue);
+      letter-spacing: -0.02em;
+    }
+    .logo__name span {
+      font-weight: 400;
+      color: var(--text-muted);
+    }
+    .card__title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+    .card__subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ── Formulaire ─────────────────────────────────────── */
+    .form { display: flex; flex-direction: column; gap: 1rem; }
+
+    .field { display: flex; flex-direction: column; gap: 0.35rem; }
+    .field label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .field input[type="email"] {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      color: var(--text);
+      background: var(--white);
+      transition: border-color var(--transition), box-shadow var(--transition);
+      outline: none;
+    }
+    .field input[type="email"]::placeholder {
+      color: #a0b4c8;
+    }
+    .field input[type="email"]:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(24, 95, 165, 0.12);
+    }
+    .field input[type="email"].is-error {
+      border-color: var(--error);
+      box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.10);
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 0.85rem 1.5rem;
+      background: var(--blue);
+      color: var(--white);
+      border-radius: var(--radius-pill);
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+      box-shadow: 0 2px 8px rgba(24, 95, 165, 0.25);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--blue-dark);
+      box-shadow: 0 4px 14px rgba(24, 95, 165, 0.35);
+    }
+    .btn-primary:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+    .btn-primary:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    /* Spinner dans le bouton */
+    .btn-primary .spinner {
+      display: none;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: var(--white);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto;
+    }
+    .btn-primary.is-loading .btn-label { display: none; }
+    .btn-primary.is-loading .spinner  { display: block; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── Messages d'état ────────────────────────────────── */
+    .alert {
+      display: none;
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+    .alert.is-visible { display: flex; align-items: flex-start; gap: 0.6rem; }
+    .alert svg { flex-shrink: 0; margin-top: 1px; }
+
+    .alert--error {
+      background: var(--error-bg);
+      color: var(--error);
+      border: 1px solid rgba(192, 57, 43, 0.2);
+    }
+
+    /* ── Vue confirmation (après envoi du lien) ─────────── */
+    .confirmation {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 1rem;
+    }
+    .confirmation.is-visible { display: flex; }
+
+    .confirmation__icon {
+      width: 64px;
+      height: 64px;
+      background: var(--success-bg);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .confirmation__icon svg {
+      width: 28px;
+      height: 28px;
+      stroke: var(--success);
+      stroke-width: 2.5;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .confirmation__title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .confirmation__text {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .confirmation__email {
+      font-weight: 600;
+      color: var(--blue);
+      word-break: break-all;
+    }
+    .confirmation__note {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      padding: 0.75rem 1rem;
+      background: var(--blue-light);
+      border-radius: 8px;
+      line-height: 1.5;
+      width: 100%;
+    }
+    .btn-ghost {
+      background: none;
+      color: var(--blue);
+      font-size: 0.875rem;
+      font-weight: 600;
+      padding: 0.4rem 0;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      transition: color var(--transition);
+    }
+    .btn-ghost:hover { color: var(--blue-dark); }
+
+    /* ── Séparateur ─────────────────────────────────────── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 0.25rem 0;
+    }
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .divider span {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* ── Footer card ────────────────────────────────────── */
+    .card__footer {
+      margin-top: 1.75rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .card__footer a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+    .card__footer a:hover { text-decoration: underline; }
+
+    /* ── Vue chargement initial (vérif session) ─────────── */
+    .page-loader {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: none;           /* caché par défaut — activé par JS si Supabase configuré */
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: opacity 300ms ease;
+    }
+    .page-loader.is-active  { display: flex; }
+    .page-loader.is-hidden  { opacity: 0; pointer-events: none; }
+    .page-loader__spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--blue-mid);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* ── Footer page ────────────────────────────────────── */
+    .site-footer {
+      text-align: center;
+      padding: 1.5rem 1rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    /* ── Responsive ─────────────────────────────────────── */
+    @media (max-width: 480px) {
+      .card { padding: 2rem 1.5rem; }
+      .card__title { font-size: 1.1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Écran de chargement — rendu visible uniquement par JS si Supabase est configuré -->
+  <div class="page-loader" id="pageLoader" aria-hidden="true">
+    <div class="page-loader__spinner"></div>
+  </div>
+
+  <main class="page" role="main">
+    <div class="card" role="region" aria-label="Connexion">
+
+      <!-- En-tête -->
+      <header class="card__header">
+        <a href="/" class="logo" aria-label="Neurodisk — Accueil">
+          <div class="logo__icon" aria-hidden="true">
+            <!-- Icône vertèbre stylisée -->
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <ellipse cx="12" cy="12" rx="5" ry="3.5"/>
+              <path d="M7 12c0-4 2-7 5-8M17 12c0-4-2-7-5-8"/>
+              <path d="M7 12c0 4 2 7 5 8M17 12c0 4-2 7-5 8"/>
+              <circle cx="12" cy="12" r="1.5" fill="white" stroke="none"/>
+            </svg>
+          </div>
+          <span class="logo__name">Neuro<span>disk</span></span>
+        </a>
+        <h1 class="card__title">Votre bibliothèque clinique</h1>
+        <p class="card__subtitle">
+          Accédez à vos ressources personnalisées en toute sécurité.<br>
+          Aucun mot de passe requis.
+        </p>
+      </header>
+
+      <!-- ── Vue 1 : Formulaire ── -->
+      <div id="viewForm">
+        <form class="form" id="loginForm" novalidate>
+
+          <div class="field">
+            <label for="emailInput">Adresse courriel</label>
+            <input
+              type="email"
+              id="emailInput"
+              name="email"
+              placeholder="prenom.nom@exemple.com"
+              autocomplete="email"
+              autocapitalize="off"
+              spellcheck="false"
+              required
+              aria-describedby="emailError"
+            >
+          </div>
+
+          <!-- Erreur inline -->
+          <div class="alert alert--error" id="emailError" role="alert" aria-live="polite">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span id="emailErrorText"></span>
+          </div>
+
+          <button type="submit" class="btn-primary" id="submitBtn">
+            <span class="btn-label">Recevoir mon lien d'accès</span>
+            <span class="spinner" aria-hidden="true"></span>
+          </button>
+
+        </form>
+
+        <div class="divider" aria-hidden="true"><span>Connexion sécurisée par lien unique</span></div>
+
+        <p style="text-align:center; font-size:0.82rem; color:var(--text-muted); line-height:1.5;">
+          Un lien de connexion vous sera envoyé par courriel.<br>
+          Valide 60&nbsp;minutes, à usage unique.
+        </p>
+      </div>
+
+      <!-- ── Vue 2 : Confirmation ── -->
+      <div class="confirmation" id="viewConfirmation" aria-live="assertive">
+        <div class="confirmation__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+        </div>
+        <p class="confirmation__title">Vérifiez votre boîte courriel</p>
+        <p class="confirmation__text">
+          Un lien de connexion a été envoyé à<br>
+          <strong class="confirmation__email" id="confirmedEmail"></strong>
+        </p>
+        <p class="confirmation__note">
+          📬 Vérifiez aussi votre dossier <strong>courrier indésirable</strong> si vous ne voyez pas le courriel dans les prochaines minutes.
+        </p>
+        <button class="btn-ghost" id="btnRetry" type="button">
+          Renvoyer ou changer d'adresse
+        </button>
+      </div>
+
+    </div><!-- /card -->
+  </main>
+
+  <footer class="site-footer">
+    &copy; <span id="year"></span> Clinique Neurodisk — Saguenay, Québec
+  </footer>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    // ── Config Supabase ──────────────────────────────────
+    // Remplacer par vos valeurs (ou injecter via Netlify)
+    const SUPABASE_URL      = '__SUPABASE_URL__';
+    const SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
+
+    // Guard : ne pas initialiser si les placeholders n'ont pas été remplacés
+    const IS_CONFIGURED = SUPABASE_URL.startsWith('https://') && !SUPABASE_URL.includes('__');
+
+    const supabase = IS_CONFIGURED
+      ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+          auth: {
+            persistSession:     true,
+            autoRefreshToken:   true,
+            detectSessionInUrl: true,
+          },
+        })
+      : null;
+
+    // ── Éléments DOM ─────────────────────────────────────
+    const loader          = document.getElementById('pageLoader');
+    const viewForm        = document.getElementById('viewForm');
+    const viewConfirm     = document.getElementById('viewConfirmation');
+    const form            = document.getElementById('loginForm');
+    const emailInput      = document.getElementById('emailInput');
+    const submitBtn       = document.getElementById('submitBtn');
+    const emailError      = document.getElementById('emailError');
+    const emailErrorText  = document.getElementById('emailErrorText');
+    const confirmedEmail  = document.getElementById('confirmedEmail');
+    const btnRetry        = document.getElementById('btnRetry');
+
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // ── 1. Vérification session existante ────────────────
+    // Si l'utilisateur est déjà connecté → bibliothèque
+    async function checkSession() {
+      if (!IS_CONFIGURED) return; // Pas de Supabase configuré : formulaire visible directement
+
+      // Afficher le loader seulement maintenant qu'on sait qu'on va interroger Supabase
+      loader.classList.add('is-active');
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          window.location.replace('/library.html');
+          return;
+        }
+      } catch (_) {
+        // Pas de session ou erreur réseau : afficher la page normalement
+      } finally {
+        loader.classList.add('is-hidden');
+        setTimeout(() => loader.remove(), 350);
+      }
+    }
+
+    checkSession();
+
+    // ── 2. Soumission du formulaire ──────────────────────
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearError();
+
+      const email = emailInput.value.trim().toLowerCase();
+
+      if (!email) {
+        showError('Veuillez entrer votre adresse courriel.');
+        emailInput.focus();
+        return;
+      }
+      if (!isValidEmail(email)) {
+        showError('Cette adresse courriel ne semble pas valide.');
+        emailInput.focus();
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback.html`,
+            shouldCreateUser: false, // N'accepte que les patients déjà enregistrés
+          },
+        });
+
+        if (error) {
+          // Supabase retourne une erreur générique pour les emails inconnus
+          // afin d'éviter l'énumération de comptes.
+          showError('Une erreur est survenue. Vérifiez votre adresse ou contactez la clinique.');
+          return;
+        }
+
+        showConfirmation(email);
+
+      } catch (_) {
+        showError('Impossible de joindre le serveur. Vérifiez votre connexion internet.');
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    // ── 3. Bouton "Renvoyer / changer" ───────────────────
+    btnRetry.addEventListener('click', () => {
+      viewConfirm.classList.remove('is-visible');
+      viewForm.style.display = '';
+      emailInput.value = '';
+      emailInput.focus();
+    });
+
+    // ── Helpers ──────────────────────────────────────────
+    function isValidEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    function showError(message) {
+      emailErrorText.textContent = message;
+      emailError.classList.add('is-visible');
+      emailInput.classList.add('is-error');
+      emailInput.setAttribute('aria-invalid', 'true');
+    }
+
+    function clearError() {
+      emailError.classList.remove('is-visible');
+      emailInput.classList.remove('is-error');
+      emailInput.removeAttribute('aria-invalid');
+    }
+
+    function setLoading(state) {
+      submitBtn.disabled = state;
+      submitBtn.classList.toggle('is-loading', state);
+    }
+
+    function showConfirmation(email) {
+      confirmedEmail.textContent = email;
+      viewForm.style.display = 'none';
+      viewConfirm.classList.add('is-visible');
+    }
+  </script>
+
+</body>
+</html>
