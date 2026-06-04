@@ -1,0 +1,1 @@
+-- Schéma de la base de données — tables, relations, politiques RLS (Row Level Security)

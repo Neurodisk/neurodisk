@@ -1,0 +1,1 @@
+-- Données de test — patients fictifs, ressources exemples, assignations pour le développement
