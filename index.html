@@ -360,16 +360,24 @@
       <!-- En-tête -->
       <header class="card__header">
         <a href="/" class="logo" aria-label="Neurodisk — Accueil">
-          <div class="logo__icon" aria-hidden="true">
-            <!-- Icône vertèbre stylisée -->
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <ellipse cx="12" cy="12" rx="5" ry="3.5"/>
-              <path d="M7 12c0-4 2-7 5-8M17 12c0-4-2-7-5-8"/>
-              <path d="M7 12c0 4 2 7 5 8M17 12c0 4-2 7-5 8"/>
-              <circle cx="12" cy="12" r="1.5" fill="white" stroke="none"/>
-            </svg>
+          <img
+            src="/assets/logo-neurodisk.png"
+            alt="Neurodisk"
+            style="height:44px;width:auto"
+            onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+          >
+          <!-- Fallback si le fichier image est absent -->
+          <div style="display:none;align-items:center;gap:.5rem">
+            <div class="logo__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <ellipse cx="12" cy="12" rx="5" ry="3.5"/>
+                <path d="M7 12c0-4 2-7 5-8M17 12c0-4-2-7-5-8"/>
+                <path d="M7 12c0 4 2 7 5 8M17 12c0 4-2 7-5 8"/>
+                <circle cx="12" cy="12" r="1.5" fill="white" stroke="none"/>
+              </svg>
+            </div>
+            <span class="logo__name">Neuro<span>disk</span></span>
           </div>
-          <span class="logo__name">Neuro<span>disk</span></span>
         </a>
         <h1 class="card__title">Votre bibliothèque clinique</h1>
         <p class="card__subtitle">
