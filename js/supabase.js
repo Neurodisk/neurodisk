@@ -17,11 +17,11 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 // ── Configuration ─────────────────────────────────────────
 // Ces valeurs sont publiques (anon key) et sûres côté client.
 // La sécurité repose sur les politiques RLS, pas sur cette clé.
-const SUPABASE_URL      = window.__env?.SUPABASE_URL      || 'REMPLACER_PAR_VOTRE_URL';
-const SUPABASE_ANON_KEY = window.__env?.SUPABASE_ANON_KEY || 'REMPLACER_PAR_VOTRE_ANON_KEY';
+const SUPABASE_URL      = window.__env?.SUPABASE_URL      || 'https://xyczzekvgahkzlntsils.supabase.co';
+const SUPABASE_ANON_KEY = window.__env?.SUPABASE_ANON_KEY || 'sb_publishable_yRetJVmDBuU6XNY08FbXfQ_C9glVlqi';
 
 // ID de la librairie Bunny.net (visible dans le dashboard Bunny)
-export const BUNNY_LIBRARY_ID = window.__env?.BUNNY_LIBRARY_ID || 'REMPLACER_PAR_LIBRARY_ID';
+export const BUNNY_LIBRARY_ID = window.__env?.BUNNY_LIBRARY_ID || '676634';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
