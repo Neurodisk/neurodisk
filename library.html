@@ -1,1 +1,941 @@
-<!-- Bibliothèque patient — grille de ressources assignées (protégée, requiert session) -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ma bibliothèque — Neurodisk</title>
+  <meta name="description" content="Vos ressources cliniques personnalisées.">
+  <style>
+    /* ── Reset ──────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    img { display: block; max-width: 100%; }
+    button { cursor: pointer; font: inherit; border: none; background: none; }
+
+    /* ── Variables ──────────────────────────────────────── */
+    :root {
+      --blue:          #185FA5;
+      --blue-dark:     #124d8a;
+      --blue-light:    #e8f0f9;
+      --blue-mid:      #d0e3f5;
+      --white:         #ffffff;
+      --bg:            #f3f7fc;
+      --bg-card:       #ffffff;
+      --text:          #1a2b3c;
+      --text-muted:    #5a7085;
+      --border:        #ccdaeb;
+      --radius:        12px;
+      --radius-sm:     8px;
+      --shadow:        0 2px 12px rgba(24,95,165,0.08);
+      --shadow-hover:  0 6px 24px rgba(24,95,165,0.16);
+      --nav-h:         64px;
+      --font:          'Segoe UI', Arial, Helvetica, sans-serif;
+      --transition:    200ms ease;
+
+      /* Badges condition */
+      --tag-arthrose:              #eef5ff;
+      --tag-arthrose-text:         #185FA5;
+      --tag-hernie:                #f0faf5;
+      --tag-hernie-text:           #1a7a48;
+      --tag-douleurs:              #fff7ed;
+      --tag-douleurs-text:         #b45309;
+      --tag-general:               #f5f3ff;
+      --tag-general-text:          #6d28d9;
+    }
+
+    /* ── Base ───────────────────────────────────────────── */
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Barre de navigation ────────────────────────────── */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      height: var(--nav-h);
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 8px rgba(24,95,165,0.07);
+    }
+    .nav__inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .nav__logo {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .nav__logo img {
+      height: 38px;
+      width: auto;
+    }
+    /* Fallback si le logo image n'est pas encore en place */
+    .nav__logo-text {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--blue);
+      letter-spacing: -0.02em;
+    }
+    .nav__logo-text span { font-weight: 400; color: var(--text-muted); }
+
+    .nav__right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .nav__greeting {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
+    .nav__greeting strong { color: var(--text); }
+    .btn-signout {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: 100px;
+      font-size: 0.825rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+      transition: border-color var(--transition), color var(--transition), background var(--transition);
+    }
+    .btn-signout:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: var(--blue-light);
+    }
+    .btn-signout svg { flex-shrink: 0; }
+
+    /* ── Contenu principal ──────────────────────────────── */
+    .main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    /* ── En-tête page ───────────────────────────────────── */
+    .page-header {
+      margin-bottom: 1.75rem;
+    }
+    .page-header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.3rem;
+    }
+    .page-header p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    /* ── Filtres ────────────────────────────────────────── */
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.75rem;
+    }
+    .filter-btn {
+      padding: 0.45rem 1rem;
+      border-radius: 100px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border: 1.5px solid var(--border);
+      color: var(--text-muted);
+      background: var(--white);
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+    .filter-btn:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: var(--blue-light);
+    }
+    .filter-btn.is-active {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: var(--white);
+    }
+    .filter-btn .count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 100px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      margin-left: 0.35rem;
+      background: rgba(255,255,255,0.25);
+      padding: 0 4px;
+    }
+    .filter-btn:not(.is-active) .count {
+      background: var(--blue-light);
+      color: var(--blue);
+    }
+
+    /* ── Grille de ressources ───────────────────────────── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+    }
+
+    /* ── Carte ressource ────────────────────────────────── */
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: box-shadow var(--transition), transform var(--transition), border-color var(--transition);
+      cursor: pointer;
+    }
+    .card:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-2px);
+      border-color: var(--blue-mid);
+    }
+    .card:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    /* Vignette */
+    .card__thumb {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: var(--blue-light);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .card__thumb img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .card__thumb-placeholder {
+      width: 100%; height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--blue-light) 0%, var(--blue-mid) 100%);
+    }
+    .card__thumb-placeholder svg {
+      width: 40px; height: 40px;
+      opacity: 0.45;
+    }
+
+    /* Bouton play (vidéo) */
+    .card__play {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card__play-btn {
+      width: 52px; height: 52px;
+      background: rgba(24,95,165,0.88);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform var(--transition), background var(--transition);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+    }
+    .card:hover .card__play-btn {
+      transform: scale(1.1);
+      background: var(--blue);
+    }
+    .card__play-btn svg {
+      width: 20px; height: 20px;
+      fill: white;
+      margin-left: 3px; /* optique */
+    }
+
+    /* Badge durée */
+    .card__duration {
+      position: absolute;
+      bottom: 0.5rem;
+      right: 0.5rem;
+      background: rgba(0,0,0,0.65);
+      color: white;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      letter-spacing: 0.02em;
+    }
+
+    /* Contenu carte */
+    .card__body {
+      padding: 1rem 1.1rem 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      flex: 1;
+    }
+    .card__meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 100px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge--video  { background: #e8f0f9; color: var(--blue); }
+    .badge--pdf    { background: #fef3e2; color: #b45309; }
+
+    .badge--condition-arthrose              { background: var(--tag-arthrose);  color: var(--tag-arthrose-text); }
+    .badge--condition-hernie_discale        { background: var(--tag-hernie);    color: var(--tag-hernie-text); }
+    .badge--condition-douleurs_persistantes { background: var(--tag-douleurs);  color: var(--tag-douleurs-text); }
+    .badge--condition-general               { background: var(--tag-general);   color: var(--tag-general-text); }
+
+    .card__title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card__desc {
+      font-size: 0.825rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card__action {
+      margin-top: auto;
+      padding-top: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--blue);
+    }
+    .card__action svg { flex-shrink: 0; }
+
+    /* ── États vides / chargement ───────────────────────── */
+    .state-loading,
+    .state-empty,
+    .state-error {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 4rem 1rem;
+      gap: 1rem;
+    }
+    .state-loading .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--blue-mid);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .state-icon {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: var(--blue-light);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .state-icon svg { width: 28px; height: 28px; stroke: var(--blue); }
+    .state-title { font-size: 1.05rem; font-weight: 600; color: var(--text); }
+    .state-text  { font-size: 0.875rem; color: var(--text-muted); max-width: 340px; line-height: 1.6; }
+
+    /* ── Modal vidéo ────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 20, 40, 0.82);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      animation: fadeIn 200ms ease;
+    }
+    .modal-overlay.is-open { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .modal {
+      width: 100%;
+      max-width: 860px;
+      background: #0a1428;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+      animation: slideUp 220ms ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    .modal__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.9rem 1.1rem;
+      gap: 1rem;
+    }
+    .modal__title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.9);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .modal__close {
+      flex-shrink: 0;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.12);
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.8);
+      transition: background var(--transition), color var(--transition);
+    }
+    .modal__close:hover { background: rgba(255,255,255,0.22); color: white; }
+    .modal__close svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2.5; }
+
+    .modal__video {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+    }
+    .modal__video iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* ── Toast notifications ─────────────────────────────── */
+    .toast-container {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 300;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--text);
+      color: white;
+      padding: 0.7rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      max-width: 300px;
+      animation: toastIn 250ms ease;
+      pointer-events: auto;
+    }
+    .toast--error { background: #c0392b; }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Page loader (vérif session) ───────────────────── */
+    .page-loader {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+      transition: opacity 300ms ease;
+    }
+    .page-loader.is-hidden { opacity: 0; pointer-events: none; }
+    .page-loader__spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--blue-mid);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* ── Responsive ─────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr; }
+      .nav__greeting { display: none; }
+      .main { padding: 1.25rem 1rem 3rem; }
+      .page-header h1 { font-size: 1.25rem; }
+      .modal { border-radius: var(--radius-sm); }
+    }
+    @media (max-width: 480px) {
+      .nav__inner { padding: 0 1rem; }
+      .btn-signout span { display: none; }
+      .btn-signout { padding: 0.45rem 0.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Page loader -->
+  <div class="page-loader" id="pageLoader">
+    <div class="page-loader__spinner"></div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="nav" role="navigation" aria-label="Navigation principale">
+    <div class="nav__inner">
+      <a href="/" class="nav__logo" aria-label="Neurodisk — Accueil">
+        <img
+          src="/assets/logo-neurodisk.png"
+          alt="Neurodisk"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+        >
+        <span class="nav__logo-text" style="display:none">Neuro<span>disk</span></span>
+      </a>
+
+      <div class="nav__right">
+        <span class="nav__greeting" id="greeting" aria-live="polite"></span>
+        <button class="btn-signout" id="btnSignout" aria-label="Se déconnecter">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          <span>Déconnexion</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Contenu principal -->
+  <main class="main" id="main">
+
+    <header class="page-header">
+      <h1>Mes ressources cliniques</h1>
+      <p>Ressources sélectionnées par votre équipe Neurodisk selon votre condition.</p>
+    </header>
+
+    <!-- Filtres -->
+    <div class="filters" id="filters" role="group" aria-label="Filtrer par condition"></div>
+
+    <!-- Grille -->
+    <div class="grid" id="grid" role="list" aria-label="Ressources disponibles">
+      <div class="state-loading" aria-live="polite" aria-label="Chargement en cours">
+        <div class="spinner"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal vidéo -->
+  <div
+    class="modal-overlay"
+    id="modalOverlay"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Lecteur vidéo"
+    aria-hidden="true"
+  >
+    <div class="modal" id="modal">
+      <div class="modal__header">
+        <span class="modal__title" id="modalTitle"></span>
+        <button class="modal__close" id="modalClose" aria-label="Fermer la vidéo">
+          <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal__video" id="modalVideo"></div>
+    </div>
+  </div>
+
+  <!-- Toasts -->
+  <div class="toast-container" id="toastContainer" aria-live="assertive"></div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    // ── Config ───────────────────────────────────────────
+    const SUPABASE_URL      = '__SUPABASE_URL__';
+    const SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
+    const BUNNY_LIBRARY_ID  = '__BUNNY_LIBRARY_ID__';
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    });
+
+    // ── DOM ──────────────────────────────────────────────
+    const pageLoader  = document.getElementById('pageLoader');
+    const greeting    = document.getElementById('greeting');
+    const btnSignout  = document.getElementById('btnSignout');
+    const filtersEl   = document.getElementById('filters');
+    const gridEl      = document.getElementById('grid');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalTitle  = document.getElementById('modalTitle');
+    const modalVideo  = document.getElementById('modalVideo');
+    const modalClose  = document.getElementById('modalClose');
+    const toastCont   = document.getElementById('toastContainer');
+
+    // ── Labels des conditions ─────────────────────────────
+    const CONDITION_LABELS = {
+      arthrose:               'Arthrose',
+      hernie_discale:         'Hernie discale',
+      douleurs_persistantes:  'Douleurs persistantes',
+      general:                'Général',
+    };
+
+    // ── État ─────────────────────────────────────────────
+    let allResources  = [];
+    let activeFilter  = 'all';
+
+    // ── Init ─────────────────────────────────────────────
+    async function init() {
+      // 1. Vérifier session
+      const { data: { session }, error: sessErr } = await supabase.auth.getSession();
+      if (sessErr || !session) {
+        window.location.replace('/');
+        return;
+      }
+
+      hideLoader();
+
+      // 2. Afficher le prénom
+      const user = session.user;
+      setGreeting(user);
+
+      // 3. Charger les ressources assignées
+      await loadResources(user.id);
+    }
+
+    function hideLoader() {
+      pageLoader.classList.add('is-hidden');
+      setTimeout(() => pageLoader.remove(), 350);
+    }
+
+    function setGreeting(user) {
+      const name = user.user_metadata?.full_name || user.email?.split('@')[0] || '';
+      const firstName = name.split(' ')[0];
+      const hour = new Date().getHours();
+      const salut = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir';
+      greeting.innerHTML = `${salut}, <strong>${firstName}</strong>`;
+    }
+
+    async function loadResources(userId) {
+      try {
+        const { data, error } = await supabase
+          .from('patient_resources')
+          .select(`
+            assigned_at,
+            resource:resources (
+              id, title, description, type,
+              condition_tag, bunny_video_id, pdf_url,
+              thumbnail_url, duration_sec, sort_order
+            )
+          `)
+          .order('assigned_at', { ascending: false });
+
+        if (error) throw error;
+
+        allResources = data
+          .map(row => ({ ...row.resource, assigned_at: row.assigned_at }))
+          .filter(r => r && r.id)
+          .sort((a, b) => a.sort_order - b.sort_order);
+
+        renderFilters();
+        renderGrid('all');
+
+      } catch (err) {
+        renderError();
+        toast('Impossible de charger vos ressources.', 'error');
+      }
+    }
+
+    // ── Rendu des filtres ─────────────────────────────────
+    function renderFilters() {
+      // Compter par condition
+      const counts = {};
+      allResources.forEach(r => {
+        counts[r.condition_tag] = (counts[r.condition_tag] || 0) + 1;
+      });
+
+      const conditions = Object.keys(counts);
+      if (conditions.length <= 1) {
+        // Un seul groupe → pas besoin de filtres
+        filtersEl.style.display = 'none';
+        return;
+      }
+
+      const total = allResources.length;
+      const buttons = [
+        { key: 'all', label: 'Tout', count: total },
+        ...conditions.map(k => ({ key: k, label: CONDITION_LABELS[k] || k, count: counts[k] })),
+      ];
+
+      filtersEl.innerHTML = buttons.map(({ key, label, count }) => `
+        <button
+          class="filter-btn${key === 'all' ? ' is-active' : ''}"
+          data-filter="${key}"
+          aria-pressed="${key === 'all'}"
+        >
+          ${label}<span class="count">${count}</span>
+        </button>
+      `).join('');
+
+      filtersEl.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const f = btn.dataset.filter;
+          activeFilter = f;
+          filtersEl.querySelectorAll('.filter-btn').forEach(b => {
+            b.classList.toggle('is-active', b.dataset.filter === f);
+            b.setAttribute('aria-pressed', b.dataset.filter === f ? 'true' : 'false');
+          });
+          renderGrid(f);
+        });
+      });
+    }
+
+    // ── Rendu de la grille ────────────────────────────────
+    function renderGrid(filter) {
+      const resources = filter === 'all'
+        ? allResources
+        : allResources.filter(r => r.condition_tag === filter);
+
+      if (resources.length === 0) {
+        gridEl.innerHTML = `
+          <div class="state-empty" role="status">
+            <div class="state-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.74V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h16"/>
+                <path d="M7 8h10M7 12h6"/>
+              </svg>
+            </div>
+            <p class="state-title">Aucune ressource dans cette catégorie</p>
+            <p class="state-text">Votre équipe Neurodisk n'a pas encore assigné de ressources pour cette condition.</p>
+          </div>`;
+        return;
+      }
+
+      gridEl.innerHTML = resources.map(r => renderCard(r)).join('');
+
+      // Attacher les événements
+      gridEl.querySelectorAll('.card').forEach(card => {
+        const id   = card.dataset.id;
+        const type = card.dataset.type;
+        const url  = card.dataset.url;
+        const title = card.dataset.title;
+
+        card.addEventListener('click', () => {
+          if (type === 'video') openVideoModal(id, title, url);
+          else openPdf(url);
+        });
+        card.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            card.click();
+          }
+        });
+      });
+    }
+
+    // ── Template d'une carte ──────────────────────────────
+    function renderCard(r) {
+      const isVideo   = r.type === 'video';
+      const condLabel = CONDITION_LABELS[r.condition_tag] || r.condition_tag;
+      const videoUrl  = isVideo
+        ? `https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${r.bunny_video_id}?autoplay=true&responsive=true`
+        : '';
+
+      const thumb = r.thumbnail_url
+        ? `<img src="${r.thumbnail_url}" alt="" loading="lazy">`
+        : `<div class="card__thumb-placeholder">
+             ${isVideo ? iconVideo() : iconPdf()}
+           </div>`;
+
+      const duration = isVideo && r.duration_sec
+        ? `<span class="card__duration">${formatDuration(r.duration_sec)}</span>`
+        : '';
+
+      const playOverlay = isVideo
+        ? `<div class="card__play" aria-hidden="true">
+             <div class="card__play-btn">
+               <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+             </div>
+           </div>`
+        : '';
+
+      const actionLabel = isVideo ? 'Visionner la vidéo' : 'Ouvrir le PDF';
+      const actionIcon  = isVideo
+        ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/></svg>`
+        : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+
+      return `
+        <article
+          class="card"
+          role="listitem"
+          tabindex="0"
+          data-id="${r.id}"
+          data-type="${r.type}"
+          data-url="${isVideo ? videoUrl : (r.pdf_url || '')}"
+          data-title="${escHtml(r.title)}"
+          aria-label="${escHtml(r.title)} — ${isVideo ? 'Vidéo' : 'PDF'}"
+        >
+          <div class="card__thumb">
+            ${thumb}
+            ${playOverlay}
+            ${duration}
+          </div>
+          <div class="card__body">
+            <div class="card__meta">
+              <span class="badge badge--${r.type}">${isVideo ? 'Vidéo' : 'PDF'}</span>
+              <span class="badge badge--condition-${r.condition_tag}">${condLabel}</span>
+            </div>
+            <h2 class="card__title">${escHtml(r.title)}</h2>
+            ${r.description ? `<p class="card__desc">${escHtml(r.description)}</p>` : ''}
+            <p class="card__action">${actionIcon} ${actionLabel}</p>
+          </div>
+        </article>`;
+    }
+
+    // ── Modal vidéo ───────────────────────────────────────
+    function openVideoModal(id, title, embedUrl) {
+      modalTitle.textContent = title;
+      modalVideo.innerHTML   = `<iframe src="${embedUrl}" allowfullscreen allow="autoplay"></iframe>`;
+      modalOverlay.classList.add('is-open');
+      modalOverlay.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      modalClose.focus();
+    }
+
+    function closeModal() {
+      modalOverlay.classList.remove('is-open');
+      modalOverlay.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      // Vider l'iframe pour stopper la vidéo
+      setTimeout(() => { modalVideo.innerHTML = ''; }, 300);
+    }
+
+    modalClose.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', e => {
+      if (e.target === modalOverlay) closeModal();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && modalOverlay.classList.contains('is-open')) closeModal();
+    });
+
+    // ── PDF ───────────────────────────────────────────────
+    function openPdf(url) {
+      if (!url) { toast('URL du PDF non disponible.', 'error'); return; }
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
+    // ── Déconnexion ───────────────────────────────────────
+    btnSignout.addEventListener('click', async () => {
+      btnSignout.disabled = true;
+      await supabase.auth.signOut();
+      window.location.replace('/');
+    });
+
+    // ── État d'erreur ─────────────────────────────────────
+    function renderError() {
+      gridEl.innerHTML = `
+        <div class="state-error" role="alert">
+          <div class="state-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <p class="state-title">Erreur de chargement</p>
+          <p class="state-text">Impossible de récupérer vos ressources. Vérifiez votre connexion et rechargez la page.</p>
+        </div>`;
+    }
+
+    // ── Toast ─────────────────────────────────────────────
+    function toast(message, type = 'info') {
+      const el = document.createElement('div');
+      el.className = `toast${type === 'error' ? ' toast--error' : ''}`;
+      el.textContent = message;
+      toastCont.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
+    }
+
+    // ── Helpers ───────────────────────────────────────────
+    function formatDuration(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    function escHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function iconVideo() {
+      return `<svg viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+      </svg>`;
+    }
+
+    function iconPdf() {
+      return `<svg viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/>
+      </svg>`;
+    }
+
+    // ── Lancer ────────────────────────────────────────────
+    init().catch(() => {
+      hideLoader();
+      renderError();
+    });
+  </script>
+
+</body>
+</html>
