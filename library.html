@@ -539,6 +539,12 @@
 
       <div class="nav__right">
         <span class="nav__greeting" id="greeting" aria-live="polite"></span>
+        <a href="/admin/" id="btnAdmin" style="display:none" class="btn-signout" aria-label="Panel admin">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+          <span>Admin</span>
+        </a>
         <button class="btn-signout" id="btnSignout" aria-label="Se déconnecter">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -643,9 +649,16 @@
 
       hideLoader();
 
-      // 2. Afficher le prénom
+      // 2. Afficher le prénom + bouton admin si applicable
       const user = session.user;
       setGreeting(user);
+
+      // Afficher le bouton Admin si is_admin = true
+      const { data: profile } = await supabase
+        .from('profiles').select('is_admin').eq('id', user.id).single();
+      if (profile?.is_admin) {
+        document.getElementById('btnAdmin').style.display = 'flex';
+      }
 
       // 3. Charger les ressources assignées
       await loadResources(user.id);
