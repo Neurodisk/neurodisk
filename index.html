@@ -112,19 +112,42 @@
     .field { display: flex; flex-direction: column; gap: 0.35rem; }
     .field label { font-size: .8rem; font-weight: 700; color: var(--text);
       text-transform: uppercase; letter-spacing: .05em; }
-    .field input[type="email"] {
+    /* Styles partagés email + mot de passe */
+    .field input[type="email"],
+    .field input[type="password"],
+    .field input[type="text"] {
       width: 100%; padding: .8rem 1.1rem;
       border: 1.5px solid var(--border); border-radius: var(--radius);
       font-size: .95rem; color: var(--text); background: var(--bg);
       transition: border-color 150ms, box-shadow 150ms, background 150ms;
       outline: none;
     }
-    .field input[type="email"]::placeholder { color: #a8bdd4; }
-    .field input[type="email"]:focus {
+    .field input[type="email"]::placeholder,
+    .field input[type="password"]::placeholder { color: #a8bdd4; }
+    .field input[type="email"]:focus,
+    .field input[type="password"]:focus {
       border-color: var(--blue); background: var(--white);
       box-shadow: 0 0 0 4px rgba(24,95,165,.1);
     }
     .field input.is-error { border-color: var(--error); box-shadow: 0 0 0 4px rgba(192,57,43,.08); }
+
+    /* Wrapper mot de passe avec icône œil */
+    .password-wrap {
+      position: relative; display: flex; align-items: center;
+    }
+    .password-wrap input {
+      padding-right: 3rem !important;
+    }
+    .btn-eye {
+      position: absolute; right: .75rem;
+      display: flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 6px;
+      color: var(--muted); background: none; border: none;
+      cursor: pointer; transition: color 150ms, background 150ms;
+      flex-shrink: 0;
+    }
+    .btn-eye:hover { color: var(--blue); background: var(--blue-light); }
+    .btn-eye svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
     /* ── Bouton principal ── */
     .btn-primary {
@@ -269,12 +292,22 @@
           </div>
           <div class="field">
             <label for="passwordInput">Mot de passe</label>
-            <input
-              type="password" id="passwordInput" name="password"
-              placeholder="••••••••"
-              autocomplete="current-password"
-              required
-            >
+            <div class="password-wrap">
+              <input
+                type="password" id="passwordInput" name="password"
+                placeholder="••••••••"
+                autocomplete="current-password"
+                required
+              >
+              <button type="button" class="btn-eye" id="btnEye" aria-label="Afficher le mot de passe">
+                <!-- Icône œil fermé par défaut -->
+                <svg id="eyeIcon" viewBox="0 0 24 24">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              </button>
+            </div>
           </div>
 
           <div class="alert alert--error" id="emailError" role="alert" aria-live="polite">
@@ -330,8 +363,6 @@
     const formNote       = document.getElementById('formNote');
     document.getElementById('year').textContent = new Date().getFullYear();
 
-    let mode = 'magic'; // 'magic' | 'password'
-
     const loader         = document.getElementById('pageLoader');
     const form           = document.getElementById('loginForm');
     const emailInput     = document.getElementById('emailInput');
@@ -339,7 +370,21 @@
     const submitBtn      = document.getElementById('submitBtn');
     const emailError     = document.getElementById('emailError');
     const emailErrorText = document.getElementById('emailErrorText');
+    const btnEye         = document.getElementById('btnEye');
+    const eyeIcon        = document.getElementById('eyeIcon');
     document.getElementById('year').textContent = new Date().getFullYear();
+
+    // ── Toggle afficher/masquer mot de passe ─────────────
+    const eyeOpen   = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+    const eyeClosed = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>`;
+
+    btnEye.addEventListener('click', () => {
+      const isPassword = passwordInput.type === 'password';
+      passwordInput.type = isPassword ? 'text' : 'password';
+      eyeIcon.innerHTML  = isPassword ? eyeOpen : eyeClosed;
+      btnEye.setAttribute('aria-label', isPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+      passwordInput.focus();
+    });
 
     // ── Vérification session existante ───────────────────
     async function checkSession() {
