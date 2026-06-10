@@ -333,6 +333,25 @@
     .modal-pwd__close { font-size: 1rem; color: var(--muted); padding: .2rem .4rem; border-radius: 4px; transition: background 150ms; flex-shrink: 0; }
     .modal-pwd__close:hover { background: var(--bg); color: var(--text); }
 
+    /* ── Modal progression patient ── */
+    .modal-prog { display: none; position: fixed; inset: 0; background: rgba(10,20,50,0.55); z-index: 200; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(4px); }
+    .modal-prog.is-open { display: flex; animation: fadeIn 180ms ease; }
+    .modal-prog__box { background: var(--surface); border-radius: var(--radius); box-shadow: 0 20px 60px rgba(0,0,0,.25); padding: 1.75rem; width: 100%; max-width: 520px; max-height: 80vh; overflow-y: auto; animation: slideUp 200ms ease; }
+    .modal-prog__header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; gap: 1rem; }
+    .modal-prog__title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: .2rem; }
+    .modal-prog__subtitle { font-size: .82rem; color: var(--muted); }
+    .modal-prog__close { font-size: 1rem; color: var(--muted); padding: .2rem .4rem; border-radius: 4px; transition: background 150ms; flex-shrink: 0; }
+    .modal-prog__close:hover { background: var(--bg); color: var(--text); }
+    .modal-prog__prog-name { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 1rem 0 .5rem; }
+    .modal-prog__exercise { display: flex; align-items: center; gap: .65rem; padding: .55rem .75rem; border-radius: 8px; margin-bottom: .3rem; background: var(--bg); }
+    .modal-prog__exercise.is-done { background: #e6f7ef; }
+    .modal-prog__exercise.is-done .modal-prog__ex-icon { color: var(--success); }
+    .modal-prog__exercise:not(.is-done) .modal-prog__ex-icon { color: var(--muted); }
+    .modal-prog__ex-icon { font-size: 1rem; flex-shrink: 0; }
+    .modal-prog__ex-name { font-size: .85rem; font-weight: 600; color: var(--text); flex: 1; }
+    .modal-prog__ex-count { font-size: .75rem; color: var(--muted); }
+    .modal-prog__empty { text-align: center; color: var(--muted); font-size: .85rem; padding: 1.5rem 0; }
+
     /* ── Modal édition ressource ── */
     .modal-edit { display: none; position: fixed; inset: 0; background: rgba(10,20,50,0.55); z-index: 200; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(4px); }
     .modal-edit.is-open { display: flex; animation: fadeIn 180ms ease; }
@@ -836,6 +855,20 @@
   </div>
 
   <!-- ── Modal Mot de passe ──────────────────────────── -->
+  <!-- Modal progression patient -->
+  <div class="modal-prog" id="modalProg" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-prog__box">
+      <div class="modal-prog__header">
+        <div>
+          <h2 class="modal-prog__title">📊 Progression</h2>
+          <p class="modal-prog__subtitle" id="modalProgSubtitle"></p>
+        </div>
+        <button class="modal-prog__close" id="modalProgClose" aria-label="Fermer">✕</button>
+      </div>
+      <div id="modalProgBody"></div>
+    </div>
+  </div>
+
   <div class="modal-pwd" id="modalPwd" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modal-pwd__box">
       <div class="modal-pwd__header">
@@ -1139,7 +1172,7 @@
                 const pct   = prog.total > 0 ? Math.round(prog.done / prog.total * 100) : null;
                 const progHtml = pct === null
                   ? `<span style="color:var(--muted);font-size:.8rem">Aucun programme</span>`
-                  : `<div class="patient-prog">
+                  : `<div class="patient-prog" onclick="openProgModal('${p.id}', '${esc(p.full_name || p.email)}')" title="Voir le détail" style="cursor:pointer">
                       <div class="patient-prog__bar"><div class="patient-prog__fill" style="width:${pct}%"></div></div>
                       <span class="patient-prog__pct ${pct >= 100 ? 'is-full' : ''}">${pct}%</span>
                     </div>`;
@@ -2450,6 +2483,79 @@
 
     let pwdTargetEmail = null;
     const SET_PWD_URL = 'https://xyczzekvgahkzlntsils.supabase.co/functions/v1/Set-patient-password';
+
+    // ── Modal progression patient ─────────────────────────
+    document.getElementById('modalProgClose').addEventListener('click', () => {
+      document.getElementById('modalProg').classList.remove('is-open');
+      document.getElementById('modalProg').setAttribute('aria-hidden', 'true');
+    });
+    document.getElementById('modalProg').addEventListener('click', e => {
+      if (e.target === document.getElementById('modalProg')) {
+        document.getElementById('modalProg').classList.remove('is-open');
+      }
+    });
+
+    window.openProgModal = async (patientId, patientName) => {
+      const body   = document.getElementById('modalProgBody');
+      const modal  = document.getElementById('modalProg');
+      document.getElementById('modalProgSubtitle').textContent = patientName;
+      body.innerHTML = `<div style="text-align:center;padding:2rem"><div class="spinner"></div></div>`;
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+
+      try {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 6);
+        weekAgo.setHours(0, 0, 0, 0);
+
+        // Programmes du patient
+        const { data: progs } = await sb.from('programmes')
+          .select('id, name').eq('patient_id', patientId).order('created_at');
+
+        if (!progs?.length) {
+          body.innerHTML = `<p class="modal-prog__empty">Aucun programme assigné à ce patient.</p>`;
+          return;
+        }
+
+        // Exercices par programme
+        const progIds = progs.map(p => p.id);
+        const { data: peRows } = await sb.from('patient_exercises')
+          .select('programme_id, exercise:exercises(id, title)')
+          .in('programme_id', progIds).order('sort_order');
+
+        // Logs de la semaine pour ce patient
+        const allExIds = (peRows || []).map(r => r.exercise?.id).filter(Boolean);
+        const { data: logs } = allExIds.length
+          ? await sb.from('exercise_logs').select('exercise_id')
+              .eq('patient_id', patientId).gte('completed_at', weekAgo.toISOString())
+              .in('exercise_id', allExIds)
+          : { data: [] };
+
+        const doneIds = new Set((logs || []).map(l => l.exercise_id));
+
+        // Regrouper par programme et afficher
+        let html = '';
+        for (const prog of progs) {
+          const exercises = (peRows || []).filter(r => r.programme_id === prog.id);
+          if (!exercises.length) continue;
+          const doneCount = exercises.filter(r => doneIds.has(r.exercise?.id)).length;
+          html += `<p class="modal-prog__prog-name">${esc(prog.name)} — ${doneCount}/${exercises.length} cette semaine</p>`;
+          html += exercises.map(r => {
+            const done = doneIds.has(r.exercise?.id);
+            return `<div class="modal-prog__exercise ${done ? 'is-done' : ''}">
+              <span class="modal-prog__ex-icon">${done ? '✅' : '⬜'}</span>
+              <span class="modal-prog__ex-name">${esc(r.exercise?.title || '—')}</span>
+              ${done ? '<span class="modal-prog__ex-count">Complété cette semaine</span>' : '<span class="modal-prog__ex-count">Non complété</span>'}
+            </div>`;
+          }).join('');
+        }
+        body.innerHTML = html || `<p class="modal-prog__empty">Aucun exercice trouvé.</p>`;
+
+      } catch(e) {
+        body.innerHTML = `<p class="modal-prog__empty">Erreur de chargement.</p>`;
+        console.error('[prog modal]', e);
+      }
+    };
 
     window.openPasswordModal = (patientId, patientName, patientEmail) => {
       pwdTargetId    = patientId;
