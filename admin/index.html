@@ -280,6 +280,120 @@
     .toast--success { background: var(--success); }
     @keyframes toastIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
 
+    /* ── Zone drag & drop vidéo ── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 2rem 1.25rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 150ms, background 150ms;
+      background: var(--bg);
+    }
+    .drop-zone:hover, .drop-zone.is-over {
+      border-color: var(--blue);
+      background: var(--blue-light);
+    }
+    .drop-zone.is-over { border-style: solid; }
+    .drop-zone__icon { font-size: 2rem; margin-bottom: .5rem; }
+    .drop-zone__label { font-size: .85rem; color: var(--muted); line-height: 1.5; }
+    .drop-zone__label strong { color: var(--blue); }
+    .drop-zone__file { font-size: .8rem; color: var(--text); font-weight: 600; margin-top: .5rem; }
+
+    .upload-progress { margin-top: .75rem; }
+    .upload-progress__track {
+      height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: .4rem;
+    }
+    .upload-progress__bar {
+      height: 100%; background: var(--blue);
+      border-radius: 3px;
+      width: 0%;
+      transition: width 200ms ease;
+    }
+    .upload-progress__status { font-size: .78rem; color: var(--muted); }
+    .upload-progress__status.is-done  { color: var(--success); font-weight: 600; }
+    .upload-progress__status.is-error { color: var(--danger);  font-weight: 600; }
+
+    /* ── Modal mot de passe ── */
+    .modal-pwd { display: none; position: fixed; inset: 0; background: rgba(10,20,50,0.55); z-index: 200; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(4px); }
+    .modal-pwd.is-open { display: flex; animation: fadeIn 180ms ease; }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+    .modal-pwd__box { background: var(--surface); border-radius: var(--radius); box-shadow: 0 20px 60px rgba(0,0,0,.25); padding: 1.75rem; width: 100%; max-width: 420px; animation: slideUp 200ms ease; }
+    @keyframes slideUp { from { transform: translateY(12px); opacity:0; } to { transform:none; opacity:1; } }
+    .modal-pwd__header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; gap: 1rem; }
+    .modal-pwd__title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: .2rem; }
+    .modal-pwd__patient { font-size: .82rem; color: var(--muted); }
+    .modal-pwd__close { font-size: 1rem; color: var(--muted); padding: .2rem .4rem; border-radius: 4px; transition: background 150ms; flex-shrink: 0; }
+    .modal-pwd__close:hover { background: var(--bg); color: var(--text); }
+
+    /* ── Modal édition ressource ── */
+    .modal-edit { display: none; position: fixed; inset: 0; background: rgba(10,20,50,0.55); z-index: 200; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(4px); }
+    .modal-edit.is-open { display: flex; animation: fadeIn 180ms ease; }
+    .modal-edit__box { background: var(--surface); border-radius: var(--radius); box-shadow: 0 20px 60px rgba(0,0,0,.25); padding: 1.75rem; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; animation: slideUp 200ms ease; }
+    .modal-edit__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+    .modal-edit__title { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .modal-edit__close { font-size: 1rem; color: var(--muted); padding: .2rem .4rem; border-radius: 4px; transition: background 150ms; }
+    .modal-edit__close:hover { background: var(--bg); color: var(--text); }
+    .modal-edit__type-badge { display: inline-flex; align-items: center; gap: .35rem; padding: .2rem .65rem; border-radius: 100px; font-size: .72rem; font-weight: 700; margin-bottom: 1rem; }
+    .modal-edit__type-badge--video { background: var(--blue-light); color: var(--blue); }
+    .modal-edit__type-badge--pdf   { background: var(--warning-bg); color: var(--warning); }
+
+    /* ── Constructeur de programme ── */
+    .prog-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem; }
+    .prog-action-btn { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1.5rem; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; gap: .3rem; text-align: left; transition: border-color 150ms, box-shadow 150ms; width: 100%; }
+    .prog-action-btn:hover { border-color: var(--blue); box-shadow: 0 4px 16px rgba(24,95,165,.12); }
+    .prog-action-btn .prog-action-icon { font-size: 1.75rem; margin-bottom: .2rem; }
+    .prog-action-btn strong { font-size: .9rem; font-weight: 700; color: var(--text); }
+    .prog-action-btn span { font-size: .78rem; color: var(--muted); }
+
+    .btn-back-prog { display: inline-flex; align-items: center; gap: .4rem; padding: .4rem .85rem; border-radius: 100px; font-size: .8rem; font-weight: 600; border: 1.5px solid var(--border); color: var(--muted); margin-bottom: 1.25rem; transition: all 150ms; cursor: pointer; background: none; }
+    .btn-back-prog:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-light); }
+
+    .prog-steps { display: flex; align-items: center; margin-bottom: 1.5rem; }
+    .prog-step { display: flex; align-items: center; gap: .45rem; font-size: .8rem; font-weight: 600; color: var(--muted); }
+    .prog-step.is-active { color: var(--blue); }
+    .prog-step.is-done { color: var(--success); }
+    .prog-step__num { width: 26px; height: 26px; border-radius: 50%; border: 2px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: .75rem; flex-shrink: 0; }
+    .prog-step-connector { flex: 1; height: 2px; background: var(--border); margin: 0 .75rem; min-width: 30px; }
+
+    .prog-builder { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    .prog-builder__title { font-size: .85rem; font-weight: 700; color: var(--text); margin-bottom: .6rem; }
+    .prog-builder__library { max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: .35rem; }
+    .prog-builder__list { min-height: 80px; display: flex; flex-direction: column; gap: .45rem; }
+    .prog-builder__empty { font-size: .82rem; color: var(--muted); font-style: italic; padding: .5rem 0; }
+
+    .ex-lib-item { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .55rem .75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+    .ex-lib-item__name { font-weight: 600; font-size: .84rem; color: var(--text); }
+    .ex-lib-item__sub { font-size: .73rem; color: var(--muted); }
+    .ex-lib-item.is-added { opacity: .4; pointer-events: none; }
+    .ex-lib-btn { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1rem; cursor: pointer; border: none; transition: background 150ms; line-height: 1; }
+    .ex-lib-btn:hover { background: var(--blue-dark); }
+
+    .prog-ex-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .65rem .75rem; display: flex; flex-direction: column; gap: .5rem; }
+    .prog-ex-item[draggable] { cursor: default; }
+    .prog-ex-item.is-dragging { opacity: .35; border-style: dashed; }
+    .prog-ex-item.drag-over { border-color: var(--blue); background: var(--blue-light); }
+    .prog-ex-item__header { display: flex; align-items: center; gap: .5rem; }
+    .prog-ex-item__handle { color: var(--muted); cursor: grab; font-size: 1rem; user-select: none; flex-shrink: 0; }
+    .prog-ex-item__name { font-size: .84rem; font-weight: 700; color: var(--text); flex: 1; }
+    .prog-ex-item__remove { background: none; border: none; color: var(--danger); cursor: pointer; font-size: .82rem; padding: .1rem .3rem; border-radius: 4px; transition: background 150ms; flex-shrink: 0; }
+    .prog-ex-item__remove:hover { background: var(--danger-bg); }
+    .prog-ex-item__params { display: grid; grid-template-columns: repeat(4,1fr); gap: .4rem; }
+    .prog-ex-item__param label { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); display: block; margin-bottom: .15rem; }
+    .prog-ex-item__param input, .prog-ex-item__notes input { width: 100%; padding: .3rem .4rem; border: 1px solid var(--border); border-radius: 4px; font-size: .78rem; font-family: inherit; outline: none; }
+    .prog-ex-item__param input:focus, .prog-ex-item__notes input:focus { border-color: var(--blue); }
+    .prog-ex-item__notes label { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); display: block; margin-bottom: .15rem; }
+
+    .images-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: .5rem; margin-top: .6rem; }
+    .image-preview-item { position: relative; aspect-ratio: 1; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+    .image-preview-item img { width: 100%; height: 100%; object-fit: cover; }
+    .image-preview-item__remove { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,.65); color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: .7rem; }
+    .image-preview-item__badge { position: absolute; bottom: 3px; left: 3px; background: rgba(24,95,165,.85); color: #fff; font-size: .6rem; font-weight: 700; padding: .1rem .35rem; border-radius: 3px; }
+
+    .prog-list-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .9rem 1.1rem; margin-bottom: .5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .prog-list-item__name { font-weight: 700; font-size: .9rem; color: var(--text); margin-bottom: .15rem; }
+    .prog-list-item__meta { font-size: .77rem; color: var(--muted); }
+
     /* ── Responsive ── */
     @media (max-width: 768px) {
       .layout { grid-template-columns: 1fr; }
@@ -290,6 +404,24 @@
         padding: .4rem .7rem; border-radius: var(--radius); }
       .sidebar__link.is-active { border-bottom-color: var(--blue); }
       .content { padding: 1rem; }
+    }
+
+    /* ── Cases à cocher d'accès ── */
+    .access-checks {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: .25rem; margin-top: .4rem;
+    }
+    .access-check {
+      display: flex; align-items: center; gap: .55rem;
+      padding: .45rem .65rem; border-radius: 6px;
+      cursor: pointer; font-size: .855rem; color: var(--text);
+      transition: background 120ms;
+    }
+    .access-check:hover { background: var(--bg); }
+    .access-check input[type="checkbox"] {
+      width: 16px; height: 16px;
+      accent-color: var(--blue); cursor: pointer; flex-shrink: 0;
     }
 
     /* Note informationnelle */
@@ -358,7 +490,7 @@
 
         <div class="card">
           <div class="info-note">
-            ⚠️ L'invitation envoie un lien magic link à l'adresse fournie. Assurez-vous que l'adresse est correcte avant d'envoyer. Le patient devra cliquer sur le lien pour activer son compte.
+            ⚠️ L'invitation envoie un lien d'accès à l'adresse fournie. Assurez-vous que l'adresse est correcte avant d'envoyer. Le patient devra cliquer sur le lien pour activer son compte.
           </div>
           <div id="alertAddPatient" class="alert"></div>
           <form id="formAddPatient">
@@ -371,15 +503,21 @@
                 <label for="pName">Nom complet</label>
                 <input type="text" id="pName" placeholder="Marie Tremblay">
               </div>
-              <div class="field">
-                <label for="pCondition">Condition principale</label>
-                <select id="pCondition">
-                  <option value="">— Sélectionner —</option>
-                  <option value="hernie_discale">Hernie discale</option>
-                  <option value="arthrose">Arthrose</option>
-                  <option value="douleurs_persistantes">Douleurs persistantes</option>
-                  <option value="general">Général</option>
-                </select>
+              <div class="field" style="grid-column:1/-1">
+                <label>Accès <span style="font-weight:400;color:var(--muted)">— cochez les catégories que le patient pourra consulter</span></label>
+                <div class="access-checks">
+                  <label class="access-check"><input type="checkbox" name="pAccess" value="trousse_depart"> Trousse de départ</label>
+                  <label class="access-check"><input type="checkbox" name="pAccess" value="hernie_discale"> Hernie discale</label>
+                  <label class="access-check"><input type="checkbox" name="pAccess" value="sciatique"> Sciatique</label>
+                  <label class="access-check"><input type="checkbox" name="pAccess" value="radiculopathie"> Radiculopathie</label>
+                  <label class="access-check"><input type="checkbox" name="pAccess" value="stenose_foraminale"> Sténose foraminale</label>
+                  <label class="access-check"><input type="checkbox" name="pAccess" value="stenose_spinale"> Sténose spinale</label>
+                  <label class="access-check"><input type="checkbox" name="pAccess" value="arthrose_cervicale"> Arthrose cervicale</label>
+                  <label class="access-check"><input type="checkbox" name="pAccess" value="arthrose_lombaire"> Arthrose lombaire</label>
+                  <label class="access-check"><input type="checkbox" name="pAccess" value="spondylolyse"> Spondylolyse</label>
+                  <label class="access-check"><input type="checkbox" name="pAccess" value="spondylolisthesis"> Spondylolisthésis</label>
+                  <label class="access-check"><input type="checkbox" name="pAccess" value="autre"> Autre</label>
+                </div>
               </div>
             </div>
             <div style="margin-top:1rem">
@@ -422,7 +560,7 @@
               <div class="field">
                 <label>Type *</label>
                 <div class="type-toggle">
-                  <label><input type="radio" name="rType" value="video" checked><span>📹 Vidéo (Bunny.net)</span></label>
+                  <label><input type="radio" name="rType" value="video" checked><span>📹 Vidéo</span></label>
                   <label><input type="radio" name="rType" value="pdf"><span>📄 PDF</span></label>
                 </div>
               </div>
@@ -430,20 +568,65 @@
                 <label for="rCondition">Condition *</label>
                 <select id="rCondition" required>
                   <option value="">— Sélectionner —</option>
+                  <option value="trousse_depart">Trousse de départ</option>
                   <option value="hernie_discale">Hernie discale</option>
-                  <option value="arthrose">Arthrose</option>
-                  <option value="douleurs_persistantes">Douleurs persistantes</option>
-                  <option value="general">Général</option>
+                  <option value="sciatique">Sciatique</option>
+                  <option value="radiculopathie">Radiculopathie</option>
+                  <option value="stenose_foraminale">Sténose foraminale</option>
+                  <option value="stenose_spinale">Sténose spinale</option>
+                  <option value="arthrose_cervicale">Arthrose cervicale</option>
+                  <option value="arthrose_lombaire">Arthrose lombaire</option>
+                  <option value="spondylolyse">Spondylolyse</option>
+                  <option value="spondylolisthesis">Spondylolisthésis</option>
+                  <option value="autre">Autre</option>
                 </select>
               </div>
               <div class="field" id="fieldBunny">
-                <label for="rBunnyId">ID vidéo Bunny.net *</label>
-                <input type="text" id="rBunnyId" placeholder="Ex. : a1b2c3d4-...">
-                <small style="color:var(--muted);font-size:.75rem">Trouvé dans Bunny Stream → Votre vidéo → Embed → l'ID dans l'URL</small>
+                <label>Vidéo *</label>
+
+                <!-- Zone glisser-déposer -->
+                <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Zone d'upload vidéo">
+                  <div class="drop-zone__icon">🎬</div>
+                  <p class="drop-zone__label">
+                    <strong>Glissez votre vidéo ici</strong> ou cliquez pour choisir<br>
+                    <span style="font-size:.75rem">MP4, MOV, AVI — aucune limite de taille</span>
+                  </p>
+                  <p class="drop-zone__file" id="dropFileName" style="display:none"></p>
+                </div>
+                <input type="file" id="fileInput" accept="video/*" style="display:none" aria-hidden="true">
+
+                <!-- Barre de progression -->
+                <div class="upload-progress" id="uploadProgress" style="display:none">
+                  <div class="upload-progress__track">
+                    <div class="upload-progress__bar" id="uploadBar"></div>
+                  </div>
+                  <p class="upload-progress__status" id="uploadStatus">Préparation de l'upload…</p>
+                </div>
+
+                <input type="text" id="rBunnyId" style="display:none" aria-hidden="true" tabindex="-1">
               </div>
               <div class="field" id="fieldPdf" style="display:none">
-                <label for="rPdfUrl">URL du PDF *</label>
-                <input type="url" id="rPdfUrl" placeholder="https://...">
+                <label>Document PDF *</label>
+
+                <!-- Zone glisser-déposer PDF -->
+                <div class="drop-zone" id="dropZonePdf" tabindex="0" role="button" aria-label="Zone d'upload PDF">
+                  <div class="drop-zone__icon">📄</div>
+                  <p class="drop-zone__label">
+                    <strong>Glissez votre PDF ici</strong> ou cliquez pour choisir
+                  </p>
+                  <p class="drop-zone__file" id="dropPdfName" style="display:none"></p>
+                </div>
+                <input type="file" id="fileInputPdf" accept=".pdf,application/pdf" style="display:none" aria-hidden="true">
+
+                <!-- Barre de progression -->
+                <div class="upload-progress" id="uploadProgressPdf" style="display:none">
+                  <div class="upload-progress__track">
+                    <div class="upload-progress__bar" id="uploadBarPdf"></div>
+                  </div>
+                  <p class="upload-progress__status" id="uploadStatusPdf">Upload en cours…</p>
+                </div>
+
+                <input type="url" id="rPdfUrl" style="display:none" aria-hidden="true" tabindex="-1">
               </div>
               <div class="field">
                 <label for="rDuration">Durée (secondes) <span style="font-weight:400;color:var(--muted)">optionnel</span></label>
@@ -497,103 +680,299 @@
       <!-- ════════════════════════════════ PROGRAMMES ══ -->
       <section id="sec-programme" class="section">
 
-        <!-- Créer un exercice -->
-        <div class="section-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
-          Créer un exercice
-        </div>
-        <div class="card">
-          <div id="alertAddExercise" class="alert"></div>
-          <form id="formAddExercise">
-            <div class="form-grid">
-              <div class="field" style="grid-column:1/-1">
-                <label for="exTitle">Nom de l'exercice *</label>
-                <input type="text" id="exTitle" placeholder="Ex. : Squat bulgare" required>
-              </div>
-              <div class="field">
-                <label for="exBunny">ID vidéo Bunny.net</label>
-                <input type="text" id="exBunny" placeholder="ID de la vidéo démo">
-              </div>
-              <div class="field">
-                <label for="exMuscle">Groupe musculaire</label>
-                <input type="text" id="exMuscle" placeholder="Ex. : Quadriceps, Lombaires…">
-              </div>
-              <div class="field" style="grid-column:1/-1">
-                <label for="exDesc">Description</label>
-                <textarea id="exDesc" placeholder="Instructions, points d'attention…"></textarea>
-              </div>
-            </div>
-            <div style="margin-top:1rem">
-              <button type="submit" class="btn btn--primary" id="btnAddExercise">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Ajouter l'exercice
-              </button>
-            </div>
-          </form>
+        <!-- ── Vue principale ── -->
+        <div id="viewProgMain">
+          <div class="prog-actions">
+            <button class="prog-action-btn" id="btnGoCreateProg">
+              <div class="prog-action-icon">🗂️</div>
+              <strong>Créer un programme</strong>
+              <span>Assigner des exercices à un patient</span>
+            </button>
+            <button class="prog-action-btn" id="btnGoCreateEx">
+              <div class="prog-action-icon">💪</div>
+              <strong>Créer un exercice</strong>
+              <span>Ajouter à la bibliothèque</span>
+            </button>
+          </div>
+          <div class="section-title">Programmes</div>
+          <div id="programmesWrap"><div class="empty-state">Chargement…</div></div>
+          <div class="section-title" style="margin-top:2rem">Bibliothèque d'exercices</div>
+          <div id="exercisesTableWrap"><div class="empty-state">Chargement…</div></div>
         </div>
 
-        <!-- Prescrire un exercice -->
-        <div class="section-title" style="margin-top:2rem">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          Prescrire à un patient
-        </div>
-        <div class="card">
-          <div id="alertPrescribe" class="alert"></div>
-          <form id="formPrescribe">
-            <div class="form-grid">
-              <div class="field">
-                <label for="prescPatient">Patient *</label>
-                <select id="prescPatient" required>
-                  <option value="">— Sélectionner —</option>
-                </select>
+        <!-- ── Vue : Créer un programme ── -->
+        <div id="viewCreateProg" style="display:none">
+          <button class="btn-back-prog" id="btnBackFromProg">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Retour
+          </button>
+          <div class="prog-steps">
+            <div class="prog-step is-active" id="stepDot1"><div class="prog-step__num">1</div><span>Informations</span></div>
+            <div class="prog-step-connector"></div>
+            <div class="prog-step" id="stepDot2"><div class="prog-step__num">2</div><span>Exercices</span></div>
+          </div>
+
+          <!-- Step 1 -->
+          <div id="progStep1">
+            <div class="card">
+              <div id="alertNewProg" class="alert"></div>
+              <div class="form-grid">
+                <div class="field" style="grid-column:1/-1">
+                  <label for="progName">Nom du programme *</label>
+                  <input type="text" id="progName" placeholder="Ex. : Rééducation lombaire phase 1">
+                </div>
+                <div class="field" style="grid-column:1/-1">
+                  <label for="progPatient">Patient *</label>
+                  <select id="progPatient"><option value="">— Sélectionner un patient —</option></select>
+                </div>
+                <div class="field" style="grid-column:1/-1">
+                  <label for="progDesc">Description <span style="font-weight:400;color:var(--muted)">optionnel</span></label>
+                  <textarea id="progDesc" placeholder="Objectifs, durée recommandée…"></textarea>
+                </div>
               </div>
-              <div class="field">
-                <label for="prescExercise">Exercice *</label>
-                <select id="prescExercise" required>
-                  <option value="">— Sélectionner —</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="prescSets">Séries</label>
-                <input type="number" id="prescSets" placeholder="3" min="1" max="20">
-              </div>
-              <div class="field">
-                <label for="prescReps">Répétitions</label>
-                <input type="text" id="prescReps" placeholder="12 ou 10-15">
-              </div>
-              <div class="field">
-                <label for="prescRest">Repos (secondes)</label>
-                <input type="number" id="prescRest" placeholder="60" min="0">
-              </div>
-              <div class="field">
-                <label for="prescFreq">Fréquence</label>
-                <input type="text" id="prescFreq" placeholder="3× par semaine">
-              </div>
-              <div class="field" style="grid-column:1/-1">
-                <label for="prescNotes">Note pour le patient</label>
-                <textarea id="prescNotes" placeholder="Instructions spécifiques, points d'attention…"></textarea>
+              <div style="margin-top:1rem">
+                <button class="btn btn--primary" id="btnProgToStep2">
+                  Suivant — Choisir les exercices
+                </button>
               </div>
             </div>
-            <div style="margin-top:1rem">
-              <button type="submit" class="btn btn--primary" id="btnPrescribe">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Prescrire l'exercice
-              </button>
+          </div>
+
+          <!-- Step 2 -->
+          <div id="progStep2" style="display:none">
+            <div class="prog-builder">
+              <div class="prog-builder__left">
+                <div class="prog-builder__title">Bibliothèque d'exercices</div>
+                <input type="search" id="exSearch" placeholder="🔍 Rechercher un exercice…"
+                  style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:var(--radius);font-size:.85rem;margin-bottom:.6rem;font-family:inherit;outline:none">
+                <div id="exLibrary" class="prog-builder__library"></div>
+              </div>
+              <div class="prog-builder__right">
+                <div class="prog-builder__title">Programme : <span id="progNameLabel" style="color:var(--blue)"></span></div>
+                <div id="progExList" class="prog-builder__list">
+                  <p class="prog-builder__empty">Ajoutez des exercices depuis la bibliothèque →</p>
+                </div>
+              </div>
             </div>
-          </form>
+            <div style="display:flex;gap:.75rem;margin-top:1.5rem;flex-wrap:wrap">
+              <button class="btn btn--ghost" id="btnProgBackStep">← Retour</button>
+              <button class="btn btn--primary" id="btnSaveProg">✓ Créer le programme</button>
+            </div>
+          </div>
         </div>
 
-        <!-- Liste des exercices -->
-        <div class="section-title" style="margin-top:2rem">
-          Bibliothèque d'exercices
+        <!-- ── Vue : Créer un exercice ── -->
+        <div id="viewCreateEx" style="display:none">
+          <button class="btn-back-prog" id="btnBackFromEx">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Retour
+          </button>
+          <div class="section-title">Créer un exercice</div>
+          <div class="card">
+            <div id="alertNewEx" class="alert"></div>
+            <form id="formNewExercise">
+              <div class="form-grid">
+                <div class="field" style="grid-column:1/-1">
+                  <label for="newExTitle">Nom de l'exercice *</label>
+                  <input type="text" id="newExTitle" placeholder="Ex. : Squat bulgare" required>
+                </div>
+                <div class="field">
+                  <label for="newExMuscle">Groupe musculaire</label>
+                  <input type="text" id="newExMuscle" placeholder="Ex. : Quadriceps, Lombaires…">
+                </div>
+                <div class="field" style="grid-column:1/-1">
+                  <label for="newExDesc">Description</label>
+                  <textarea id="newExDesc" placeholder="Instructions, points d'attention…"></textarea>
+                </div>
+                <div class="field" style="grid-column:1/-1">
+                  <label>Photos <span style="font-weight:400;color:var(--muted)">optionnel — plusieurs fichiers acceptés</span></label>
+                  <div class="drop-zone" id="dropZoneImages" tabindex="0" role="button" aria-label="Zone photos">
+                    <div class="drop-zone__icon">🖼️</div>
+                    <p class="drop-zone__label"><strong>Glissez vos photos ici</strong> ou cliquez pour choisir<br><span style="font-size:.75rem">JPG, PNG, WebP — plusieurs à la fois</span></p>
+                  </div>
+                  <input type="file" id="fileInputImages" accept="image/*" multiple style="display:none">
+                  <div id="imagesPreviewGrid" class="images-preview-grid" style="display:none"></div>
+                  <div class="upload-progress" id="uploadProgressImages" style="display:none">
+                    <div class="upload-progress__track"><div class="upload-progress__bar" id="uploadBarImages"></div></div>
+                    <p class="upload-progress__status" id="uploadStatusImages">Upload en cours…</p>
+                  </div>
+                </div>
+                <div class="field" style="grid-column:1/-1">
+                  <label>Vidéo de démonstration <span style="font-weight:400;color:var(--muted)">optionnel</span></label>
+                  <div class="drop-zone" id="dropZoneNewExVideo" tabindex="0" role="button" aria-label="Zone vidéo">
+                    <div class="drop-zone__icon">🎬</div>
+                    <p class="drop-zone__label"><strong>Glissez la vidéo ici</strong> ou cliquez pour choisir<br><span style="font-size:.75rem">MP4, MOV — aucune limite de taille</span></p>
+                    <p class="drop-zone__file" id="newExVideoName" style="display:none"></p>
+                  </div>
+                  <input type="file" id="fileInputNewExVideo" accept="video/*" style="display:none">
+                  <div class="upload-progress" id="uploadProgressNewExVideo" style="display:none">
+                    <div class="upload-progress__track"><div class="upload-progress__bar" id="uploadBarNewExVideo"></div></div>
+                    <p class="upload-progress__status" id="uploadStatusNewExVideo">Préparation…</p>
+                  </div>
+                  <input type="text" id="newExBunny" style="display:none" aria-hidden="true" tabindex="-1">
+                </div>
+              </div>
+              <div style="margin-top:1rem">
+                <button type="submit" class="btn btn--primary" id="btnSaveExercise">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Ajouter l'exercice
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-        <div id="exercisesTableWrap">
-          <div class="empty-state">Chargement…</div>
-        </div>
+
 
       </section>
 
     </main>
+  </div>
+
+  <!-- ── Modal Mot de passe ──────────────────────────── -->
+  <div class="modal-pwd" id="modalPwd" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-pwd__box">
+      <div class="modal-pwd__header">
+        <div>
+          <h2 class="modal-pwd__title">🔑 Gérer le mot de passe</h2>
+          <p class="modal-pwd__patient" id="modalPwdPatient"></p>
+        </div>
+        <button class="modal-pwd__close" id="modalPwdClose" aria-label="Fermer">✕</button>
+      </div>
+      <div id="alertPwd" class="alert"></div>
+
+      <!-- Option 1 : définir directement -->
+      <div style="margin-bottom:1.25rem">
+        <p style="font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.04em">
+          Définir un mot de passe directement
+        </p>
+        <div class="field" style="margin-bottom:.6rem">
+          <label for="inputPwd">Nouveau mot de passe</label>
+          <input type="password" id="inputPwd" placeholder="Minimum 6 caractères" minlength="6" autocomplete="new-password">
+        </div>
+        <div class="field" style="margin-bottom:.75rem">
+          <label for="inputPwdConfirm">Confirmer le mot de passe</label>
+          <input type="password" id="inputPwdConfirm" placeholder="Répéter le mot de passe" minlength="6" autocomplete="new-password">
+        </div>
+        <button class="btn btn--primary" id="btnPwdSet">
+          ✅ Enregistrer ce mot de passe
+        </button>
+      </div>
+
+      <!-- Séparateur -->
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem">
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+        <span style="font-size:.75rem;color:var(--muted);font-weight:600">OU</span>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>
+
+      <!-- Option 2 : envoyer lien par courriel -->
+      <div>
+        <p style="font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.04em">
+          Envoyer un lien par courriel
+        </p>
+        <p style="font-size:.78rem;color:var(--muted);margin-bottom:.75rem;line-height:1.5">
+          Le patient recevra un lien pour choisir son mot de passe lui-même.<br>
+          Courriel : <strong id="modalPwdEmail" style="color:var(--blue)"></strong>
+        </p>
+        <button class="btn btn--ghost" id="btnPwdLink">
+          ✉️ Envoyer le lien de réinitialisation
+        </button>
+      </div>
+
+      <div style="margin-top:1.25rem">
+        <button type="button" class="btn btn--ghost" id="modalPwdCancel">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal Édition Ressource ───────────────────────── -->
+  <div class="modal-edit" id="modalEdit" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-edit__box">
+      <div class="modal-edit__header">
+        <h2 class="modal-edit__title">✏️ Modifier la ressource</h2>
+        <button class="modal-edit__close" id="modalEditClose" aria-label="Fermer">✕</button>
+      </div>
+      <div id="alertEditResource" class="alert"></div>
+      <div id="editTypeBadge" class="modal-edit__type-badge"></div>
+      <form id="formEditResource">
+        <input type="hidden" id="editResourceId">
+        <input type="hidden" id="editResourceType">
+        <div class="form-grid">
+          <div class="field" style="grid-column:1/-1">
+            <label for="editTitle">Titre *</label>
+            <input type="text" id="editTitle" required>
+          </div>
+          <div class="field">
+            <label for="editCondition">Condition *</label>
+            <select id="editCondition" required>
+              <option value="">— Sélectionner —</option>
+              <option value="trousse_depart">Trousse de départ</option>
+              <option value="hernie_discale">Hernie discale</option>
+              <option value="sciatique">Sciatique</option>
+              <option value="radiculopathie">Radiculopathie</option>
+              <option value="stenose_foraminale">Sténose foraminale</option>
+              <option value="stenose_spinale">Sténose spinale</option>
+              <option value="arthrose_cervicale">Arthrose cervicale</option>
+              <option value="arthrose_lombaire">Arthrose lombaire</option>
+              <option value="spondylolyse">Spondylolyse</option>
+              <option value="spondylolisthesis">Spondylolisthésis</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
+          <div class="field" id="editFieldDuration">
+            <label for="editDuration">Durée (secondes)</label>
+            <input type="number" id="editDuration" placeholder="420" min="0">
+          </div>
+          <div class="field">
+            <label for="editOrder">Ordre d'affichage</label>
+            <input type="number" id="editOrder" value="1" min="1">
+          </div>
+          <div class="field" style="grid-column:1/-1">
+            <label for="editDesc">Description</label>
+            <textarea id="editDesc"></textarea>
+          </div>
+
+          <!-- Re-upload vidéo -->
+          <div class="field" id="editFieldVideo" style="grid-column:1/-1;display:none">
+            <label>Changer la vidéo <span style="font-weight:400;color:var(--muted)">optionnel — laisser vide pour conserver l'actuelle</span></label>
+            <div class="drop-zone" id="dropZoneEdit" tabindex="0" role="button">
+              <div class="drop-zone__icon">🎬</div>
+              <p class="drop-zone__label"><strong>Glissez une nouvelle vidéo</strong> ou cliquez pour choisir</p>
+              <p class="drop-zone__file" id="dropEditFileName" style="display:none"></p>
+            </div>
+            <input type="file" id="fileInputEdit" accept="video/*" style="display:none">
+            <div class="upload-progress" id="uploadProgressEdit" style="display:none">
+              <div class="upload-progress__track"><div class="upload-progress__bar" id="uploadBarEdit"></div></div>
+              <p class="upload-progress__status" id="uploadStatusEdit">Préparation…</p>
+            </div>
+            <input type="text" id="editBunnyId" style="display:none" aria-hidden="true" tabindex="-1">
+          </div>
+
+          <!-- Re-upload PDF -->
+          <div class="field" id="editFieldPdf" style="grid-column:1/-1;display:none">
+            <label>Changer le PDF <span style="font-weight:400;color:var(--muted)">optionnel — laisser vide pour conserver l'actuel</span></label>
+            <div class="drop-zone" id="dropZoneEditPdf" tabindex="0" role="button">
+              <div class="drop-zone__icon">📄</div>
+              <p class="drop-zone__label"><strong>Glissez un nouveau PDF</strong> ou cliquez pour choisir</p>
+              <p class="drop-zone__file" id="dropEditPdfName" style="display:none"></p>
+            </div>
+            <input type="file" id="fileInputEditPdf" accept=".pdf,application/pdf" style="display:none">
+            <div class="upload-progress" id="uploadProgressEditPdf" style="display:none">
+              <div class="upload-progress__track"><div class="upload-progress__bar" id="uploadBarEditPdf"></div></div>
+              <p class="upload-progress__status" id="uploadStatusEditPdf">Upload en cours…</p>
+            </div>
+            <input type="url" id="editPdfUrl" style="display:none" aria-hidden="true" tabindex="-1">
+          </div>
+        </div>
+        <div style="display:flex;gap:.75rem;margin-top:1.25rem;flex-wrap:wrap">
+          <button type="submit" class="btn btn--primary" id="btnSaveEdit">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Enregistrer les modifications
+          </button>
+          <button type="button" class="btn btn--ghost" id="btnCancelEdit">Annuler</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <div class="toast-wrap" id="toastWrap"></div>
@@ -711,6 +1090,9 @@
                       <button class="btn btn--ghost btn--sm" onclick="openAssignSection('${p.id}')">
                         Gérer les accès
                       </button>
+                      <button class="btn btn--ghost btn--sm" onclick="openPasswordModal('${p.id}', '${esc(p.full_name || p.email)}', '${esc(p.email)}')">
+                        🔑 Mot de passe
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -756,34 +1138,60 @@
     // ── Formulaire ajout patient ───────────────────────────
     document.getElementById('formAddPatient').addEventListener('submit', async e => {
       e.preventDefault();
-      const email     = document.getElementById('pEmail').value.trim().toLowerCase();
-      const fullName  = document.getElementById('pName').value.trim();
-      const condition = document.getElementById('pCondition').value;
-      const btn       = document.getElementById('btnAddPatient');
-      const alert     = document.getElementById('alertAddPatient');
+      const email    = document.getElementById('pEmail').value.trim().toLowerCase();
+      const fullName = document.getElementById('pName').value.trim();
+      const accès    = [...document.querySelectorAll('input[name="pAccess"]:checked')].map(c => c.value);
+      const btn      = document.getElementById('btnAddPatient');
+      const alertEl  = document.getElementById('alertAddPatient');
 
-      setAlert(alert, '', '');
+      setAlert(alertEl, '', '');
       btn.disabled = true;
       btn.innerHTML = `<span class="spinner-inline"></span> Envoi…`;
 
       try {
-        // Envoyer le magic link d'invitation (crée le compte si inexistant)
+        // 1. Envoyer le lien d'invitation
         const { error } = await sb.auth.signInWithOtp({
           email,
           options: {
             shouldCreateUser: true,
             emailRedirectTo: `${window.location.origin}/auth/callback.html`,
-            data: { full_name: fullName, condition_principale: condition },
+            data: { full_name: fullName },
           },
         });
         if (error) throw error;
 
-        setAlert(alert, `✓ Invitation envoyée à ${email}. Le patient doit cliquer sur le lien pour activer son compte.`, 'success');
+        // 2. Si des accès sont cochés, assigner les ressources si le profil existe déjà
+        let assignMsg = '';
+        if (accès.length > 0) {
+          const { data: existingProfile } = await sb
+            .from('profiles').select('id').eq('email', email).maybeSingle();
+
+          if (existingProfile) {
+            const { data: { user: adminUser } } = await sb.auth.getUser();
+            const resourcesToAssign = allResources.filter(r => accès.includes(r.condition_tag));
+            if (resourcesToAssign.length > 0) {
+              const rows = resourcesToAssign.map(r => ({
+                patient_id:  existingProfile.id,
+                resource_id: r.id,
+                assigned_by: adminUser.id,
+              }));
+              await sb.from('patient_resources').upsert(rows, {
+                onConflict: 'patient_id,resource_id',
+                ignoreDuplicates: true,
+              });
+              assignMsg = ` ${resourcesToAssign.length} ressource(s) assignée(s) automatiquement.`;
+            }
+          } else {
+            assignMsg = ' Allez dans Assignations après l\'activation du compte pour attribuer les ressources.';
+          }
+        }
+
+        setAlert(alertEl, `✓ Invitation envoyée à ${email}.${assignMsg}`, 'success');
         e.target.reset();
         await loadPatients();
 
       } catch (err) {
-        setAlert(alert, `Erreur : ${err.message}`, 'error');
+        setAlert(alertEl, `Erreur : ${err.message}`, 'error');
       } finally {
         btn.disabled = false;
         btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Inviter le patient`;
@@ -812,8 +1220,13 @@
         wrap.innerHTML = `<div class="empty-state">Aucune ressource ajoutée pour l'instant.</div>`;
         return;
       }
-      const COND = { hernie_discale:'Hernie discale', arthrose:'Arthrose',
-                     douleurs_persistantes:'Douleurs persistantes', general:'Général' };
+      const COND = {
+        trousse_depart:'Trousse de départ', hernie_discale:'Hernie discale',
+        sciatique:'Sciatique', radiculopathie:'Radiculopathie',
+        stenose_foraminale:'Sténose foraminale', stenose_spinale:'Sténose spinale',
+        arthrose_cervicale:'Arthrose cervicale', arthrose_lombaire:'Arthrose lombaire',
+        spondylolyse:'Spondylolyse', spondylolisthesis:'Spondylolisthésis', autre:'Autre',
+      };
       wrap.innerHTML = `
         <div class="table-wrap">
           <table>
@@ -826,9 +1239,14 @@
                   <td><span class="badge badge--${r.condition_tag}">${COND[r.condition_tag]||r.condition_tag}</span></td>
                   <td style="color:var(--muted)">${r.duration_sec ? fmtDur(r.duration_sec) : '—'}</td>
                   <td>
-                    <button class="btn btn--danger btn--sm" onclick="deleteResource('${r.id}', this)">
-                      Supprimer
-                    </button>
+                    <div class="td-actions">
+                      <button class="btn btn--ghost btn--sm" onclick="openEditResource('${r.id}')">
+                        ✏️ Modifier
+                      </button>
+                      <button class="btn btn--danger btn--sm" onclick="deleteResource('${r.id}', this)">
+                        Supprimer
+                      </button>
+                    </div>
                   </td>
                 </tr>
               `).join('')}
@@ -871,7 +1289,7 @@
       const alert    = document.getElementById('alertAddResource');
 
       if (!cond) { setAlert(alert, 'Veuillez sélectionner une condition.', 'error'); return; }
-      if (type === 'video' && !bunnyId) { setAlert(alert, 'L\'ID Bunny.net est requis pour une vidéo.', 'error'); return; }
+      if (type === 'video' && !bunnyId) { setAlert(alert, 'Veuillez d\'abord uploader une vidéo.', 'error'); return; }
       if (type === 'pdf'   && !pdfUrl)  { setAlert(alert, 'L\'URL du PDF est requise.', 'error'); return; }
 
       setAlert(alert, '', '');
@@ -894,6 +1312,22 @@
         e.target.reset();
         document.getElementById('fieldBunny').style.display = '';
         document.getElementById('fieldPdf').style.display   = 'none';
+        // Réinitialiser la zone d'upload vidéo
+        dropFileName.textContent     = '';
+        dropFileName.style.display   = 'none';
+        uploadProgress.style.display = 'none';
+        uploadBar.style.width        = '0%';
+        uploadStatus.textContent     = 'Préparation de l\'upload…';
+        uploadStatus.className       = 'upload-progress__status';
+        fileInput.value              = '';
+        // Réinitialiser la zone d'upload PDF
+        dropPdfName.textContent        = '';
+        dropPdfName.style.display      = 'none';
+        uploadProgressPdf.style.display = 'none';
+        uploadBarPdf.style.width       = '0%';
+        uploadStatusPdf.textContent    = 'Upload en cours…';
+        uploadStatusPdf.className      = 'upload-progress__status';
+        fileInputPdf.value             = '';
         await loadResources();
         renderAssignments();
       }
@@ -966,8 +1400,13 @@
       const assignedIds = new Set((assignments || []).map(a => a.resource_id));
 
       // Grouper les ressources par condition
-      const COND = { hernie_discale:'Hernie discale', arthrose:'Arthrose',
-                     douleurs_persistantes:'Douleurs persistantes', general:'Général' };
+      const COND = {
+        trousse_depart:'Trousse de départ', hernie_discale:'Hernie discale',
+        sciatique:'Sciatique', radiculopathie:'Radiculopathie',
+        stenose_foraminale:'Sténose foraminale', stenose_spinale:'Sténose spinale',
+        arthrose_cervicale:'Arthrose cervicale', arthrose_lombaire:'Arthrose lombaire',
+        spondylolyse:'Spondylolyse', spondylolisthesis:'Spondylolisthésis', autre:'Autre',
+      };
       const grouped = {};
       allResources.forEach(r => {
         if (!grouped[r.condition_tag]) grouped[r.condition_tag] = [];
@@ -1071,128 +1510,986 @@
 
     init();
 
-    // ══════════════════════════════════════════════════════
-    // MODULE PROGRAMME
-    // ══════════════════════════════════════════════════════
 
-    let allExercises = [];
+    // ══════════════════════════════════════════════════════
+    // UPLOAD VIDÉO — Drag & Drop → Bunny.net
+    // ══════════════════════════════════════════════════════
+    const EDGE_URL = 'https://xyczzekvgahkzlntsils.supabase.co/functions/v1/clever-handler';
 
+    const dropZone      = document.getElementById('dropZone');
+    const fileInput     = document.getElementById('fileInput');
+    const dropFileName  = document.getElementById('dropFileName');
+    const uploadProgress= document.getElementById('uploadProgress');
+    const uploadBar     = document.getElementById('uploadBar');
+    const uploadStatus  = document.getElementById('uploadStatus');
+    const bunnyIdInput  = document.getElementById('rBunnyId');
+
+    // ── Ouvrir le sélecteur de fichier au clic ────────────
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files?.[0]) startUpload(fileInput.files[0]);
+    });
+
+    // ── Drag & Drop ───────────────────────────────────────
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('is-over');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('is-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('is-over');
+      const file = e.dataTransfer?.files?.[0];
+      if (file && file.type.startsWith('video/')) {
+        startUpload(file);
+      } else {
+        toast('Veuillez déposer un fichier vidéo (MP4, MOV, AVI…)', 'error');
+      }
+    });
+
+    // ── Lancer l'upload ───────────────────────────────────
+    async function startUpload(file) {
+      // Afficher le nom du fichier
+      dropFileName.textContent = `📎 ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+      dropFileName.style.display = 'block';
+
+      // Réinitialiser la progression
+      uploadProgress.style.display = 'block';
+      setProgress(0, 'Préparation de l\'upload…');
+      bunnyIdInput.value = '';
+
+      try {
+        // 1. Récupérer le token admin Supabase
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) { throw new Error('Session expirée. Rechargez la page.'); }
+
+        // 2. Appeler l'Edge Function pour créer la vidéo sur Bunny
+        setProgress(5, 'Création de la vidéo…');
+        const fnRes = await fetch(EDGE_URL, {
+          method:  'POST',
+          headers: {
+            'Content-Type':  'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ title: file.name.replace(/\.[^/.]+$/, '') }),
+        });
+
+        const fnData = await fnRes.json();
+        if (!fnRes.ok) throw new Error(fnData.error || 'Erreur Edge Function');
+
+        const { videoId, uploadUrl, apiKey } = fnData;
+        setProgress(10, 'Upload en cours…');
+
+        // 3. Uploader directement vers Bunny via XHR (pour le suivi de progression)
+        await uploadToBunny(file, uploadUrl, apiKey, (pct) => {
+          setProgress(10 + Math.round(pct * 0.88), `Upload… ${Math.round(pct)}%`);
+        });
+
+        // 4. Succès
+        setProgress(100, '✅ Upload terminé !', 'is-done');
+        bunnyIdInput.value = videoId;
+        bunnyIdInput.focus();
+        toast('Vidéo uploadée avec succès !', 'success');
+
+      } catch (err) {
+        setProgress(0, `❌ ${err.message}`, 'is-error');
+        toast('Erreur upload : ' + err.message, 'error');
+        console.error('[upload]', err);
+      }
+    }
+
+    // ── Upload XHR vers Bunny.net ─────────────────────────
+    function uploadToBunny(file, uploadUrl, apiKey, onProgress) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+
+        xhr.upload.addEventListener('progress', e => {
+          if (e.lengthComputable) onProgress((e.loaded / e.total) * 100);
+        });
+
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error(`Bunny a retourné HTTP ${xhr.status}`));
+          }
+        });
+
+        xhr.addEventListener('error', () => reject(new Error('Erreur réseau pendant l\'upload')));
+        xhr.addEventListener('abort', () => reject(new Error('Upload annulé')));
+
+        xhr.open('PUT', uploadUrl);
+        xhr.setRequestHeader('AccessKey', apiKey);
+        xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+        xhr.send(file);
+      });
+    }
+
+    // ── Mettre à jour la barre de progression ─────────────
+    function setProgress(pct, message, statusClass = '') {
+      uploadBar.style.width = pct + '%';
+      uploadStatus.textContent = message;
+      uploadStatus.className = 'upload-progress__status' + (statusClass ? ' ' + statusClass : '');
+    }
+
+    // ══════════════════════════════════════════════════════
+    // UPLOAD PDF — Drag & Drop → Supabase Storage
+    // ══════════════════════════════════════════════════════
+    const dropZonePdf      = document.getElementById('dropZonePdf');
+    const fileInputPdf     = document.getElementById('fileInputPdf');
+    const dropPdfName      = document.getElementById('dropPdfName');
+    const uploadProgressPdf = document.getElementById('uploadProgressPdf');
+    const uploadBarPdf     = document.getElementById('uploadBarPdf');
+    const uploadStatusPdf  = document.getElementById('uploadStatusPdf');
+    const pdfUrlInput      = document.getElementById('rPdfUrl');
+
+    // ── Ouvrir le sélecteur au clic ───────────────────────
+    dropZonePdf.addEventListener('click', () => fileInputPdf.click());
+    dropZonePdf.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fileInputPdf.click(); });
+
+    fileInputPdf.addEventListener('change', () => {
+      if (fileInputPdf.files?.[0]) uploadPdf(fileInputPdf.files[0]);
+    });
+
+    // ── Drag & Drop ───────────────────────────────────────
+    dropZonePdf.addEventListener('dragover', e => { e.preventDefault(); dropZonePdf.classList.add('is-over'); });
+    dropZonePdf.addEventListener('dragleave', () => dropZonePdf.classList.remove('is-over'));
+    dropZonePdf.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZonePdf.classList.remove('is-over');
+      const file = e.dataTransfer?.files?.[0];
+      if (file && file.type === 'application/pdf') {
+        uploadPdf(file);
+      } else {
+        toast('Veuillez déposer un fichier PDF.', 'error');
+      }
+    });
+
+    // ── Lancer l'upload vers Supabase Storage ─────────────
+    async function uploadPdf(file) {
+      dropPdfName.textContent   = `📎 ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+      dropPdfName.style.display = 'block';
+      uploadProgressPdf.style.display = 'block';
+      setPdfProgress(15, 'Upload en cours…');
+      pdfUrlInput.value = '';
+
+      try {
+        // Nom de fichier unique (timestamp + nom nettoyé)
+        const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const fileName = `${Date.now()}-${safeName}`;
+
+        // Upload vers le bucket "pdfs" de Supabase Storage
+        const { data, error } = await sb.storage
+          .from('PDFS formation')
+          .upload(fileName, file, {
+            contentType: 'application/pdf',
+            upsert: false,
+          });
+
+        if (error) throw error;
+
+        // Récupérer l'URL publique
+        const { data: { publicUrl } } = sb.storage
+          .from('PDFS formation')
+          .getPublicUrl(data.path);
+
+        setPdfProgress(100, '✅ PDF uploadé !', 'is-done');
+        pdfUrlInput.value = publicUrl;
+        pdfUrlInput.focus();
+        toast('PDF uploadé avec succès !', 'success');
+
+      } catch (err) {
+        setPdfProgress(0, `❌ ${err.message}`, 'is-error');
+        toast('Erreur upload PDF : ' + err.message, 'error');
+        console.error('[upload-pdf]', err);
+      }
+    }
+
+    function setPdfProgress(pct, message, statusClass = '') {
+      uploadBarPdf.style.width     = pct + '%';
+      uploadStatusPdf.textContent  = message;
+      uploadStatusPdf.className    = 'upload-progress__status' + (statusClass ? ' ' + statusClass : '');
+    }
+
+    // ══════════════════════════════════════════════════════
+    // MODULE PROGRAMMES + EXERCICES (nouveau)
+    // ══════════════════════════════════════════════════════
+    let allProgrammes      = [];
+    let allExercisesLib    = [];
+    let progSelectedEx     = []; // exercices dans le programme en construction
+    let dragSrcEl          = null;
+    let newExImages        = []; // photos de l'exercice en cours de création
+
+    // ── Navigation entre vues ─────────────────────────────
+    function showProgView(id) {
+      ['viewProgMain','viewCreateProg','viewCreateEx'].forEach(v => {
+        document.getElementById(v).style.display = v === id ? '' : 'none';
+      });
+    }
+
+    document.getElementById('btnGoCreateProg').addEventListener('click', () => {
+      progSelectedEx = [];
+      showProgView('viewCreateProg');
+      document.getElementById('progStep1').style.display = '';
+      document.getElementById('progStep2').style.display = 'none';
+      setStepActive(1);
+      populateProgPatientSelect();
+      setAlert(document.getElementById('alertNewProg'), '', '');
+    });
+
+    document.getElementById('btnGoCreateEx').addEventListener('click', () => {
+      showProgView('viewCreateEx');
+      setAlert(document.getElementById('alertNewEx'), '', '');
+    });
+
+    document.getElementById('btnBackFromProg').addEventListener('click', () => showProgView('viewProgMain'));
+    document.getElementById('btnBackFromEx').addEventListener('click',  () => showProgView('viewProgMain'));
+
+    // ── Indicateur d'étapes ───────────────────────────────
+    function setStepActive(step) {
+      const s1 = document.getElementById('stepDot1');
+      const s2 = document.getElementById('stepDot2');
+      s1.className = 'prog-step' + (step >= 1 ? ' is-active' : '') + (step > 1 ? ' is-done' : '');
+      s2.className = 'prog-step' + (step >= 2 ? ' is-active' : '');
+    }
+
+    // ── Step 1 → Step 2 ───────────────────────────────────
+    document.getElementById('btnProgToStep2').addEventListener('click', () => {
+      const name  = document.getElementById('progName').value.trim();
+      const patId = document.getElementById('progPatient').value;
+      const alert = document.getElementById('alertNewProg');
+      if (!name)  { setAlert(alert, 'Veuillez entrer un nom de programme.', 'error'); return; }
+      if (!patId) { setAlert(alert, 'Veuillez sélectionner un patient.', 'error'); return; }
+      setAlert(alert, '', '');
+      document.getElementById('progNameLabel').textContent = name;
+      document.getElementById('progStep1').style.display = 'none';
+      document.getElementById('progStep2').style.display = '';
+      setStepActive(2);
+      renderExerciseLibrary('');
+      renderProgExList();
+    });
+
+    document.getElementById('btnProgBackStep').addEventListener('click', () => {
+      document.getElementById('progStep2').style.display = 'none';
+      document.getElementById('progStep1').style.display = '';
+      setStepActive(1);
+    });
+
+    // ── Recherche dans la bibliothèque ────────────────────
+    document.getElementById('exSearch').addEventListener('input', e => renderExerciseLibrary(e.target.value));
+
+    function renderExerciseLibrary(search = '') {
+      const container = document.getElementById('exLibrary');
+      const addedIds  = new Set(progSelectedEx.map(e => e.id));
+      const q = search.toLowerCase();
+      const filtered  = allExercisesLib.filter(ex =>
+        !addedIds.has(ex.id) &&
+        (!q || ex.title.toLowerCase().includes(q) || (ex.muscle_group||'').toLowerCase().includes(q))
+      );
+      if (!filtered.length) {
+        container.innerHTML = `<p style="color:var(--muted);font-size:.82rem;padding:.5rem">Aucun exercice trouvé.</p>`;
+        return;
+      }
+      container.innerHTML = filtered.map(ex => `
+        <div class="ex-lib-item" data-id="${ex.id}">
+          <div>
+            <div class="ex-lib-item__name">${esc(ex.title)}</div>
+            ${ex.muscle_group ? `<div class="ex-lib-item__sub">💪 ${esc(ex.muscle_group)}</div>` : ''}
+          </div>
+          <button class="ex-lib-btn" onclick="addExToProg('${ex.id}')" title="Ajouter">+</button>
+        </div>`).join('');
+    }
+
+    window.addExToProg = id => {
+      const ex = allExercisesLib.find(e => e.id === id);
+      if (!ex || progSelectedEx.find(e => e.id === id)) return;
+      progSelectedEx.push({ id: ex.id, title: ex.title, muscle_group: ex.muscle_group, sets:'', reps:'', rest_sec:'', frequency:'', notes:'' });
+      renderProgExList();
+      renderExerciseLibrary(document.getElementById('exSearch').value);
+    };
+
+    function renderProgExList() {
+      const container = document.getElementById('progExList');
+      if (!progSelectedEx.length) {
+        container.innerHTML = `<p class="prog-builder__empty">Ajoutez des exercices depuis la bibliothèque →</p>`;
+        return;
+      }
+      container.innerHTML = progSelectedEx.map((ex, i) => `
+        <div class="prog-ex-item" draggable="true" data-idx="${i}">
+          <div class="prog-ex-item__header">
+            <span class="prog-ex-item__handle" title="Glisser pour réordonner">⠿</span>
+            <span class="prog-ex-item__name">${esc(ex.title)}</span>
+            <button class="prog-ex-item__remove" onclick="removeExFromProg(${i})" title="Retirer">✕</button>
+          </div>
+          <div class="prog-ex-item__params">
+            <div class="prog-ex-item__param"><label>Séries</label><input type="number" min="1" placeholder="3" value="${esc(ex.sets)}" onchange="updateExParam(${i},'sets',this.value)"></div>
+            <div class="prog-ex-item__param"><label>Répétitions</label><input type="text" placeholder="12" value="${esc(ex.reps)}" onchange="updateExParam(${i},'reps',this.value)"></div>
+            <div class="prog-ex-item__param"><label>Repos (sec)</label><input type="number" min="0" placeholder="60" value="${esc(ex.rest_sec)}" onchange="updateExParam(${i},'rest_sec',this.value)"></div>
+            <div class="prog-ex-item__param"><label>Fréquence</label><input type="text" placeholder="3×/sem" value="${esc(ex.frequency)}" onchange="updateExParam(${i},'frequency',this.value)"></div>
+          </div>
+          <div class="prog-ex-item__notes"><label>Note pour le patient</label><input type="text" placeholder="Instructions spécifiques…" value="${esc(ex.notes)}" onchange="updateExParam(${i},'notes',this.value)"></div>
+        </div>`).join('');
+
+      // Drag to reorder
+      container.querySelectorAll('.prog-ex-item').forEach(item => {
+        item.addEventListener('dragstart', e => {
+          dragSrcEl = item; item.classList.add('is-dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        item.addEventListener('dragend', () => {
+          item.classList.remove('is-dragging');
+          container.querySelectorAll('.prog-ex-item').forEach(i => i.classList.remove('drag-over'));
+        });
+        item.addEventListener('dragover', e => {
+          e.preventDefault();
+          if (item !== dragSrcEl) {
+            container.querySelectorAll('.prog-ex-item').forEach(i => i.classList.remove('drag-over'));
+            item.classList.add('drag-over');
+          }
+        });
+        item.addEventListener('drop', e => {
+          e.preventDefault();
+          if (item === dragSrcEl) return;
+          const from = parseInt(dragSrcEl.dataset.idx);
+          const to   = parseInt(item.dataset.idx);
+          const [moved] = progSelectedEx.splice(from, 1);
+          progSelectedEx.splice(to, 0, moved);
+          renderProgExList();
+        });
+      });
+    }
+
+    window.removeExFromProg = idx => {
+      progSelectedEx.splice(idx, 1);
+      renderProgExList();
+      renderExerciseLibrary(document.getElementById('exSearch').value);
+    };
+    window.updateExParam = (idx, field, val) => { progSelectedEx[idx][field] = val; };
+
+    // ── Sauvegarder le programme ──────────────────────────
+    document.getElementById('btnSaveProg').addEventListener('click', async () => {
+      const btn     = document.getElementById('btnSaveProg');
+      const name    = document.getElementById('progName').value.trim();
+      const patId   = document.getElementById('progPatient').value;
+      const desc    = document.getElementById('progDesc').value.trim();
+
+      if (!progSelectedEx.length) { toast('Ajoutez au moins un exercice.', 'error'); return; }
+
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-inline"></span> Création…`;
+
+      try {
+        const { data: { user } } = await sb.auth.getUser();
+
+        const { data: prog, error: progErr } = await sb.from('programmes').insert({
+          name, patient_id: patId, description: desc||null, created_by: user.id,
+        }).select().single();
+        if (progErr) throw progErr;
+
+        const rows = progSelectedEx.map((ex, i) => ({
+          patient_id: patId, exercise_id: ex.id, programme_id: prog.id,
+          sets: parseInt(ex.sets)||null, reps: ex.reps||null,
+          rest_sec: parseInt(ex.rest_sec)||null, frequency: ex.frequency||null,
+          notes: ex.notes||null, sort_order: i, assigned_by: user.id,
+        }));
+        const { error: exErr } = await sb.from('patient_exercises').insert(rows);
+        if (exErr) throw exErr;
+
+        toast(`Programme "${name}" créé !`, 'success');
+        showProgView('viewProgMain');
+        document.getElementById('progName').value = '';
+        document.getElementById('progPatient').value = '';
+        document.getElementById('progDesc').value = '';
+        progSelectedEx = [];
+        await loadProgrammesSection();
+
+      } catch (err) {
+        toast('Erreur : ' + err.message, 'error');
+        console.error('[save-prog]', err);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '✓ Créer le programme';
+      }
+    });
+
+    // ── Charger les programmes ────────────────────────────
+    async function loadProgrammes() {
+      const { data, error } = await sb
+        .from('programmes')
+        .select('*, patient:profiles!patient_id(full_name, email)')
+        .order('created_at', { ascending: false });
+      if (error) { toast('Erreur programmes : ' + error.message, 'error'); return; }
+      allProgrammes = data || [];
+      renderProgrammesList();
+    }
+
+    function renderProgrammesList() {
+      const wrap = document.getElementById('programmesWrap');
+      if (!allProgrammes.length) {
+        wrap.innerHTML = `<div class="empty-state">Aucun programme créé pour l'instant.</div>`; return;
+      }
+      wrap.innerHTML = allProgrammes.map(p => `
+        <div class="prog-list-item">
+          <div>
+            <div class="prog-list-item__name">${esc(p.name)}</div>
+            <div class="prog-list-item__meta">
+              👤 ${esc(p.patient?.full_name || p.patient?.email || '—')} · ${fmtDate(p.created_at)}
+              ${p.description ? ` · <em>${esc(p.description.substring(0,60))}${p.description.length>60?'…':''}</em>` : ''}
+            </div>
+          </div>
+          <button class="btn btn--danger btn--sm" onclick="deleteProgramme('${p.id}','${esc(p.name)}',this)">Supprimer</button>
+        </div>`).join('');
+    }
+
+    window.deleteProgramme = async (id, name, btn) => {
+      if (!confirm(`Supprimer le programme "${name}" ? Les exercices prescrits liés seront supprimés.`)) return;
+      btn.disabled = true; btn.textContent = '…';
+      const { error } = await sb.from('programmes').delete().eq('id', id);
+      if (error) { toast('Erreur : ' + error.message, 'error'); btn.disabled=false; btn.textContent='Supprimer'; return; }
+      toast('Programme supprimé.', 'success');
+      await loadProgrammes();
+    };
+
+    // ── Charger les exercices ─────────────────────────────
     async function loadExercises() {
       const { data, error } = await sb.from('exercises').select('*').order('created_at', { ascending: false });
-      if (error) { toast('Erreur chargement exercices : ' + error.message, 'error'); return; }
-      allExercises = data || [];
+      if (error) { toast('Erreur exercices : ' + error.message, 'error'); return; }
+      allExercisesLib = data || [];
       renderExercisesTable();
-      populateExerciseSelect();
     }
 
     function renderExercisesTable() {
       const wrap = document.getElementById('exercisesTableWrap');
-      if (!allExercises.length) {
-        wrap.innerHTML = `<div class="empty-state">Aucun exercice créé pour l'instant.</div>`;
-        return;
+      if (!allExercisesLib.length) {
+        wrap.innerHTML = `<div class="empty-state">Aucun exercice créé pour l'instant.</div>`; return;
       }
       wrap.innerHTML = `<div class="table-wrap"><table>
-        <thead><tr><th>Nom</th><th>Groupe musculaire</th><th>Vidéo Bunny</th><th>Actions</th></tr></thead>
-        <tbody>${allExercises.map(ex => `
+        <thead><tr><th>Nom</th><th>Groupe musculaire</th><th>Vidéo</th><th>Photos</th><th>Actions</th></tr></thead>
+        <tbody>${allExercisesLib.map(ex => `
           <tr>
             <td><strong>${esc(ex.title)}</strong>${ex.description?`<br><small style="color:var(--muted)">${esc(ex.description.substring(0,60))}${ex.description.length>60?'…':''}</small>`:''}</td>
             <td>${ex.muscle_group?`<span class="badge" style="background:#e8f1fb;color:#185FA5">${esc(ex.muscle_group)}</span>`:'—'}</td>
-            <td style="color:var(--muted);font-size:.8rem">${ex.bunny_video_id ? `✅ ${esc(ex.bunny_video_id.substring(0,12))}…` : '—'}</td>
+            <td>${ex.bunny_video_id?'✅ Vidéo':'—'}</td>
+            <td>${ex.thumbnail_url?'📷 Oui':'—'}</td>
             <td><button class="btn btn--danger btn--sm" onclick="deleteExercise('${ex.id}',this)">Supprimer</button></td>
           </tr>`).join('')}
         </tbody></table></div>`;
     }
 
-    function populateExerciseSelect() {
-      const sel = document.getElementById('prescExercise');
-      const current = sel.value;
-      sel.innerHTML = `<option value="">— Sélectionner —</option>` +
-        allExercises.map(ex => `<option value="${ex.id}"${ex.id===current?' selected':''}>${esc(ex.title)}</option>`).join('');
+    function populateProgPatientSelect() {
+      const sel = document.getElementById('progPatient');
+      const pts = allPatients.filter(p => !p.is_admin);
+      sel.innerHTML = `<option value="">— Sélectionner un patient —</option>` +
+        pts.map(p => `<option value="${p.id}">${esc(p.full_name || p.email)}</option>`).join('');
     }
 
-    function populatePatientSelect() {
-      const sel = document.getElementById('prescPatient');
-      const patients = allPatients.filter(p => !p.is_admin);
-      sel.innerHTML = `<option value="">— Sélectionner —</option>` +
-        patients.map(p => `<option value="${p.id}">${esc(p.full_name || p.email)}</option>`).join('');
+    async function loadProgrammesSection() {
+      await Promise.all([loadProgrammes(), loadExercises()]);
     }
 
     window.deleteExercise = async (id, btn) => {
       if (!confirm('Supprimer cet exercice ? Toutes les prescriptions liées seront supprimées.')) return;
       btn.disabled = true; btn.textContent = '…';
       const { error } = await sb.from('exercises').delete().eq('id', id);
-      if (error) { toast('Erreur : ' + error.message, 'error'); btn.disabled = false; btn.textContent = 'Supprimer'; return; }
+      if (error) { toast('Erreur : ' + error.message, 'error'); btn.disabled=false; btn.textContent='Supprimer'; return; }
       toast('Exercice supprimé.', 'success');
       await loadExercises();
     };
 
-    // ── Formulaire créer exercice ─────────────────────────
-    document.getElementById('formAddExercise').addEventListener('submit', async e => {
-      e.preventDefault();
-      const title   = document.getElementById('exTitle').value.trim();
-      const bunny   = document.getElementById('exBunny').value.trim();
-      const muscle  = document.getElementById('exMuscle').value.trim();
-      const desc    = document.getElementById('exDesc').value.trim();
-      const btn     = document.getElementById('btnAddExercise');
-      const alert   = document.getElementById('alertAddExercise');
-      setAlert(alert, '', '');
-      btn.disabled = true; btn.innerHTML = `<span class="spinner-inline"></span> Ajout…`;
-
-      const { error } = await sb.from('exercises').insert({
-        title, description: desc||null,
-        bunny_video_id: bunny||null, muscle_group: muscle||null,
-      });
-      if (error) {
-        setAlert(alert, 'Erreur : ' + error.message, 'error');
-      } else {
-        setAlert(alert, '✓ Exercice ajouté.', 'success');
-        e.target.reset();
-        await loadExercises();
-      }
-      btn.disabled = false;
-      btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Ajouter l'exercice`;
-    });
-
-    // ── Formulaire prescrire ──────────────────────────────
-    document.getElementById('formPrescribe').addEventListener('submit', async e => {
-      e.preventDefault();
-      const patientId  = document.getElementById('prescPatient').value;
-      const exerciseId = document.getElementById('prescExercise').value;
-      const sets       = parseInt(document.getElementById('prescSets').value) || null;
-      const reps       = document.getElementById('prescReps').value.trim() || null;
-      const rest       = parseInt(document.getElementById('prescRest').value) || null;
-      const freq       = document.getElementById('prescFreq').value.trim() || null;
-      const notes      = document.getElementById('prescNotes').value.trim() || null;
-      const btn        = document.getElementById('btnPrescribe');
-      const alert      = document.getElementById('alertPrescribe');
-
-      if (!patientId)  { setAlert(alert, 'Sélectionnez un patient.', 'error'); return; }
-      if (!exerciseId) { setAlert(alert, 'Sélectionnez un exercice.', 'error'); return; }
-
-      setAlert(alert, '', '');
-      btn.disabled = true; btn.innerHTML = `<span class="spinner-inline"></span> Prescription…`;
-
-      const { data: { user } } = await sb.auth.getUser();
-      const { error } = await sb.from('patient_exercises').insert({
-        patient_id: patientId, exercise_id: exerciseId,
-        sets, reps, rest_sec: rest, frequency: freq, notes, assigned_by: user.id,
-      });
-
-      if (error) {
-        setAlert(alert, error.code === '23505' ? 'Cet exercice est déjà prescrit à ce patient.' : 'Erreur : ' + error.message, 'error');
-      } else {
-        setAlert(alert, '✓ Exercice prescrit avec succès.', 'success');
-        e.target.reset();
-        toast('Programme mis à jour !', 'success');
-      }
-      btn.disabled = false;
-      btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Prescrire l'exercice`;
-    });
-
-    // Charger les exercices quand on clique sur l'onglet Programmes
     document.querySelector('[data-section="programme"]').addEventListener('click', () => {
-      loadExercises();
-      populatePatientSelect();
+      loadProgrammesSection();
+    });
+
+    // ── Upload photos (multiples) ─────────────────────────
+    const dropZoneImages        = document.getElementById('dropZoneImages');
+    const fileInputImages       = document.getElementById('fileInputImages');
+    const imagesPreviewGrid     = document.getElementById('imagesPreviewGrid');
+    const uploadProgressImages  = document.getElementById('uploadProgressImages');
+    const uploadBarImages       = document.getElementById('uploadBarImages');
+    const uploadStatusImages    = document.getElementById('uploadStatusImages');
+
+    dropZoneImages.addEventListener('click', () => fileInputImages.click());
+    dropZoneImages.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' ') fileInputImages.click(); });
+    fileInputImages.addEventListener('change', () => { if(fileInputImages.files?.length) uploadImages(Array.from(fileInputImages.files)); });
+    dropZoneImages.addEventListener('dragover', e => { e.preventDefault(); dropZoneImages.classList.add('is-over'); });
+    dropZoneImages.addEventListener('dragleave', () => dropZoneImages.classList.remove('is-over'));
+    dropZoneImages.addEventListener('drop', e => {
+      e.preventDefault(); dropZoneImages.classList.remove('is-over');
+      const files = Array.from(e.dataTransfer?.files||[]).filter(f=>f.type.startsWith('image/'));
+      if (files.length) uploadImages(files);
+      else toast('Veuillez déposer des images (JPG, PNG, WebP).', 'error');
+    });
+
+    async function uploadImages(files) {
+      uploadProgressImages.style.display = 'block';
+      let done = 0;
+      setImgProgress(0, `0 / ${files.length} photo(s)…`);
+      for (const file of files) {
+        try {
+          const safe = file.name.replace(/[^a-zA-Z0-9.\-_]/g,'_');
+          const name = `${Date.now()}-${Math.random().toString(36).slice(2)}-${safe}`;
+          const { data, error } = await sb.storage.from('images').upload(name, file, { contentType: file.type, upsert: false });
+          if (error) throw error;
+          const { data:{ publicUrl } } = sb.storage.from('images').getPublicUrl(data.path);
+          newExImages.push({ url: publicUrl, sort_order: newExImages.length });
+          done++;
+          setImgProgress(Math.round(done/files.length*100), `${done} / ${files.length} photo(s)…`);
+        } catch (err) { toast(`Erreur "${file.name}" : ${err.message}`, 'error'); }
+      }
+      setImgProgress(100, `✅ ${done} photo(s) uploadée(s) !`, 'is-done');
+      renderImagesPreview();
+      fileInputImages.value = '';
+    }
+
+    function setImgProgress(pct, msg, cls='') {
+      uploadBarImages.style.width = pct+'%';
+      uploadStatusImages.textContent = msg;
+      uploadStatusImages.className = 'upload-progress__status'+(cls?' '+cls:'');
+    }
+
+    function renderImagesPreview() {
+      if (!newExImages.length) { imagesPreviewGrid.style.display='none'; return; }
+      imagesPreviewGrid.style.display = 'grid';
+      imagesPreviewGrid.innerHTML = newExImages.map((img,i)=>`
+        <div class="image-preview-item">
+          <img src="${esc(img.url)}" alt="Photo ${i+1}" loading="lazy">
+          ${i===0?'<span class="image-preview-item__badge">Principale</span>':''}
+          <button class="image-preview-item__remove" onclick="removePreviewImg(${i})" title="Supprimer">✕</button>
+        </div>`).join('');
+    }
+    window.removePreviewImg = idx => {
+      newExImages.splice(idx,1);
+      newExImages.forEach((img,i)=>img.sort_order=i);
+      renderImagesPreview();
+    };
+
+    // ── Upload vidéo nouvel exercice ──────────────────────
+    const dropZoneNewExVideo       = document.getElementById('dropZoneNewExVideo');
+    const fileInputNewExVideo      = document.getElementById('fileInputNewExVideo');
+    const newExVideoName           = document.getElementById('newExVideoName');
+    const uploadProgressNewExVideo = document.getElementById('uploadProgressNewExVideo');
+    const uploadBarNewExVideo      = document.getElementById('uploadBarNewExVideo');
+    const uploadStatusNewExVideo   = document.getElementById('uploadStatusNewExVideo');
+    const newExBunnyInput          = document.getElementById('newExBunny');
+
+    dropZoneNewExVideo.addEventListener('click', () => fileInputNewExVideo.click());
+    dropZoneNewExVideo.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' ') fileInputNewExVideo.click(); });
+    fileInputNewExVideo.addEventListener('change', () => { if(fileInputNewExVideo.files?.[0]) startNewExVideoUpload(fileInputNewExVideo.files[0]); });
+    dropZoneNewExVideo.addEventListener('dragover', e => { e.preventDefault(); dropZoneNewExVideo.classList.add('is-over'); });
+    dropZoneNewExVideo.addEventListener('dragleave', () => dropZoneNewExVideo.classList.remove('is-over'));
+    dropZoneNewExVideo.addEventListener('drop', e => {
+      e.preventDefault(); dropZoneNewExVideo.classList.remove('is-over');
+      const file = e.dataTransfer?.files?.[0];
+      if (file && file.type.startsWith('video/')) startNewExVideoUpload(file);
+      else toast('Veuillez déposer une vidéo.', 'error');
+    });
+
+    async function startNewExVideoUpload(file) {
+      newExVideoName.textContent = `📎 ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
+      newExVideoName.style.display = 'block';
+      uploadProgressNewExVideo.style.display = 'block';
+      setNewExVidProg(0,'Préparation de l\'upload…');
+      newExBunnyInput.value = '';
+      try {
+        const { data:{ session } } = await sb.auth.getSession();
+        if (!session) throw new Error('Session expirée.');
+        setNewExVidProg(5,'Création de la vidéo…');
+        const fnRes = await fetch(EDGE_URL, {
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':`Bearer ${session.access_token}`},
+          body: JSON.stringify({ title: file.name.replace(/\.[^/.]+$/,'') }),
+        });
+        const fnData = await fnRes.json();
+        if (!fnRes.ok) throw new Error(fnData.error||'Erreur Edge Function');
+        const { videoId, uploadUrl, apiKey } = fnData;
+        setNewExVidProg(10,'Upload en cours…');
+        await uploadToBunny(file, uploadUrl, apiKey, pct => setNewExVidProg(10+Math.round(pct*0.88), `Upload… ${Math.round(pct)}%`));
+        setNewExVidProg(100,'✅ Vidéo uploadée !','is-done');
+        newExBunnyInput.value = videoId;
+        toast('Vidéo uploadée !','success');
+      } catch(err) {
+        setNewExVidProg(0,`❌ ${err.message}`,'is-error');
+        toast('Erreur : '+err.message,'error');
+      }
+    }
+    function setNewExVidProg(pct,msg,cls='') {
+      uploadBarNewExVideo.style.width = pct+'%';
+      uploadStatusNewExVideo.textContent = msg;
+      uploadStatusNewExVideo.className = 'upload-progress__status'+(cls?' '+cls:'');
+    }
+
+    // ── Sauvegarder l'exercice ────────────────────────────
+    document.getElementById('formNewExercise').addEventListener('submit', async e => {
+      e.preventDefault();
+      const title   = document.getElementById('newExTitle').value.trim();
+      const muscle  = document.getElementById('newExMuscle').value.trim();
+      const desc    = document.getElementById('newExDesc').value.trim();
+      const bunny   = document.getElementById('newExBunny').value.trim();
+      const alertEl = document.getElementById('alertNewEx');
+      const btn     = document.getElementById('btnSaveExercise');
+      setAlert(alertEl,'','');
+      btn.disabled=true; btn.innerHTML=`<span class="spinner-inline"></span> Ajout…`;
+
+      try {
+        const thumbnail = newExImages.length ? newExImages[0].url : null;
+        const { data: ex, error: exErr } = await sb.from('exercises').insert({
+          title, description: desc||null, bunny_video_id: bunny||null,
+          muscle_group: muscle||null, thumbnail_url: thumbnail,
+        }).select().single();
+        if (exErr) throw exErr;
+
+        if (newExImages.length) {
+          const imgRows = newExImages.map((img,i) => ({ exercise_id: ex.id, url: img.url, sort_order: i }));
+          await sb.from('exercise_images').insert(imgRows);
+        }
+
+        setAlert(alertEl,'✓ Exercice ajouté avec succès.','success');
+        e.target.reset();
+        newExImages = [];
+        renderImagesPreview();
+        uploadProgressImages.style.display='none';
+        uploadProgressNewExVideo.style.display='none';
+        newExVideoName.style.display='none';
+        newExBunnyInput.value='';
+        uploadBarImages.style.width='0%';
+        uploadBarNewExVideo.style.width='0%';
+        fileInputImages.value='';
+        fileInputNewExVideo.value='';
+        await loadExercises();
+
+      } catch(err) {
+        setAlert(alertEl,'Erreur : '+err.message,'error');
+        console.error('[save-ex]', err);
+      } finally {
+        btn.disabled=false;
+        btn.innerHTML=`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Ajouter l'exercice`;
+      }
+    });
+
+    // ══════════════════════════════════════════════════════
+    // MODAL ÉDITION RESSOURCE
+    // ══════════════════════════════════════════════════════
+    const EDGE_URL_EDIT = 'https://xyczzekvgahkzlntsils.supabase.co/functions/v1/clever-handler';
+
+    const modalEdit      = document.getElementById('modalEdit');
+    const formEditRes    = document.getElementById('formEditResource');
+    const alertEditRes   = document.getElementById('alertEditResource');
+
+    function openEditModal() {
+      modalEdit.classList.add('is-open');
+      modalEdit.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeEditModal() {
+      modalEdit.classList.remove('is-open');
+      modalEdit.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      // Reset upload zones
+      document.getElementById('dropEditFileName').style.display = 'none';
+      document.getElementById('uploadProgressEdit').style.display = 'none';
+      document.getElementById('uploadBarEdit').style.width = '0%';
+      document.getElementById('editBunnyId').value = '';
+      document.getElementById('dropEditPdfName').style.display = 'none';
+      document.getElementById('uploadProgressEditPdf').style.display = 'none';
+      document.getElementById('uploadBarEditPdf').style.width = '0%';
+      document.getElementById('editPdfUrl').value = '';
+      document.getElementById('fileInputEdit').value = '';
+      document.getElementById('fileInputEditPdf').value = '';
+    }
+
+    document.getElementById('modalEditClose').addEventListener('click', closeEditModal);
+    document.getElementById('btnCancelEdit').addEventListener('click', closeEditModal);
+    modalEdit.addEventListener('click', e => { if (e.target === modalEdit) closeEditModal(); });
+
+    window.openEditResource = (id) => {
+      const r = allResources.find(r => r.id === id);
+      if (!r) return;
+
+      const COND = { hernie_discale:'Hernie discale', arthrose:'Arthrose', douleurs_persistantes:'Douleurs persistantes', general:'Général' };
+
+      document.getElementById('editResourceId').value   = r.id;
+      document.getElementById('editResourceType').value = r.type;
+      document.getElementById('editTitle').value        = r.title || '';
+      document.getElementById('editCondition').value    = r.condition_tag || '';
+      document.getElementById('editDuration').value     = r.duration_sec || '';
+      document.getElementById('editOrder').value        = r.sort_order || 1;
+      document.getElementById('editDesc').value         = r.description || '';
+      setAlert(alertEditRes, '', '');
+
+      // Badge type
+      const badge = document.getElementById('editTypeBadge');
+      badge.className = `modal-edit__type-badge modal-edit__type-badge--${r.type}`;
+      badge.textContent = r.type === 'video' ? '📹 Vidéo' : '📄 PDF';
+
+      // Champs spécifiques au type
+      document.getElementById('editFieldDuration').style.display = r.type === 'video' ? '' : 'none';
+      document.getElementById('editFieldVideo').style.display    = r.type === 'video' ? '' : 'none';
+      document.getElementById('editFieldPdf').style.display      = r.type === 'pdf'   ? '' : 'none';
+
+      openEditModal();
+      document.getElementById('editTitle').focus();
+    };
+
+    formEditRes.addEventListener('submit', async e => {
+      e.preventDefault();
+      const id       = document.getElementById('editResourceId').value;
+      const type     = document.getElementById('editResourceType').value;
+      const title    = document.getElementById('editTitle').value.trim();
+      const cond     = document.getElementById('editCondition').value;
+      const duration = parseInt(document.getElementById('editDuration').value) || null;
+      const order    = parseInt(document.getElementById('editOrder').value) || 1;
+      const desc     = document.getElementById('editDesc').value.trim();
+      const newBunny = document.getElementById('editBunnyId').value.trim();
+      const newPdf   = document.getElementById('editPdfUrl').value.trim();
+      const btn      = document.getElementById('btnSaveEdit');
+
+      if (!title) { setAlert(alertEditRes, 'Le titre est requis.', 'error'); return; }
+      if (!cond)  { setAlert(alertEditRes, 'La condition est requise.', 'error'); return; }
+
+      setAlert(alertEditRes, '', '');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-inline"></span> Enregistrement…`;
+
+      const payload = {
+        title, description: desc || null,
+        condition_tag: cond,
+        duration_sec: type === 'video' ? duration : null,
+        sort_order: order,
+      };
+      if (type === 'video' && newBunny) payload.bunny_video_id = newBunny;
+      if (type === 'pdf'   && newPdf)   payload.pdf_url        = newPdf;
+
+      const { error } = await sb.from('resources').update(payload).eq('id', id);
+
+      if (error) {
+        setAlert(alertEditRes, 'Erreur : ' + error.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Enregistrer les modifications`;
+        return;
+      }
+
+      toast('Ressource mise à jour avec succès.', 'success');
+      closeEditModal();
+      await loadResources();
+      renderAssignments();
+    });
+
+    // ── Upload vidéo (modal édition) ──────────────────────
+    const dropZoneEdit   = document.getElementById('dropZoneEdit');
+    const fileInputEdit  = document.getElementById('fileInputEdit');
+    const dropEditFName  = document.getElementById('dropEditFileName');
+    const uploadProgEdit = document.getElementById('uploadProgressEdit');
+    const uploadBarEditEl= document.getElementById('uploadBarEdit');
+    const uploadStatEdit = document.getElementById('uploadStatusEdit');
+    const editBunnyInput = document.getElementById('editBunnyId');
+
+    dropZoneEdit.addEventListener('click', () => fileInputEdit.click());
+    dropZoneEdit.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') fileInputEdit.click(); });
+    fileInputEdit.addEventListener('change', () => { if (fileInputEdit.files?.[0]) startEditVideoUpload(fileInputEdit.files[0]); });
+    dropZoneEdit.addEventListener('dragover', e => { e.preventDefault(); dropZoneEdit.classList.add('is-over'); });
+    dropZoneEdit.addEventListener('dragleave', () => dropZoneEdit.classList.remove('is-over'));
+    dropZoneEdit.addEventListener('drop', e => {
+      e.preventDefault(); dropZoneEdit.classList.remove('is-over');
+      const f = e.dataTransfer?.files?.[0];
+      if (f && f.type.startsWith('video/')) startEditVideoUpload(f);
+      else toast('Veuillez déposer une vidéo.', 'error');
+    });
+
+    async function startEditVideoUpload(file) {
+      dropEditFName.textContent = `📎 ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
+      dropEditFName.style.display = 'block';
+      uploadProgEdit.style.display = 'block';
+      setEditVidProg(0, 'Préparation de l\'upload…');
+      editBunnyInput.value = '';
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) throw new Error('Session expirée.');
+        setEditVidProg(5, 'Création de la vidéo…');
+        const fnRes = await fetch(EDGE_URL_EDIT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({ title: file.name.replace(/\.[^/.]+$/, '') }),
+        });
+        const fnData = await fnRes.json();
+        if (!fnRes.ok) throw new Error(fnData.error || 'Erreur upload');
+        const { videoId, uploadUrl, apiKey } = fnData;
+        setEditVidProg(10, 'Upload en cours…');
+        await uploadToBunny(file, uploadUrl, apiKey, pct => setEditVidProg(10 + Math.round(pct * 0.88), `Upload… ${Math.round(pct)}%`));
+        setEditVidProg(100, '✅ Vidéo uploadée !', 'is-done');
+        editBunnyInput.value = videoId;
+        toast('Nouvelle vidéo prête. Cliquez sur Enregistrer pour appliquer.', 'success');
+      } catch (err) {
+        setEditVidProg(0, `❌ ${err.message}`, 'is-error');
+        toast('Erreur : ' + err.message, 'error');
+      }
+    }
+    function setEditVidProg(pct, msg, cls = '') {
+      uploadBarEditEl.style.width = pct + '%';
+      uploadStatEdit.textContent  = msg;
+      uploadStatEdit.className    = 'upload-progress__status' + (cls ? ' ' + cls : '');
+    }
+
+    // ── Upload PDF (modal édition) ────────────────────────
+    const dropZoneEditPdf   = document.getElementById('dropZoneEditPdf');
+    const fileInputEditPdf  = document.getElementById('fileInputEditPdf');
+    const dropEditPdfName   = document.getElementById('dropEditPdfName');
+    const uploadProgEditPdf = document.getElementById('uploadProgressEditPdf');
+    const uploadBarEditPdf  = document.getElementById('uploadBarEditPdf');
+    const uploadStatEditPdf = document.getElementById('uploadStatusEditPdf');
+    const editPdfUrlInput   = document.getElementById('editPdfUrl');
+
+    dropZoneEditPdf.addEventListener('click', () => fileInputEditPdf.click());
+    dropZoneEditPdf.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') fileInputEditPdf.click(); });
+    fileInputEditPdf.addEventListener('change', () => { if (fileInputEditPdf.files?.[0]) uploadEditPdf(fileInputEditPdf.files[0]); });
+    dropZoneEditPdf.addEventListener('dragover', e => { e.preventDefault(); dropZoneEditPdf.classList.add('is-over'); });
+    dropZoneEditPdf.addEventListener('dragleave', () => dropZoneEditPdf.classList.remove('is-over'));
+    dropZoneEditPdf.addEventListener('drop', e => {
+      e.preventDefault(); dropZoneEditPdf.classList.remove('is-over');
+      const f = e.dataTransfer?.files?.[0];
+      if (f && f.type === 'application/pdf') uploadEditPdf(f);
+      else toast('Veuillez déposer un fichier PDF.', 'error');
+    });
+
+    async function uploadEditPdf(file) {
+      dropEditPdfName.textContent = `📎 ${file.name}`;
+      dropEditPdfName.style.display = 'block';
+      uploadProgEditPdf.style.display = 'block';
+      uploadBarEditPdf.style.width = '15%';
+      uploadStatEditPdf.textContent = 'Upload en cours…';
+      editPdfUrlInput.value = '';
+      try {
+        const safe = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const { data, error } = await sb.storage.from('PDFS formation').upload(`${Date.now()}-${safe}`, file, { contentType: 'application/pdf', upsert: false });
+        if (error) throw error;
+        const { data: { publicUrl } } = sb.storage.from('PDFS formation').getPublicUrl(data.path);
+        uploadBarEditPdf.style.width = '100%';
+        uploadStatEditPdf.textContent = '✅ PDF uploadé !';
+        uploadStatEditPdf.className = 'upload-progress__status is-done';
+        editPdfUrlInput.value = publicUrl;
+        toast('Nouveau PDF prêt. Cliquez sur Enregistrer pour appliquer.', 'success');
+      } catch (err) {
+        uploadStatEditPdf.textContent = `❌ ${err.message}`;
+        uploadStatEditPdf.className = 'upload-progress__status is-error';
+        toast('Erreur upload PDF : ' + err.message, 'error');
+      }
+    }
+
+    // ══════════════════════════════════════════════════════
+    // MODAL MOT DE PASSE
+    // ══════════════════════════════════════════════════════
+    let pwdTargetId = null;
+
+    let pwdTargetEmail = null;
+    const SET_PWD_URL = 'https://xyczzekvgahkzlntsils.supabase.co/functions/v1/Set-patient-password';
+
+    window.openPasswordModal = (patientId, patientName, patientEmail) => {
+      pwdTargetId    = patientId;
+      pwdTargetEmail = patientEmail;
+      document.getElementById('modalPwdPatient').textContent = patientName;
+      document.getElementById('modalPwdEmail').textContent   = patientEmail;
+      document.getElementById('inputPwd').value        = '';
+      document.getElementById('inputPwdConfirm').value = '';
+      setAlert(document.getElementById('alertPwd'), '', '');
+      resetPwdBtns();
+      document.getElementById('modalPwd').classList.add('is-open');
+      document.getElementById('modalPwd').setAttribute('aria-hidden', 'false');
+      document.getElementById('inputPwd').focus();
+    };
+
+    function resetPwdBtns() {
+      const s = document.getElementById('btnPwdSet');
+      const l = document.getElementById('btnPwdLink');
+      s.disabled = false; s.innerHTML = '✅ Enregistrer ce mot de passe';
+      l.disabled = false; l.innerHTML = '✉️ Envoyer le lien de réinitialisation';
+      s.style.display = ''; l.style.display = '';
+    }
+
+    function closePasswordModal() {
+      document.getElementById('modalPwd').classList.remove('is-open');
+      document.getElementById('modalPwd').setAttribute('aria-hidden', 'true');
+      pwdTargetId = null; pwdTargetEmail = null;
+    }
+
+    document.getElementById('modalPwdClose').addEventListener('click', closePasswordModal);
+    document.getElementById('modalPwdCancel').addEventListener('click', closePasswordModal);
+    document.getElementById('modalPwd').addEventListener('click', e => {
+      if (e.target === document.getElementById('modalPwd')) closePasswordModal();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && document.getElementById('modalPwd').classList.contains('is-open')) closePasswordModal();
+    });
+
+    // ── Option 1 : définir un mot de passe directement ───
+    document.getElementById('btnPwdSet').addEventListener('click', async () => {
+      const alertEl = document.getElementById('alertPwd');
+      const btn     = document.getElementById('btnPwdSet');
+      const pwd     = document.getElementById('inputPwd').value;
+      const confirm = document.getElementById('inputPwdConfirm').value;
+
+      setAlert(alertEl, '', '');
+
+      if (!pwd || pwd.length < 6) {
+        setAlert(alertEl, 'Le mot de passe doit contenir au moins 6 caractères.', 'error');
+        document.getElementById('inputPwd').focus(); return;
+      }
+      if (pwd !== confirm) {
+        setAlert(alertEl, 'Les deux mots de passe ne correspondent pas.', 'error');
+        document.getElementById('inputPwdConfirm').focus(); return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-inline"></span> Enregistrement…`;
+
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) throw new Error('Session expirée. Rechargez la page.');
+        const res  = await fetch(SET_PWD_URL, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body:    JSON.stringify({ patientId: pwdTargetId, password: pwd }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erreur serveur');
+
+        setAlert(alertEl, '✅ Mot de passe mis à jour avec succès !', 'success');
+        document.getElementById('inputPwd').value        = '';
+        document.getElementById('inputPwdConfirm').value = '';
+        toast('Mot de passe défini pour le patient.', 'success');
+        setTimeout(closePasswordModal, 2000);
+
+      } catch (err) {
+        setAlert(alertEl, 'Erreur : ' + err.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = '✅ Enregistrer ce mot de passe';
+      }
+    });
+
+    // ── Option 2 : envoyer un lien par courriel ──────────
+    document.getElementById('btnPwdLink').addEventListener('click', async () => {
+      const alertEl = document.getElementById('alertPwd');
+      const btn     = document.getElementById('btnPwdLink');
+
+      setAlert(alertEl, '', '');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-inline"></span> Envoi…`;
+
+      try {
+        const { error } = await sb.auth.resetPasswordForEmail(pwdTargetEmail, {
+          redirectTo: `${window.location.origin}/reset-password.html`,
+        });
+        if (error) throw error;
+
+        setAlert(alertEl, `✅ Lien envoyé à ${pwdTargetEmail}. Le patient recevra un courriel.`, 'success');
+        btn.style.display = 'none';
+        setTimeout(closePasswordModal, 3000);
+
+      } catch (err) {
+        setAlert(alertEl, 'Erreur : ' + err.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = '✉️ Envoyer le lien de réinitialisation';
+      }
     });
   </script>
 

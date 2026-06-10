@@ -1,1 +1,67 @@
-# Configuration Netlify — redirections SPA, headers de sécurité, variables d'environnement
+# ============================================================
+# NEURODISK — Configuration Netlify
+# ============================================================
+
+# ── Build ────────────────────────────────────────────────
+# Pas de build step : projet HTML/CSS/JS vanilla statique.
+# Le dossier racine est publié tel quel.
+[build]
+  publish = "."
+
+# ── Redirections ────────────────────────────────────────
+# Redirige les URLs sans extension vers le fichier .html correspondant
+# (ex : /admin → /admin/index.html est géré automatiquement par Netlify)
+#
+# Redirige la racine vers index.html (page de connexion)
+[[redirects]]
+  from   = "/"
+  to     = "/index.html"
+  status = 200
+
+# Ancienne page ressources → bibliothèque
+[[redirects]]
+  from   = "/ressources.html"
+  to     = "/library.html"
+  status = 301
+
+# Page 404 personnalisée
+[[redirects]]
+  from   = "/*"
+  to     = "/404.html"
+  status = 404
+
+# ── En-têtes de sécurité ────────────────────────────────
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Empêche le clickjacking (ce site ne peut pas être intégré dans un iframe externe)
+    X-Frame-Options = "SAMEORIGIN"
+    # Empêche le sniffing MIME
+    X-Content-Type-Options = "nosniff"
+    # Politique de référent minimale
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # Désactive les API sensibles inutilisées
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# ── Cache — Assets statiques (images, polices) ──────────
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# ── Cache — JS et CSS ────────────────────────────────────
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=3600"
+
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=3600"
+
+# ── Cache — Pages HTML (pas de cache long) ──────────────
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

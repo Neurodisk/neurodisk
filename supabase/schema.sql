@@ -34,10 +34,17 @@ CREATE TABLE IF NOT EXISTS public.resources (
   description     TEXT,
   type            TEXT        NOT NULL CHECK (type IN ('video', 'pdf')),
   condition_tag   TEXT        NOT NULL CHECK (condition_tag IN (
-                                'arthrose',
+                                'trousse_depart',
                                 'hernie_discale',
-                                'douleurs_persistantes',
-                                'general'
+                                'sciatique',
+                                'radiculopathie',
+                                'stenose_foraminale',
+                                'stenose_spinale',
+                                'arthrose_cervicale',
+                                'arthrose_lombaire',
+                                'spondylolyse',
+                                'spondylolisthesis',
+                                'autre'
                               )),
   -- Vidéo Bunny.net : identifiant de la vidéo (ex: "abc123")
   -- URL embed finale : https://iframe.mediadelivery.net/embed/{LIBRARY_ID}/{bunny_video_id}
