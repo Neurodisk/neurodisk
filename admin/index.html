@@ -177,6 +177,25 @@
     .patient-prog__pct { font-size: .78rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
     .patient-prog__pct.is-full { color: var(--success); }
 
+    /* ── Bibliothèque d'exercices ── */
+    .ex-lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .ex-lib-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; display: flex; flex-direction: column; gap: .75rem; }
+    .ex-lib-card__thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; background: var(--bg); }
+    .ex-lib-card__thumb-placeholder { width: 100%; aspect-ratio: 16/9; border-radius: 8px; background: var(--bg); display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 2rem; }
+    .ex-lib-card__title { font-size: .95rem; font-weight: 700; color: var(--text); }
+    .ex-lib-card__desc { font-size: .8rem; color: var(--muted); line-height: 1.5; }
+    .ex-lib-card__badges { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .ex-lib-card__actions { display: flex; gap: .5rem; margin-top: auto; }
+
+    /* ── Modal édition exercice ── */
+    .modal-ex-edit { display: none; position: fixed; inset: 0; background: rgba(10,20,50,0.55); z-index: 200; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(4px); }
+    .modal-ex-edit.is-open { display: flex; animation: fadeIn 180ms ease; }
+    .modal-ex-edit__box { background: var(--surface); border-radius: var(--radius); box-shadow: 0 20px 60px rgba(0,0,0,.25); padding: 1.75rem; width: 100%; max-width: 480px; animation: slideUp 200ms ease; }
+    .modal-ex-edit__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+    .modal-ex-edit__title { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .modal-ex-edit__close { font-size: 1rem; color: var(--muted); padding: .2rem .4rem; border-radius: 4px; transition: background 150ms; }
+    .modal-ex-edit__close:hover { background: var(--bg); color: var(--text); }
+
     /* ── Badges ── */
     .badge {
       display: inline-block; padding: .15rem .55rem; border-radius: 100px;
@@ -728,7 +747,19 @@
           </div>
           <div id="programmesWrap"><div class="empty-state">Chargement…</div></div>
           <div class="section-title" style="margin-top:2rem">Bibliothèque d'exercices</div>
-          <div id="exercisesTableWrap"><div class="empty-state">Chargement…</div></div>
+          <div style="margin-bottom:.5rem">
+            <button class="btn btn--primary" id="btnViewExercises">💪 Voir les exercices</button>
+          </div>
+        </div>
+
+        <!-- ── Vue : Bibliothèque d'exercices ── -->
+        <div id="viewExercisesList" style="display:none">
+          <button class="btn-back-prog" id="btnBackFromExercises">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Retour
+          </button>
+          <div class="section-title">Bibliothèque d'exercices</div>
+          <div id="exercisesListWrap"><div class="empty-state">Chargement…</div></div>
         </div>
 
         <!-- ── Vue : Créer un programme ── -->
@@ -860,6 +891,35 @@
   </div>
 
   <!-- ── Modal Mot de passe ──────────────────────────── -->
+  <!-- Modal édition exercice -->
+  <div class="modal-ex-edit" id="modalExEdit" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-ex-edit__box">
+      <div class="modal-ex-edit__header">
+        <h2 class="modal-ex-edit__title">✏️ Modifier l'exercice</h2>
+        <button class="modal-ex-edit__close" id="modalExEditClose" aria-label="Fermer">✕</button>
+      </div>
+      <div id="alertExEdit" class="alert"></div>
+      <div class="form-grid">
+        <div class="field" style="grid-column:1/-1">
+          <label for="exEditTitle">Nom de l'exercice *</label>
+          <input type="text" id="exEditTitle" placeholder="Ex: Dos creux / Dos rond">
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label for="exEditDesc">Description</label>
+          <textarea id="exEditDesc" rows="3" placeholder="Instructions, conseils…"></textarea>
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label for="exEditMuscle">Groupe musculaire</label>
+          <input type="text" id="exEditMuscle" placeholder="Ex: Lombaires, Core, Hanches…">
+        </div>
+      </div>
+      <div style="display:flex;gap:.75rem;margin-top:1.25rem">
+        <button class="btn btn--primary" id="btnExEditSave">Enregistrer</button>
+        <button class="btn btn--ghost" id="btnExEditCancel">Annuler</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal progression patient -->
   <div class="modal-prog" id="modalProg" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modal-prog__box">
@@ -1829,7 +1889,7 @@
 
     // ── Navigation entre vues ─────────────────────────────
     function showProgView(id) {
-      ['viewProgMain','viewCreateProg','viewCreateEx'].forEach(v => {
+      ['viewProgMain','viewCreateProg','viewCreateEx','viewExercisesList'].forEach(v => {
         document.getElementById(v).style.display = v === id ? '' : 'none';
       });
     }
@@ -2085,22 +2145,94 @@
     }
 
     function renderExercisesTable() {
-      const wrap = document.getElementById('exercisesTableWrap');
+      // ancienne table — plus utilisée directement
+    }
+
+    function renderExercisesList() {
+      const wrap = document.getElementById('exercisesListWrap');
       if (!allExercisesLib.length) {
         wrap.innerHTML = `<div class="empty-state">Aucun exercice créé pour l'instant.</div>`; return;
       }
-      wrap.innerHTML = `<div class="table-wrap"><table>
-        <thead><tr><th>Nom</th><th>Groupe musculaire</th><th>Vidéo</th><th>Photos</th><th>Actions</th></tr></thead>
-        <tbody>${allExercisesLib.map(ex => `
-          <tr>
-            <td><strong>${esc(ex.title)}</strong>${ex.description?`<br><small style="color:var(--muted)">${esc(ex.description.substring(0,60))}${ex.description.length>60?'…':''}</small>`:''}</td>
-            <td>${ex.muscle_group?`<span class="badge" style="background:#e8f1fb;color:#185FA5">${esc(ex.muscle_group)}</span>`:'—'}</td>
-            <td>${ex.bunny_video_id?'✅ Vidéo':'—'}</td>
-            <td>${ex.thumbnail_url?'📷 Oui':'—'}</td>
-            <td><button class="btn btn--danger btn--sm" onclick="deleteExercise('${ex.id}',this)">Supprimer</button></td>
-          </tr>`).join('')}
-        </tbody></table></div>`;
+      wrap.innerHTML = `<div class="ex-lib-grid">${allExercisesLib.map(ex => {
+        const thumb = ex.thumbnail_url
+          ? `<img class="ex-lib-card__thumb" src="${esc(ex.thumbnail_url)}" alt="" loading="lazy">`
+          : `<div class="ex-lib-card__thumb-placeholder">💪</div>`;
+        return `<div class="ex-lib-card">
+          ${thumb}
+          <div class="ex-lib-card__title">${esc(ex.title)}</div>
+          ${ex.description ? `<div class="ex-lib-card__desc">${esc(ex.description.substring(0,100))}${ex.description.length>100?'…':''}</div>` : ''}
+          <div class="ex-lib-card__badges">
+            ${ex.muscle_group ? `<span class="badge" style="background:#e8f1fb;color:#185FA5">${esc(ex.muscle_group)}</span>` : ''}
+            ${ex.bunny_video_id ? `<span class="badge" style="background:#e6f7ef;color:#0f8a48">▶ Vidéo</span>` : ''}
+          </div>
+          <div class="ex-lib-card__actions">
+            <button class="btn btn--primary btn--sm" onclick="openExEditModal('${ex.id}')">✏️ Modifier</button>
+            <button class="btn btn--danger btn--sm" onclick="deleteExercise('${ex.id}', this)">Supprimer</button>
+          </div>
+        </div>`;
+      }).join('')}</div>`;
     }
+
+    // ── Navigation vers la liste d'exercices ─────────────
+    document.getElementById('btnViewExercises').addEventListener('click', () => {
+      showProgView('viewExercisesList');
+      if (allExercisesLib.length) renderExercisesList();
+      else loadExercises().then(renderExercisesList);
+    });
+
+    document.getElementById('btnBackFromExercises').addEventListener('click', () => {
+      showProgView('viewProgMain');
+    });
+
+    // ── Modal édition exercice ────────────────────────────
+    let exEditId = null;
+
+    window.openExEditModal = (id) => {
+      const ex = allExercisesLib.find(e => e.id === id);
+      if (!ex) return;
+      exEditId = id;
+      document.getElementById('exEditTitle').value  = ex.title || '';
+      document.getElementById('exEditDesc').value   = ex.description || '';
+      document.getElementById('exEditMuscle').value = ex.muscle_group || '';
+      setAlert(document.getElementById('alertExEdit'), '', '');
+      document.getElementById('modalExEdit').classList.add('is-open');
+      document.getElementById('exEditTitle').focus();
+    };
+
+    const closeExEditModal = () => {
+      document.getElementById('modalExEdit').classList.remove('is-open');
+      exEditId = null;
+    };
+    document.getElementById('modalExEditClose').addEventListener('click', closeExEditModal);
+    document.getElementById('btnExEditCancel').addEventListener('click', closeExEditModal);
+    document.getElementById('modalExEdit').addEventListener('click', e => {
+      if (e.target === document.getElementById('modalExEdit')) closeExEditModal();
+    });
+
+    document.getElementById('btnExEditSave').addEventListener('click', async () => {
+      const title  = document.getElementById('exEditTitle').value.trim();
+      const desc   = document.getElementById('exEditDesc').value.trim();
+      const muscle = document.getElementById('exEditMuscle').value.trim();
+      const alertEl = document.getElementById('alertExEdit');
+
+      if (!title) { setAlert(alertEl, 'Le nom est obligatoire.', 'error'); return; }
+
+      const btn = document.getElementById('btnExEditSave');
+      btn.disabled = true; btn.textContent = '…';
+
+      const { error } = await sb.from('exercises').update({
+        title, description: desc || null, muscle_group: muscle || null,
+      }).eq('id', exEditId);
+
+      btn.disabled = false; btn.textContent = 'Enregistrer';
+
+      if (error) { setAlert(alertEl, 'Erreur : ' + error.message, 'error'); return; }
+
+      toast('Exercice mis à jour.', 'success');
+      closeExEditModal();
+      await loadExercises();
+      renderExercisesList();
+    });
 
     function populateProgPatientSelect() {
       const sel = document.getElementById('progPatient');
