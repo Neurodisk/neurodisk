@@ -1514,46 +1514,32 @@
         return;
       }
 
-      container.innerHTML = patients.map(p => `
-        <div class="card" style="margin-bottom:.75rem">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <strong>${esc(p.full_name || p.email)}</strong>
-              <span style="color:var(--muted);font-size:.82rem;margin-left:.5rem">${esc(p.email)}</span>
-            </div>
-            <button class="btn btn--ghost btn--sm" onclick="togglePanel('${p.id}')">
-              Gérer les accès
-            </button>
-          </div>
-          <div class="access-panel" id="panel-${p.id}"></div>
+      const currentId = openPanelId || '';
+      container.innerHTML = `
+        <div style="margin-bottom:1.25rem">
+          <select id="assignPatientSelect" class="field__input" style="max-width:340px">
+            <option value="">— Sélectionner un patient —</option>
+            ${patients.map(p => `<option value="${p.id}" ${p.id === currentId ? 'selected' : ''}>${esc(p.full_name || p.email)}</option>`).join('')}
+          </select>
         </div>
-      `).join('');
+        <div id="assignPanelWrap"></div>
+      `;
+
+      document.getElementById('assignPatientSelect').addEventListener('change', async e => {
+        const pid = e.target.value;
+        openPanelId = pid || null;
+        if (pid) await openPanelForPatient(pid);
+        else document.getElementById('assignPanelWrap').innerHTML = '';
+      });
 
       // Ré-ouvrir le panneau si on revenait dessus
       if (openPanelId) openPanelForPatient(openPanelId);
     }
 
-    window.togglePanel = async (patientId) => {
-      const panel = document.getElementById('panel-' + patientId);
-      if (panel.classList.contains('is-open')) {
-        panel.classList.remove('is-open');
-        openPanelId = null;
-      } else {
-        openPanelId = patientId;
-        await openPanelForPatient(patientId);
-      }
-    };
-
     async function openPanelForPatient(patientId) {
-      const panel = document.getElementById('panel-' + patientId);
+      const panel = document.getElementById('assignPanelWrap');
       if (!panel) return;
 
-      // Fermer les autres
-      document.querySelectorAll('.access-panel.is-open').forEach(p => {
-        if (p.id !== 'panel-' + patientId) p.classList.remove('is-open');
-      });
-
-      panel.classList.add('is-open');
       panel.innerHTML = `<div style="padding:1rem;color:var(--muted)">Chargement…</div>`;
 
       // Récupérer les assignations actuelles
@@ -1579,11 +1565,7 @@
       });
 
       if (!allResources.length) {
-        panel.innerHTML = `
-          <div class="access-panel__header">
-            Aucune ressource disponible
-            <button onclick="togglePanel('${patientId}')">Fermer</button>
-          </div>`;
+        panel.innerHTML = `<div class="empty-state">Aucune ressource disponible.</div>`;
         return;
       }
 
@@ -1591,7 +1573,6 @@
       panel.innerHTML = `
         <div class="access-panel__header">
           Ressources de ${esc(patient?.full_name || patient?.email || 'ce patient')}
-          <button onclick="togglePanel('${patientId}')">✕ Fermer</button>
         </div>
         <div class="access-panel__body">
           ${Object.entries(grouped).map(([tag, resources]) => `
