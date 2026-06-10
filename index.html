@@ -319,7 +319,40 @@
             <span class="btn-label">Se connecter</span>
             <span class="spinner" aria-hidden="true"></span>
           </button>
+
+          <div style="text-align:center;margin-top:.75rem">
+            <button type="button" class="btn-ghost" id="btnForgot">Mot de passe oublié ?</button>
+          </div>
         </form>
+
+        <!-- ── Vue : Mot de passe oublié ── -->
+        <div id="viewForgot" style="display:none">
+          <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;">
+            Entrez votre adresse courriel. Vous recevrez un lien pour créer un nouveau mot de passe.
+          </p>
+          <div class="form" style="gap:.75rem">
+            <div class="field">
+              <label for="forgotEmail">Adresse courriel</label>
+              <input type="email" id="forgotEmail" placeholder="prenom.nom@exemple.com"
+                autocomplete="email" autocapitalize="off" spellcheck="false">
+            </div>
+            <div class="alert alert--error" id="forgotError" role="alert" aria-live="polite" style="display:none">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span id="forgotErrorText"></span>
+            </div>
+            <div class="alert" id="forgotSuccess" role="status" aria-live="polite"
+              style="display:none;background:var(--success-bg);color:var(--success);padding:.8rem 1rem;border-radius:var(--radius);font-size:.83rem;line-height:1.5">
+              ✅ Lien envoyé ! Vérifiez votre boîte courriel (et vos indésirables).
+            </div>
+            <button type="button" class="btn-primary" id="btnSendReset">
+              <span class="btn-label">Envoyer le lien</span>
+              <span class="spinner" aria-hidden="true"></span>
+            </button>
+            <div style="text-align:center">
+              <button type="button" class="btn-ghost" id="btnBackToLogin">← Retour à la connexion</button>
+            </div>
+          </div>
+        </div>
 
         <div class="sep"><span>Connexion sécurisée</span></div>
         <p class="form-note">
@@ -345,25 +378,7 @@
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
     }) : null;
 
-    const loader         = document.getElementById('pageLoader');
-    const viewForm       = document.getElementById('viewForm');
-    const viewConfirm    = document.getElementById('viewConfirmation');
-    const form           = document.getElementById('loginForm');
-    const emailInput     = document.getElementById('emailInput');
-    const passwordInput  = document.getElementById('passwordInput');
-    const passwordField  = document.getElementById('passwordField');
-    const submitBtn      = document.getElementById('submitBtn');
-    const submitLabel    = document.getElementById('submitLabel');
-    const emailError     = document.getElementById('emailError');
-    const emailErrorText = document.getElementById('emailErrorText');
-    const confirmedEmail = document.getElementById('confirmedEmail');
-    const btnRetry       = document.getElementById('btnRetry');
-    const btnModeMagic   = document.getElementById('btnModeMagic');
-    const btnModePassword= document.getElementById('btnModePassword');
-    const formNote       = document.getElementById('formNote');
-    document.getElementById('year').textContent = new Date().getFullYear();
-
-    const loader         = document.getElementById('pageLoader');
+    let loader           = document.getElementById('pageLoader');
     const form           = document.getElementById('loginForm');
     const emailInput     = document.getElementById('emailInput');
     const passwordInput  = document.getElementById('passwordInput');
@@ -384,17 +399,20 @@
       eyeIcon.innerHTML  = isPassword ? eyeOpen : eyeClosed;
       btnEye.setAttribute('aria-label', isPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
       passwordInput.focus();
+      console.log('[œil] type du champ:', passwordInput.type);
     });
 
     // ── Vérification session existante ───────────────────
     async function checkSession() {
-      if (!IS_CONFIGURED) return;
+      if (!IS_CONFIGURED) { console.warn('[auth] Supabase non configuré'); return; }
       loader.classList.add('is-active');
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        console.log('[auth] session existante:', !!session);
         if (session) { window.location.replace('/library.html'); return; }
-      } catch (_) {}
-      finally {
+      } catch (err) {
+        console.error('[auth] checkSession error:', err);
+      } finally {
         loader.classList.add('is-hidden');
         setTimeout(() => loader.remove(), 350);
       }
@@ -412,21 +430,85 @@
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('Adresse courriel invalide.'); emailInput.focus(); return; }
       if (!password) { showError('Veuillez entrer votre mot de passe.'); passwordInput.focus(); return; }
 
+      console.log('[auth] tentative de connexion pour:', email);
       setLoading(true);
       try {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
+          console.error('[auth] signInWithPassword error:', error.message, error);
           if (error.message.includes('Invalid login credentials') || error.message.includes('invalid_credentials')) {
             showError('Courriel ou mot de passe incorrect.');
+          } else if (error.message.includes('Email not confirmed')) {
+            showError('Courriel non confirmé. Vérifiez votre boîte de réception.');
           } else {
-            showError('Erreur de connexion. Réessayez.');
+            showError(`Erreur : ${error.message}`);
           }
           return;
         }
+        console.log('[auth] connexion réussie, redirection vers /library.html', data.session?.user?.email);
         window.location.replace('/library.html');
-      } catch (_) {
+      } catch (err) {
+        console.error('[auth] exception inattendue:', err);
         showError('Impossible de joindre le serveur. Vérifiez votre connexion.');
-      } finally { setLoading(false); }
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    // ── Mot de passe oublié ──────────────────────────────
+    const viewForm   = document.getElementById('viewForm');
+    const viewForgot = document.getElementById('viewForgot');
+
+    document.getElementById('btnForgot').addEventListener('click', () => {
+      viewForm.style.display   = 'none';
+      viewForgot.style.display = '';
+      document.getElementById('forgotEmail').focus();
+    });
+
+    document.getElementById('btnBackToLogin').addEventListener('click', () => {
+      viewForgot.style.display = 'none';
+      viewForm.style.display   = '';
+      document.getElementById('forgotSuccess').style.display = 'none';
+      document.getElementById('forgotError').style.display   = 'none';
+    });
+
+    document.getElementById('btnSendReset').addEventListener('click', async () => {
+      const btn   = document.getElementById('btnSendReset');
+      const email = document.getElementById('forgotEmail').value.trim().toLowerCase();
+      const errEl = document.getElementById('forgotError');
+      const errTxt= document.getElementById('forgotErrorText');
+      const okEl  = document.getElementById('forgotSuccess');
+
+      errEl.style.display = 'none';
+      okEl.style.display  = 'none';
+
+      if (!email) {
+        errTxt.textContent  = 'Veuillez entrer votre adresse courriel.';
+        errEl.style.display = 'flex'; return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errTxt.textContent  = 'Adresse courriel invalide.';
+        errEl.style.display = 'flex'; return;
+      }
+
+      btn.disabled = true;
+      btn.classList.add('is-loading');
+
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password.html`,
+        });
+        if (error) throw error;
+        okEl.style.display = 'block';
+        document.getElementById('forgotEmail').value = '';
+      } catch (err) {
+        console.error('[forgot]', err);
+        errTxt.textContent  = 'Erreur : ' + err.message;
+        errEl.style.display = 'flex';
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('is-loading');
+      }
     });
 
     function showError(msg) {
