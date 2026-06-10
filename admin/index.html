@@ -721,6 +721,11 @@
             </button>
           </div>
           <div class="section-title">Programmes</div>
+          <div style="margin-bottom:1rem">
+            <select id="progPatientFilter" class="field__input" style="max-width:320px">
+              <option value="">— Tous les patients —</option>
+            </select>
+          </div>
           <div id="programmesWrap"><div class="empty-state">Chargement…</div></div>
           <div class="section-title" style="margin-top:2rem">Bibliothèque d'exercices</div>
           <div id="exercisesTableWrap"><div class="empty-state">Chargement…</div></div>
@@ -2022,15 +2027,32 @@
         .order('created_at', { ascending: false });
       if (error) { toast('Erreur programmes : ' + error.message, 'error'); return; }
       allProgrammes = data || [];
+      populateProgFilter();
       renderProgrammesList();
+    }
+
+    function populateProgFilter() {
+      const sel = document.getElementById('progPatientFilter');
+      const current = sel.value;
+      const patients = [...new Map(allProgrammes.map(p => [p.patient_id, p.patient])).entries()];
+      sel.innerHTML = `<option value="">— Tous les patients —</option>` +
+        patients.map(([id, pat]) => `<option value="${id}" ${id === current ? 'selected' : ''}>${esc(pat?.full_name || pat?.email || id)}</option>`).join('');
     }
 
     function renderProgrammesList() {
       const wrap = document.getElementById('programmesWrap');
+      const filterPatientId = document.getElementById('progPatientFilter')?.value || '';
+      const list = filterPatientId
+        ? allProgrammes.filter(p => p.patient_id === filterPatientId)
+        : allProgrammes;
+
       if (!allProgrammes.length) {
         wrap.innerHTML = `<div class="empty-state">Aucun programme créé pour l'instant.</div>`; return;
       }
-      wrap.innerHTML = allProgrammes.map(p => `
+      if (!list.length) {
+        wrap.innerHTML = `<div class="empty-state">Aucun programme pour ce patient.</div>`; return;
+      }
+      wrap.innerHTML = list.map(p => `
         <div class="prog-list-item">
           <div>
             <div class="prog-list-item__name">${esc(p.name)}</div>
@@ -2042,6 +2064,8 @@
           <button class="btn btn--danger btn--sm" onclick="deleteProgramme('${p.id}','${esc(p.name)}',this)">Supprimer</button>
         </div>`).join('');
     }
+
+    document.getElementById('progPatientFilter').addEventListener('change', renderProgrammesList);
 
     window.deleteProgramme = async (id, name, btn) => {
       if (!confirm(`Supprimer le programme "${name}" ? Les exercices prescrits liés seront supprimés.`)) return;
