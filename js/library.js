@@ -390,6 +390,7 @@
 
         programmeData = { exercises: data || [], completedToday, logCounts };
         showExercises();
+        renderProgressCalendar();
 
       } catch(e) {
         grid.innerHTML = `<div class="state-wrap"><p class="state-title">Erreur de chargement</p></div>`;
@@ -861,5 +862,65 @@
       carousel.querySelectorAll('.carousel__btn, .carousel__dot').forEach(el => {
         el.addEventListener('click', e => e.stopPropagation());
       });
+    }
+
+    // ── Calendrier de progression 30 jours ───────────────
+    async function renderProgressCalendar() {
+      const calEl = document.getElementById('progressCalendar');
+      const grid  = document.getElementById('calendarGrid');
+      if (!calEl || !grid) return;
+
+      try {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+        thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+        // Tous les exercices assignés au patient (tous programmes)
+        const { data: allPE } = await supabase
+          .from('patient_exercises')
+          .select('exercise_id, programme_id')
+          .in('programme_id', allProgrammes.map(p => p.id));
+
+        const totalExercises = new Set((allPE || []).map(pe => pe.exercise_id)).size;
+        if (totalExercises === 0) return;
+
+        // Logs des 30 derniers jours
+        const { data: logs } = await supabase
+          .from('exercise_logs')
+          .select('exercise_id, completed_at')
+          .eq('patient_id', currentUserId)
+          .gte('completed_at', thirtyDaysAgo.toISOString());
+
+        // Grouper par jour : nb d'exercices distincts complétés
+        const byDay = {};
+        (logs || []).forEach(l => {
+          const day = l.completed_at.slice(0, 10);
+          if (!byDay[day]) byDay[day] = new Set();
+          byDay[day].add(l.exercise_id);
+        });
+
+        // Construire les 30 carreaux
+        const days = [];
+        for (let i = 29; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          days.push(d);
+        }
+
+        grid.innerHTML = days.map(d => {
+          const key   = d.toISOString().slice(0, 10);
+          const done  = byDay[key] ? byDay[key].size : 0;
+          const level = done === 0 ? 0 : done >= totalExercises ? 2 : 1;
+          const label = d.toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' });
+          const tip   = done === 0
+            ? `${label} — aucun`
+            : `${label} — ${done}/${totalExercises} exercice${done > 1 ? 's' : ''}`;
+          return `<div class="prog-calendar__day" data-level="${level}" data-tooltip="${tip}"></div>`;
+        }).join('');
+
+        calEl.style.display = '';
+      } catch(e) {
+        console.error('[calendar]', e);
+      }
     }
 

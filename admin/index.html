@@ -170,6 +170,13 @@
     tbody td { padding: .7rem 1rem; vertical-align: middle; }
     .td-actions { display: flex; gap: .4rem; align-items: center; }
 
+    /* ── Progression patient ── */
+    .patient-prog { display: flex; align-items: center; gap: .5rem; min-width: 100px; }
+    .patient-prog__bar { flex: 1; height: 7px; background: var(--border); border-radius: 99px; overflow: hidden; }
+    .patient-prog__fill { height: 100%; background: var(--blue); border-radius: 99px; transition: width 400ms ease; }
+    .patient-prog__pct { font-size: .78rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
+    .patient-prog__pct.is-full { color: var(--success); }
+
     /* ── Badges ── */
     .badge {
       display: inline-block; padding: .15rem .55rem; border-radius: 100px;
@@ -1050,6 +1057,8 @@
     // PATIENTS
     // ══════════════════════════════════════════════════════
 
+    let patientProgress = {}; // { patientId: { done: N, total: N } }
+
     async function loadPatients() {
       const { data, error } = await sb
         .from('profiles')
@@ -1058,7 +1067,55 @@
 
       if (error) { toast('Erreur chargement patients : ' + error.message, 'error'); return; }
       allPatients = data;
+
+      // Charger la progression hebdomadaire pour tous les patients
+      await loadPatientProgress(data.filter(p => !p.is_admin));
       renderPatientsTable();
+    }
+
+    async function loadPatientProgress(patients) {
+      if (!patients.length) return;
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 6);
+      weekAgo.setHours(0, 0, 0, 0);
+
+      const patientIds = patients.map(p => p.id);
+
+      // Exercices assignés par patient (tous programmes)
+      const { data: peData } = await sb
+        .from('patient_exercises')
+        .select('patient_id:programme_id, exercise_id, programme:programmes(patient_id)')
+        .in('programme_id', (await sb.from('programmes').select('id').in('patient_id', patientIds)).data?.map(r => r.id) || []);
+
+      // Logs de la semaine pour tous ces patients
+      const { data: logsData } = await sb
+        .from('exercise_logs')
+        .select('patient_id, exercise_id, completed_at')
+        .in('patient_id', patientIds)
+        .gte('completed_at', weekAgo.toISOString());
+
+      // Total exercices distincts par patient
+      const totalByPatient = {};
+      (peData || []).forEach(row => {
+        const pid = row.programme?.patient_id;
+        if (!pid) return;
+        if (!totalByPatient[pid]) totalByPatient[pid] = new Set();
+        totalByPatient[pid].add(row.exercise_id);
+      });
+
+      // Exercices distincts complétés cette semaine par patient
+      const doneByPatient = {};
+      (logsData || []).forEach(l => {
+        if (!doneByPatient[l.patient_id]) doneByPatient[l.patient_id] = new Set();
+        doneByPatient[l.patient_id].add(l.exercise_id);
+      });
+
+      patientProgress = {};
+      patients.forEach(p => {
+        const total = totalByPatient[p.id]?.size || 0;
+        const done  = doneByPatient[p.id]?.size  || 0;
+        patientProgress[p.id] = { done, total };
+      });
     }
 
     function renderPatientsTable() {
@@ -1074,14 +1131,24 @@
         <div class="table-wrap">
           <table>
             <thead><tr>
-              <th>Nom</th><th>Courriel</th><th>Créé le</th><th>Actions</th>
+              <th>Nom</th><th>Courriel</th><th>Créé le</th><th>Cette semaine</th><th>Actions</th>
             </tr></thead>
             <tbody>
-              ${patients.map(p => `
+              ${patients.map(p => {
+                const prog  = patientProgress[p.id] || { done: 0, total: 0 };
+                const pct   = prog.total > 0 ? Math.round(prog.done / prog.total * 100) : null;
+                const progHtml = pct === null
+                  ? `<span style="color:var(--muted);font-size:.8rem">Aucun programme</span>`
+                  : `<div class="patient-prog">
+                      <div class="patient-prog__bar"><div class="patient-prog__fill" style="width:${pct}%"></div></div>
+                      <span class="patient-prog__pct ${pct >= 100 ? 'is-full' : ''}">${pct}%</span>
+                    </div>`;
+                return `
                 <tr>
                   <td><strong>${esc(p.full_name || '—')}</strong></td>
                   <td style="color:var(--muted)">${esc(p.email)}</td>
                   <td style="color:var(--muted)">${fmtDate(p.created_at)}</td>
+                  <td>${progHtml}</td>
                   <td>
                     <div class="td-actions">
                       <button class="btn btn--ghost btn--sm" onclick="sendMagicLink('${esc(p.email)}', this)">
@@ -1095,8 +1162,8 @@
                       </button>
                     </div>
                   </td>
-                </tr>
-              `).join('')}
+                </tr>`;
+              }).join('')}
             </tbody>
           </table>
         </div>`;

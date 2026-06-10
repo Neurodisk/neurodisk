@@ -679,3 +679,78 @@
       .nav-btn span { display: none; }
       .nav-btn { padding: .45rem .65rem; }
     }
+
+    /* ── Calendrier de progression ──────────────────────── */
+    .prog-calendar {
+      margin-top: 2.5rem;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem 1.75rem;
+    }
+    .prog-calendar__title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: .75rem;
+    }
+    .prog-calendar__legend {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .prog-calendar__legend-item {
+      display: flex;
+      align-items: center;
+      gap: .35rem;
+      font-size: .78rem;
+      color: var(--muted);
+    }
+    .prog-calendar__dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+    .prog-calendar__dot[data-level="0"] { background: var(--border); }
+    .prog-calendar__dot[data-level="1"] { background: #f59e0b; }
+    .prog-calendar__dot[data-level="2"] { background: var(--success); }
+    .prog-calendar__grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .prog-calendar__day {
+      width: 28px;
+      height: 28px;
+      border-radius: 5px;
+      background: var(--border);
+      position: relative;
+      cursor: default;
+      transition: transform 120ms;
+    }
+    .prog-calendar__day:hover { transform: scale(1.15); }
+    .prog-calendar__day[data-level="1"] { background: #f59e0b; }
+    .prog-calendar__day[data-level="2"] { background: var(--success); }
+    .prog-calendar__day::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--navy);
+      color: #fff;
+      font-size: .7rem;
+      white-space: nowrap;
+      padding: .2rem .45rem;
+      border-radius: 5px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 150ms;
+      z-index: 10;
+    }
+    .prog-calendar__day:hover::after { opacity: 1; }
+    @media (max-width: 600px) {
+      .prog-calendar__day { width: 22px; height: 22px; }
+      .prog-calendar { padding: 1.1rem 1rem; }
+    }
