@@ -871,18 +871,24 @@
       if (!calEl || !grid) return;
 
       try {
+        // S'assurer d'avoir le userId (au cas où le .then() n'a pas encore résolu)
+        if (!currentUserId) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) currentUserId = session.user.id;
+          else return;
+        }
+
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
         thirtyDaysAgo.setHours(0, 0, 0, 0);
 
         // Tous les exercices assignés au patient (tous programmes)
-        const { data: allPE } = await supabase
-          .from('patient_exercises')
-          .select('exercise_id, programme_id')
-          .in('programme_id', allProgrammes.map(p => p.id));
+        const progIds = allProgrammes.map(p => p.id);
+        const { data: allPE } = progIds.length
+          ? await supabase.from('patient_exercises').select('exercise_id').in('programme_id', progIds)
+          : { data: [] };
 
         const totalExercises = new Set((allPE || []).map(pe => pe.exercise_id)).size;
-        if (totalExercises === 0) return;
 
         // Logs des 30 derniers jours
         const { data: logs } = await supabase
