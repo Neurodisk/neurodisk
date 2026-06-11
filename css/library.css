@@ -60,18 +60,33 @@
       padding: 0 2rem; height: 100%;
       display: flex; align-items: center; justify-content: space-between; gap: 1rem;
     }
-    .nav__brand { display: flex; align-items: center; min-width: 0; }
-    .nav__brand-title {
-      font-size: 1.15rem; font-weight: 500; color: var(--navy);
-      white-space: nowrap; letter-spacing: -.01em;
+    .nav__brand { display: flex; align-items: center; gap: .7rem; min-width: 0; }
+    .nav__brand-mark {
+      width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--blue) 0%, var(--navy) 100%);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 12px rgba(36,104,214,.28);
     }
-    .nav__brand-accent {
-      color: var(--blue); font-weight: 700;
+    .nav__brand-mark svg {
+      width: 21px; height: 21px; fill: #fff;
+    }
+    .nav__brand-text { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
+    .nav__brand-eyebrow {
+      font-size: .72rem; font-weight: 500; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .08em; white-space: nowrap;
+    }
+    .nav__brand-title {
+      font-size: 1.3rem; font-weight: 700; color: var(--navy);
+      white-space: nowrap; letter-spacing: -.02em;
     }
     .nav__right { display: flex; align-items: center; gap: .75rem; }
+    .nav__logo-wrap {
+      display: flex; align-items: center; flex-shrink: 0;
+      padding-left: .9rem; margin-left: .15rem;
+      border-left: 1.5px solid var(--border);
+    }
     .nav__logo-img {
-      height: 26px; width: auto; flex-shrink: 0;
-      opacity: .7; margin-left: .25rem;
+      height: 30px; width: auto;
       display: block; object-fit: contain;
     }
     .nav__greeting { font-size: 1rem; font-weight: 400; color: var(--muted); white-space: nowrap; }
@@ -706,13 +721,15 @@
       .ex-modal__body { padding: 1.25rem 1.25rem 1.75rem; }
     }
     @media (max-width: 600px) {
-      .nav__brand-sub { display: none; }
-      .nav__logo-img { display: none; }
+      .nav__logo-wrap { display: none; }
     }
     @media (max-width: 480px) {
       .nav-btn span { display: none; }
       .nav-btn { padding: .45rem .65rem; }
-      .nav__brand-title { font-size: 1rem; }
+      .nav__brand-mark { width: 34px; height: 34px; border-radius: 10px; }
+      .nav__brand-mark svg { width: 18px; height: 18px; }
+      .nav__brand-eyebrow { font-size: .68rem; }
+      .nav__brand-title { font-size: 1.1rem; }
     }
 
     /* ── Calendrier de progression ──────────────────────── */
