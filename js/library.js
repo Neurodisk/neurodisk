@@ -58,7 +58,7 @@
           if (error) throw error;
           resources = data;
         } else {
-          const { data, error } = await supabase.from('patient_resources').select(`assigned_at, resource:resources (id,title,description,type,condition_tag,bunny_video_id,pdf_url,thumbnail_url,duration_sec,sort_order)`).order('assigned_at', { ascending: false });
+          const { data, error } = await supabase.from('patient_resources').select(`assigned_at, resource:resources (id,title,description,type,condition_tag,category,bunny_video_id,pdf_url,thumbnail_url,duration_sec,sort_order)`).order('assigned_at', { ascending: false });
           if (error) throw error;
           resources = data.map(r => ({ ...r.resource, assigned_at: r.assigned_at })).filter(r => r?.id);
         }
@@ -189,28 +189,76 @@
 
     init().catch(() => { loader.classList.add('is-hidden'); renderError(); });
 
-    // ── ONGLETS ──────────────────────────────────────────
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const tab = btn.dataset.tab;
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('is-active', b === btn));
-        document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('is-active', p.id === 'tab-' + tab));
-        if (tab === 'programme') {
-          document.getElementById('heroTitle').textContent = 'Mon programme';
-          document.getElementById('heroSub').textContent = 'Exercices prescrits par votre professionnel.';
-          if (!programmeLoaded) loadProgramme();
-        } else {
-          document.getElementById('heroTitle').textContent = 'Mes ressources cliniques';
-          document.getElementById('heroSub').textContent = 'Sélectionnez une catégorie pour accéder à vos ressources.';
-        }
-      });
+    // ── NAVIGATION PAR TUILES ─────────────────────────────
+    const SECTION_META = {
+      bibliotheque:        { title: 'Ma bibliothèque',         sub: 'Toutes vos ressources, classées par condition.' },
+      exercices:           { title: 'Mes exercices',           sub: 'Exercices prescrits par votre professionnel.' },
+      recommandations:     { title: 'Mes recommandations',     sub: 'Conseils et documents recommandés par votre équipe.' },
+      videos_explicatives: { title: 'Mes vidéos explicatives', sub: 'Vidéos pour mieux comprendre votre condition.' },
+      habitudes_de_vie:    { title: 'Mes habitudes de vie',    sub: 'Pour prendre soin de vous au quotidien.' },
+    };
+
+    function showHome() {
+      document.getElementById('viewHome').style.display = '';
+      document.querySelectorAll('.section-view').forEach(s => s.style.display = 'none');
+      document.getElementById('heroTitle').textContent = 'Ma plateforme Neurodisk';
+      document.getElementById('heroSub').textContent = 'Choisissez une section pour accéder à vos ressources.';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function openSection(section) {
+      const meta = SECTION_META[section] || {};
+      document.getElementById('viewHome').style.display = 'none';
+      document.querySelectorAll('.section-view').forEach(s => s.style.display = 'none');
+      document.getElementById('heroTitle').textContent = meta.title || '';
+      document.getElementById('heroSub').textContent = meta.sub || '';
+
+      if (section === 'bibliotheque') {
+        document.getElementById('section-bibliotheque').style.display = '';
+        // revenir à la liste des catégories
+        document.getElementById('viewCategories').style.display = '';
+        document.getElementById('viewResources').style.display = 'none';
+      } else if (section === 'exercices') {
+        document.getElementById('section-exercices').style.display = '';
+        if (!programmeLoaded) loadProgramme();
+      } else {
+        // catégorie de ressources (recommandations / vidéos / habitudes)
+        document.getElementById('section-cat').style.display = '';
+        renderCatGrid(section);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    document.querySelectorAll('.home-tile').forEach(tile => {
+      tile.addEventListener('click', () => openSection(tile.dataset.section));
     });
+    document.querySelectorAll('[data-back-home]').forEach(btn => {
+      btn.addEventListener('click', showHome);
+    });
+
+    // Grille filtrée par catégorie de ressource
+    function renderCatGrid(category) {
+      const list = allResources.filter(r => (r.category || 'bibliotheque') === category);
+      const grid = document.getElementById('catGrid');
+      if (!list.length) {
+        grid.innerHTML = `<div class="state-wrap"><div class="state-icon"><svg viewBox="0 0 24 24"><path d="M22 16.74V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h16"/><path d="M7 8h10M7 12h6"/></svg></div><p class="state-title">Rien ici pour l'instant</p><p class="state-text">Votre équipe n'a pas encore ajouté de contenu dans cette section.</p></div>`;
+        return;
+      }
+      grid.innerHTML = list.map(r => renderCard(r)).join('');
+      grid.querySelectorAll('.card').forEach(c => {
+        c.addEventListener('click', () => {
+          if (c.dataset.type === 'video') openModal(c.dataset.id, c.dataset.title, c.dataset.url);
+          else window.open(c.dataset.url, '_blank', 'noopener');
+        });
+        c.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); c.click(); } });
+      });
+    }
 
     document.getElementById('btnBackCategories').addEventListener('click', () => {
       document.getElementById('viewResources').style.display = 'none';
       document.getElementById('viewCategories').style.display = '';
-      document.getElementById('heroTitle').textContent = 'Mes ressources cliniques';
-      document.getElementById('heroSub').textContent = 'Sélectionnez une catégorie pour accéder à vos ressources.';
+      document.getElementById('heroTitle').textContent = 'Ma bibliothèque';
+      document.getElementById('heroSub').textContent = 'Toutes vos ressources, classées par condition.';
     });
 
     document.getElementById('btnPrint').addEventListener('click', () => {

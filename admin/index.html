@@ -626,6 +626,15 @@
                   <option value="autre">Autre</option>
                 </select>
               </div>
+              <div class="field">
+                <label for="rCategory">Catégorie (onglet patient) *</label>
+                <select id="rCategory" required>
+                  <option value="bibliotheque">📚 Ma bibliothèque seulement</option>
+                  <option value="recommandations">📋 Mes recommandations</option>
+                  <option value="videos_explicatives">🎬 Mes vidéos explicatives</option>
+                  <option value="habitudes_de_vie">🌱 Mes habitudes de vie</option>
+                </select>
+              </div>
               <div class="field" id="fieldBunny">
                 <label>Vidéo *</label>
 
@@ -1024,6 +1033,15 @@
               <option value="autre">Autre</option>
             </select>
           </div>
+          <div class="field">
+            <label for="editCategory">Catégorie (onglet patient) *</label>
+            <select id="editCategory" required>
+              <option value="bibliotheque">📚 Ma bibliothèque seulement</option>
+              <option value="recommandations">📋 Mes recommandations</option>
+              <option value="videos_explicatives">🎬 Mes vidéos explicatives</option>
+              <option value="habitudes_de_vie">🌱 Mes habitudes de vie</option>
+            </select>
+          </div>
           <div class="field" id="editFieldDuration">
             <label for="editDuration">Durée (secondes)</label>
             <input type="number" id="editDuration" placeholder="420" min="0">
@@ -1392,16 +1410,21 @@
         arthrose_cervicale:'Arthrose cervicale', arthrose_lombaire:'Arthrose lombaire',
         spondylolyse:'Spondylolyse', spondylolisthesis:'Spondylolisthésis', autre:'Autre',
       };
+      const CAT = {
+        bibliotheque:'Bibliothèque', recommandations:'Recommandations',
+        videos_explicatives:'Vidéos explicatives', habitudes_de_vie:'Habitudes de vie',
+      };
       wrap.innerHTML = `
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Titre</th><th>Type</th><th>Condition</th><th>Durée</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Titre</th><th>Type</th><th>Condition</th><th>Catégorie</th><th>Durée</th><th>Actions</th></tr></thead>
             <tbody>
               ${allResources.map(r => `
                 <tr>
                   <td><strong>${esc(r.title)}</strong>${r.description ? `<br><small style="color:var(--muted)">${esc(r.description.substring(0,80))}${r.description.length>80?'…':''}</small>` : ''}</td>
                   <td><span class="badge badge--${r.type}">${r.type === 'video' ? '📹 Vidéo' : '📄 PDF'}</span></td>
                   <td><span class="badge badge--${r.condition_tag}">${COND[r.condition_tag]||r.condition_tag}</span></td>
+                  <td style="color:var(--muted)">${CAT[r.category]||'Bibliothèque'}</td>
                   <td style="color:var(--muted)">${r.duration_sec ? fmtDur(r.duration_sec) : '—'}</td>
                   <td>
                     <div class="td-actions">
@@ -1445,6 +1468,7 @@
       const type     = document.querySelector('input[name="rType"]:checked').value;
       const title    = document.getElementById('rTitle').value.trim();
       const cond     = document.getElementById('rCondition').value;
+      const category = document.getElementById('rCategory').value;
       const bunnyId  = document.getElementById('rBunnyId').value.trim();
       const pdfUrl   = document.getElementById('rPdfUrl').value.trim();
       const duration = parseInt(document.getElementById('rDuration').value) || null;
@@ -1462,7 +1486,7 @@
       btn.innerHTML = `<span class="spinner-inline"></span> Ajout…`;
 
       const payload = {
-        title, description: desc || null, type, condition_tag: cond,
+        title, description: desc || null, type, condition_tag: cond, category,
         bunny_video_id: type === 'video' ? bunnyId : null,
         pdf_url:        type === 'pdf'   ? pdfUrl  : null,
         duration_sec: duration, sort_order: order,
@@ -2450,6 +2474,7 @@
       document.getElementById('editResourceType').value = r.type;
       document.getElementById('editTitle').value        = r.title || '';
       document.getElementById('editCondition').value    = r.condition_tag || '';
+      document.getElementById('editCategory').value     = r.category || 'bibliotheque';
       document.getElementById('editDuration').value     = r.duration_sec || '';
       document.getElementById('editOrder').value        = r.sort_order || 1;
       document.getElementById('editDesc').value         = r.description || '';
@@ -2475,6 +2500,7 @@
       const type     = document.getElementById('editResourceType').value;
       const title    = document.getElementById('editTitle').value.trim();
       const cond     = document.getElementById('editCondition').value;
+      const category = document.getElementById('editCategory').value;
       const duration = parseInt(document.getElementById('editDuration').value) || null;
       const order    = parseInt(document.getElementById('editOrder').value) || 1;
       const desc     = document.getElementById('editDesc').value.trim();
@@ -2491,7 +2517,7 @@
 
       const payload = {
         title, description: desc || null,
-        condition_tag: cond,
+        condition_tag: cond, category,
         duration_sec: type === 'video' ? duration : null,
         sort_order: order,
       };

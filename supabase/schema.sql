@@ -52,6 +52,13 @@ CREATE TABLE IF NOT EXISTS public.resources (
   -- PDF : URL publique du fichier (Supabase Storage ou externe)
   pdf_url         TEXT,
   thumbnail_url   TEXT,
+  -- Catégorie alimentant les onglets patient (voir migration 001)
+  category        TEXT        NOT NULL DEFAULT 'bibliotheque' CHECK (category IN (
+                                'bibliotheque',
+                                'recommandations',
+                                'videos_explicatives',
+                                'habitudes_de_vie'
+                              )),
   duration_sec    INTEGER,    -- durée en secondes (vidéos uniquement)
   sort_order      INTEGER     NOT NULL DEFAULT 0,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
