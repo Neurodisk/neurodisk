@@ -253,6 +253,7 @@
         document.getElementById('section-bibliotheque').style.display = '';
         document.getElementById('viewCategories').style.display = '';
         document.getElementById('viewResources').style.display = 'none';
+        renderCategories();
       } else if (section === 'exercices') {
         document.getElementById('section-exercices').style.display = '';
         if (!programmeLoaded) loadProgramme();
