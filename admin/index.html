@@ -960,19 +960,39 @@
           Lettre de référence
         </div>
 
-        <!-- Gestion des professionnels sauvegardés -->
-        <div class="card" style="max-width:760px;margin-bottom:1.5rem">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
-            <strong>Professionnels fréquents</strong>
-            <button class="btn btn--ghost btn--sm" id="btnToggleProfManager">⚙️ Gérer</button>
-          </div>
-          <div id="profManagerWrap" style="display:none">
-            <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
-              <input type="text" id="newProfName" class="field__input" placeholder="Nom complet" style="flex:1;min-width:160px">
-              <input type="text" id="newProfTitle" class="field__input" placeholder="Titre (ex: physiothérapeute)" style="flex:1;min-width:160px">
-              <button class="btn btn--primary btn--sm" id="btnAddProf">+ Ajouter</button>
+        <!-- Gestion : 2 colonnes côte à côte -->
+        <div style="max-width:760px;display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
+
+          <!-- Destinataires fréquents -->
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+              <strong>Destinataires fréquents</strong>
+              <button class="btn btn--ghost btn--sm" id="btnToggleProfManager">⚙️ Gérer</button>
             </div>
-            <div id="profListWrap"><div class="empty-state">Aucun professionnel sauvegardé.</div></div>
+            <div id="profManagerWrap" style="display:none">
+              <div style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.75rem">
+                <input type="text" id="newProfName"  class="field__input" placeholder="Nom complet">
+                <input type="text" id="newProfTitle" class="field__input" placeholder="Titre (ex: physiothérapeute)">
+                <button class="btn btn--primary btn--sm" id="btnAddProf">+ Ajouter</button>
+              </div>
+              <div id="profListWrap" style="max-height:200px;overflow-y:auto"><div class="empty-state">Aucun destinataire.</div></div>
+            </div>
+          </div>
+
+          <!-- Signataires Neurodisk -->
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+              <strong>Signataires Neurodisk</strong>
+              <button class="btn btn--ghost btn--sm" id="btnToggleStaffManager">⚙️ Gérer</button>
+            </div>
+            <div id="staffManagerWrap" style="display:none">
+              <div style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.75rem">
+                <input type="text" id="newStaffName"  class="field__input" placeholder="Nom complet">
+                <input type="text" id="newStaffTitle" class="field__input" placeholder="Titre (ex: chiropraticien D.C.)">
+                <button class="btn btn--primary btn--sm" id="btnAddStaff">+ Ajouter</button>
+              </div>
+              <div id="staffListWrap" style="max-height:200px;overflow-y:auto"><div class="empty-state">Aucun signataire.</div></div>
+            </div>
           </div>
         </div>
 
@@ -981,34 +1001,38 @@
           <div class="form-grid">
             <div class="field">
               <label for="refClientSelect">Patient *</label>
-              <select id="refClientSelect">
-                <option value="">— Sélectionner un patient —</option>
-              </select>
+              <select id="refClientSelect"><option value="">— Sélectionner un patient —</option></select>
             </div>
             <div class="field">
-              <label for="refProfSelect">Professionnel destinataire *</label>
-              <select id="refProfSelect">
-                <option value="">— Sélectionner un professionnel —</option>
-              </select>
+              <label for="refProfSelect">Destinataire *</label>
+              <select id="refProfSelect"><option value="">— Sélectionner un destinataire —</option></select>
             </div>
-            <div class="field" style="grid-column:1/-1">
+            <div class="field">
+              <label for="refStaffSelect">Signataire *</label>
+              <select id="refStaffSelect"><option value="">— Sélectionner un signataire —</option></select>
+            </div>
+            <div class="field">
               <label for="refCondition">Diagnostic / condition</label>
-              <select id="refCondition">
-                <option value="">— Sélectionner ou laisser vide —</option>
-              </select>
+              <select id="refCondition"><option value="">— Sélectionner ou laisser vide —</option></select>
             </div>
             <div class="field" style="grid-column:1/-1">
               <label for="refBody">Corps de la lettre <span style="font-weight:400;color:var(--muted)">— modifiable avant génération</span></label>
-              <textarea id="refBody" rows="14" style="font-family:Georgia,serif;font-size:.9rem;line-height:1.7"></textarea>
+              <textarea id="refBody" rows="12" style="font-family:Georgia,serif;font-size:.9rem;line-height:1.7"></textarea>
             </div>
           </div>
           <div style="margin-top:1rem;display:flex;gap:.75rem;align-items:center">
             <button class="btn btn--primary" id="btnGeneratePDF">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Générer le PDF
+              Générer et sauvegarder le PDF
             </button>
             <button class="btn btn--ghost" id="btnResetLetter">Réinitialiser</button>
           </div>
+        </div>
+
+        <!-- Historique des lettres -->
+        <div class="card" style="max-width:760px;margin-top:1.5rem">
+          <div class="section-title" style="margin-bottom:.75rem">Lettres sauvegardées</div>
+          <div id="lettersHistoryWrap"><div class="empty-state">Aucune lettre sauvegardée.</div></div>
         </div>
       </section>
 
@@ -1430,7 +1454,9 @@
     // LETTRE DE RÉFÉRENCE
     // ══════════════════════════════════════════════════════
     let allProfessionals = [];
+    let allStaff = [];
 
+    // ── Destinataires ──────────────────────────────────────
     async function loadProfessionals() {
       const { data } = await sb.from('referral_professionals').select('*').order('sort_order');
       allProfessionals = data || [];
@@ -1441,14 +1467,14 @@
     function populateProfSelect() {
       const sel = document.getElementById('refProfSelect');
       if (!sel) return;
-      sel.innerHTML = `<option value="">— Sélectionner un professionnel —</option>` +
+      sel.innerHTML = `<option value="">— Sélectionner un destinataire —</option>` +
         allProfessionals.map(p => `<option value="${esc(p.id)}">${esc(p.name)}${p.title ? ' — ' + esc(p.title) : ''}</option>`).join('');
     }
 
     function renderProfList() {
       const wrap = document.getElementById('profListWrap');
       if (!wrap) return;
-      if (!allProfessionals.length) { wrap.innerHTML = `<div class="empty-state">Aucun professionnel sauvegardé.</div>`; return; }
+      if (!allProfessionals.length) { wrap.innerHTML = `<div class="empty-state">Aucun destinataire sauvegardé.</div>`; return; }
       wrap.innerHTML = allProfessionals.map(p => `
         <div class="prog-list-item">
           <div><strong>${esc(p.name)}</strong>${p.title ? `<span style="color:var(--muted);margin-left:.5rem">${esc(p.title)}</span>` : ''}</div>
@@ -1485,8 +1511,63 @@
       await loadProfessionals();
     };
 
+    // ── Signataires ────────────────────────────────────────
+    async function loadStaff() {
+      const { data } = await sb.from('clinic_staff').select('*').order('sort_order');
+      allStaff = data || [];
+      populateStaffSelect();
+      renderStaffList();
+    }
+
+    function populateStaffSelect() {
+      const sel = document.getElementById('refStaffSelect');
+      if (!sel) return;
+      sel.innerHTML = `<option value="">— Sélectionner un signataire —</option>` +
+        allStaff.map(s => `<option value="${esc(s.id)}">${esc(s.name)}${s.title ? ' — ' + esc(s.title) : ''}</option>`).join('');
+    }
+
+    function renderStaffList() {
+      const wrap = document.getElementById('staffListWrap');
+      if (!wrap) return;
+      if (!allStaff.length) { wrap.innerHTML = `<div class="empty-state">Aucun signataire.</div>`; return; }
+      wrap.innerHTML = allStaff.map(s => `
+        <div class="prog-list-item">
+          <div><strong>${esc(s.name)}</strong>${s.title ? `<span style="color:var(--muted);margin-left:.5rem">${esc(s.title)}</span>` : ''}</div>
+          <div class="td-actions">
+            <button class="btn btn--danger btn--sm" onclick="deleteStaff('${s.id}',this)">Supprimer</button>
+          </div>
+        </div>`).join('');
+    }
+
+    document.getElementById('btnToggleStaffManager').addEventListener('click', () => {
+      const w = document.getElementById('staffManagerWrap');
+      w.style.display = w.style.display === 'none' ? '' : 'none';
+    });
+
+    document.getElementById('btnAddStaff').addEventListener('click', async () => {
+      const name  = document.getElementById('newStaffName').value.trim();
+      const title = document.getElementById('newStaffTitle').value.trim();
+      if (!name) { toast('Entrez un nom.', 'error'); return; }
+      const sort = allStaff.length ? Math.max(...allStaff.map(s => s.sort_order)) + 1 : 0;
+      const { error } = await sb.from('clinic_staff').insert({ name, title: title || null, sort_order: sort });
+      if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+      document.getElementById('newStaffName').value  = '';
+      document.getElementById('newStaffTitle').value = '';
+      toast('Signataire ajouté.', 'success');
+      await loadStaff();
+    });
+
+    window.deleteStaff = async (id, btn) => {
+      if (!confirm('Supprimer ce signataire ?')) return;
+      btn.disabled = true;
+      const { error } = await sb.from('clinic_staff').delete().eq('id', id);
+      if (error) { toast('Erreur : ' + error.message, 'error'); btn.disabled=false; return; }
+      toast('Supprimé.', 'success');
+      await loadStaff();
+    };
+
+    // ── Formulaire lettre ──────────────────────────────────
     function initReferralSection() {
-      // Patients
       const patSel = document.getElementById('refClientSelect');
       if (patSel) {
         patSel.innerHTML = `<option value="">— Sélectionner un patient —</option>` +
@@ -1494,27 +1575,31 @@
             `<option value="${esc(p.full_name || p.email)}">${esc(p.full_name || p.email)}</option>`
           ).join('');
       }
-      // Conditions
       const condSel = document.getElementById('refCondition');
       if (condSel) {
         condSel.innerHTML = `<option value="">— Sélectionner ou laisser vide —</option>` +
           allConditions.map(c => `<option value="${esc(c.label)}">${esc(c.label)}</option>`).join('');
       }
       loadProfessionals();
+      loadStaff();
+      loadLettersHistory();
       refreshLetterBody();
     }
 
     function getSelectedProf() {
-      const sel = document.getElementById('refProfSelect');
-      const id = sel?.value;
-      if (!id) return '';
-      const p = allProfessionals.find(x => x.id === id);
-      if (!p) return '';
-      return p.title ? `${p.name}, ${p.title}` : p.name;
+      const id = document.getElementById('refProfSelect')?.value;
+      if (!id) return null;
+      return allProfessionals.find(x => x.id === id) || null;
     }
 
-    const LETTER_DEFAULT = (client, prof, cond) =>
-`À l'attention de ${prof || '[Professionnel destinataire]'},
+    function getSelectedStaff() {
+      const id = document.getElementById('refStaffSelect')?.value;
+      if (!id) return null;
+      return allStaff.find(x => x.id === id) || null;
+    }
+
+    const LETTER_DEFAULT = (client, profDisplay, cond) =>
+`À l'attention de ${profDisplay || '[Professionnel destinataire]'},
 
 Objet : Lettre de référence — ${client}
 
@@ -1527,18 +1612,15 @@ ${client} est actuellement suivi(e) à la Clinique Neurodisk dans le cadre d'un 
 Nous demeurons disponibles pour tout échange d'informations cliniques pertinentes et vous invitons à communiquer avec nous si vous avez des questions.
 
 En vous remerciant de votre précieuse collaboration, veuillez agréer l'expression de nos salutations distinguées.
-
-
-________________________________
-Clinique Neurodisk
 `;
 
     function refreshLetterBody() {
       const client = document.getElementById('refClientSelect')?.value || '';
       const prof   = getSelectedProf();
+      const profDisplay = prof ? (prof.title ? `${prof.name}, ${prof.title}` : prof.name) : '';
       const cond   = document.getElementById('refCondition')?.value || '';
       const body   = document.getElementById('refBody');
-      if (body) body.value = LETTER_DEFAULT(client || '[Nom du patient]', prof, cond);
+      if (body) body.value = LETTER_DEFAULT(client || '[Nom du patient]', profDisplay, cond);
     }
 
     document.getElementById('refClientSelect').addEventListener('change', refreshLetterBody);
@@ -1548,26 +1630,21 @@ Clinique Neurodisk
     document.getElementById('btnResetLetter').addEventListener('click', () => {
       document.getElementById('refClientSelect').value = '';
       document.getElementById('refProfSelect').value   = '';
+      document.getElementById('refStaffSelect').value  = '';
       document.getElementById('refCondition').value    = '';
       refreshLetterBody();
     });
 
-    document.getElementById('btnGeneratePDF').addEventListener('click', () => {
-      const client = document.getElementById('refClientSelect').value.trim();
-      const prof   = getSelectedProf();
-      if (!client) { toast('Sélectionnez un patient.', 'error'); return; }
-      const body  = document.getElementById('refBody').value;
-      const cond  = document.getElementById('refCondition').value;
-      const today = new Date().toLocaleDateString('fr-CA', { year:'numeric', month:'long', day:'numeric' });
+    // ── Génération PDF + sauvegarde ────────────────────────
+    function buildPdfHtml({ client, prof, staff, cond, body, today }) {
+      const esc2 = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const profName  = prof?.name  || '';
+      const profTitle = prof?.title || '';
+      const staffName  = staff?.name  || '';
+      const staffTitle = staff?.title || '';
+      const bodyText = body.replace(/^À l'attention de[^\n]*\n\nObjet[^\n]*\n\n/, '');
 
-      const profParts = prof ? prof.split(',') : [];
-      const profName  = profParts[0]?.trim() || '';
-      const profTitle = profParts.slice(1).join(',').trim();
-
-      const esc2 = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-
-      const win = window.open('', '_blank');
-      win.document.write(`<!DOCTYPE html><html lang="fr"><head>
+      return `<!DOCTYPE html><html lang="fr"><head>
         <meta charset="UTF-8">
         <title>Lettre de référence — ${esc2(client)}</title>
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -1575,38 +1652,28 @@ Clinique Neurodisk
           @page { size: letter; margin: 0; }
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body { font-family: Georgia, 'Times New Roman', serif; font-size: 11pt; color: #1a1a2e; line-height: 1.8; background: #fff; }
-
           .page { min-height: 100vh; display: flex; flex-direction: column; }
-
-          /* Bande bleue en haut */
-          .topbar { background: #1B2B6B; height: 6px; width: 100%; }
-
+          .topbar { background: #1B2B6B; height: 6px; }
           .content { padding: 2.2cm 2.8cm 2cm; flex: 1; }
-
-          /* En-tête */
           .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; padding-bottom: 1.2rem; border-bottom: 1px solid #d0d8f0; }
           .header__brand { font-family: 'Montserrat', Arial, sans-serif; }
           .header__brand-name { font-size: 22pt; font-weight: 800; color: #1B2B6B; letter-spacing: -.03em; line-height: 1; }
           .header__brand-sub  { font-size: 8pt; color: #2468D6; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin-top: 2px; }
           .header__meta { text-align: right; font-family: 'Montserrat', Arial, sans-serif; font-size: 8.5pt; color: #555; line-height: 1.6; }
-
-          /* Info destinataire */
           .recipient { margin-bottom: 1.5rem; }
           .recipient__name  { font-size: 11pt; font-weight: bold; }
           .recipient__title { font-size: 10pt; color: #444; }
-
-          /* Objet */
           .subject { background: #f0f4ff; border-left: 3px solid #2468D6; padding: .55rem .9rem; margin-bottom: 1.5rem; font-family: 'Montserrat', Arial, sans-serif; font-size: 10pt; color: #1B2B6B; font-weight: 600; }
-
-          /* Corps */
           .body { white-space: pre-wrap; font-size: 11pt; line-height: 1.85; color: #1a1a2e; }
-
-          /* Pied de page */
+          .signature { margin-top: 2.5rem; }
+          .signature__line { border-top: 1px solid #bbb; width: 220px; margin-bottom: .35rem; }
+          .signature__name  { font-weight: bold; font-size: 10.5pt; }
+          .signature__title { font-size: 9.5pt; color: #444; }
+          .signature__clinic { font-size: 9pt; color: #1B2B6B; font-family: 'Montserrat', Arial, sans-serif; font-weight: 600; margin-top: 2px; }
           .footer { background: #f7f9fd; border-top: 1px solid #d0d8f0; padding: .6cm 2.8cm; display: flex; justify-content: space-between; align-items: center; }
           .footer__brand { font-family: 'Montserrat', Arial, sans-serif; font-size: 8pt; font-weight: 700; color: #1B2B6B; }
           .footer__note  { font-family: 'Montserrat', Arial, sans-serif; font-size: 7.5pt; color: #888; }
           .bottombar { background: #2468D6; height: 3px; }
-
           @media print { * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
         </style>
       </head><body>
@@ -1623,15 +1690,18 @@ Clinique Neurodisk
                 ${cond ? `<span style="color:#2468D6">${esc2(cond)}</span>` : ''}
               </div>
             </div>
-
             ${profName ? `<div class="recipient">
               <div class="recipient__name">${esc2(profName)}</div>
               ${profTitle ? `<div class="recipient__title">${esc2(profTitle)}</div>` : ''}
             </div>` : ''}
-
             <div class="subject">Objet : Lettre de référence — ${esc2(client)}</div>
-
-            <div class="body">${esc2(body.replace(/^À l'attention de[^\n]*\n\nObjet[^\n]*\n\n/,''))}</div>
+            <div class="body">${esc2(bodyText)}</div>
+            ${staffName ? `<div class="signature">
+              <div class="signature__line"></div>
+              <div class="signature__name">${esc2(staffName)}</div>
+              ${staffTitle ? `<div class="signature__title">${esc2(staffTitle)}</div>` : ''}
+              <div class="signature__clinic">Clinique Neurodisk</div>
+            </div>` : ''}
           </div>
           <div class="footer">
             <div class="footer__brand">Neurodisk — Clinique de réadaptation</div>
@@ -1640,9 +1710,89 @@ Clinique Neurodisk
           <div class="bottombar"></div>
         </div>
         <script>window.onload=()=>{ window.print(); }<\/script>
-      </body></html>`);
+      </body></html>`;
+    }
+
+    document.getElementById('btnGeneratePDF').addEventListener('click', async () => {
+      const client = document.getElementById('refClientSelect').value.trim();
+      const prof   = getSelectedProf();
+      const staff  = getSelectedStaff();
+      if (!client) { toast('Sélectionnez un patient.', 'error'); return; }
+      const body  = document.getElementById('refBody').value;
+      const cond  = document.getElementById('refCondition').value;
+      const today = new Date().toLocaleDateString('fr-CA', { year:'numeric', month:'long', day:'numeric' });
+
+      // Ouvrir PDF
+      const win = window.open('', '_blank');
+      win.document.write(buildPdfHtml({ client, prof, staff, cond, body, today }));
       win.document.close();
+
+      // Sauvegarder en base
+      const { error } = await sb.from('referral_letters').insert({
+        patient_name:    client,
+        recipient_id:    prof?.id  || null,
+        staff_id:        staff?.id || null,
+        condition_label: cond || null,
+        body,
+        recipient_name:  prof  ? prof.name  : null,
+        staff_name:      staff ? staff.name  : null,
+        staff_title:     staff ? staff.title : null,
+      });
+      if (error) { toast('PDF généré mais non sauvegardé : ' + error.message, 'error'); return; }
+      toast('Lettre sauvegardée.', 'success');
+      await loadLettersHistory();
     });
+
+    // ── Historique ─────────────────────────────────────────
+    async function loadLettersHistory() {
+      const { data } = await sb.from('referral_letters')
+        .select('*').order('created_at', { ascending: false }).limit(50);
+      renderLettersHistory(data || []);
+    }
+
+    function renderLettersHistory(letters) {
+      const wrap = document.getElementById('lettersHistoryWrap');
+      if (!wrap) return;
+      if (!letters.length) { wrap.innerHTML = `<div class="empty-state">Aucune lettre sauvegardée.</div>`; return; }
+      wrap.innerHTML = letters.map(l => {
+        const date = new Date(l.created_at).toLocaleDateString('fr-CA', { year:'numeric', month:'long', day:'numeric' });
+        return `<div class="prog-list-item">
+          <div>
+            <strong>${esc(l.patient_name)}</strong>
+            ${l.recipient_name ? `<span style="color:var(--muted);margin-left:.5rem">→ ${esc(l.recipient_name)}</span>` : ''}
+            ${l.staff_name ? `<span style="color:var(--muted);margin-left:.5rem">| ${esc(l.staff_name)}</span>` : ''}
+            <div style="font-size:.8rem;color:var(--muted)">${esc(date)}${l.condition_label ? ' · ' + esc(l.condition_label) : ''}</div>
+          </div>
+          <div class="td-actions">
+            <button class="btn btn--ghost btn--sm" onclick="redownloadLetter('${l.id}')">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              PDF
+            </button>
+            <button class="btn btn--danger btn--sm" onclick="deleteLetter('${l.id}',this)">Supprimer</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    window.redownloadLetter = async (id) => {
+      const { data, error } = await sb.from('referral_letters').select('*').eq('id', id).single();
+      if (error || !data) { toast('Lettre introuvable.', 'error'); return; }
+      const today = new Date(data.created_at).toLocaleDateString('fr-CA', { year:'numeric', month:'long', day:'numeric' });
+      const prof  = data.recipient_name ? { name: data.recipient_name, title: '' } : null;
+      const staff = data.staff_name     ? { name: data.staff_name,     title: data.staff_title || '' } : null;
+      const win = window.open('', '_blank');
+      win.document.write(buildPdfHtml({ client: data.patient_name, prof, staff, cond: data.condition_label || '', body: data.body, today }));
+      win.document.close();
+    };
+
+    window.deleteLetter = async (id, btn) => {
+      if (!confirm('Supprimer cette lettre ?')) return;
+      btn.disabled = true;
+      const { error } = await sb.from('referral_letters').delete().eq('id', id);
+      if (error) { toast('Erreur : ' + error.message, 'error'); btn.disabled=false; return; }
+      toast('Lettre supprimée.', 'success');
+      await loadLettersHistory();
+    };
 
     document.querySelector('[data-section="referral"]').addEventListener('click', () => {
       initReferralSection();
