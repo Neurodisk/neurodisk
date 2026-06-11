@@ -973,6 +973,10 @@
           <label for="exEditMuscle">Groupe musculaire</label>
           <input type="text" id="exEditMuscle" placeholder="Ex: Lombaires, Core, Hanches…">
         </div>
+        <div class="field" style="grid-column:1/-1">
+          <label>Conditions appropriées <span style="font-weight:400;color:var(--muted)">optionnel</span></label>
+          <div class="access-checks" id="exEditConditions" style="max-height:130px"></div>
+        </div>
       </div>
       <div style="display:flex;gap:.75rem;margin-top:1.25rem">
         <button class="btn btn--primary" id="btnExEditSave">Enregistrer</button>
@@ -2806,6 +2810,7 @@
       document.getElementById('exEditTitle').value  = ex.title || '';
       document.getElementById('exEditDesc').value   = ex.description || '';
       document.getElementById('exEditMuscle').value = ex.muscle_group || '';
+      renderAccessChecks('exEditConditions', 'exEditCond', ex.condition_ids || []);
       setAlert(document.getElementById('alertExEdit'), '', '');
       document.getElementById('modalExEdit').classList.add('is-open');
       document.getElementById('exEditTitle').focus();
@@ -2839,6 +2844,13 @@
       btn.disabled = false; btn.textContent = 'Enregistrer';
 
       if (error) { setAlert(alertEl, 'Erreur : ' + error.message, 'error'); return; }
+
+      // Mettre à jour les conditions : supprimer les anciennes, insérer les nouvelles
+      const newConds = [...document.querySelectorAll('#exEditConditions input:checked')].map(c => c.value);
+      await sb.from('exercise_conditions').delete().eq('exercise_id', exEditId);
+      if (newConds.length) {
+        await sb.from('exercise_conditions').insert(newConds.map(cid => ({ exercise_id: exEditId, condition_id: cid })));
+      }
 
       toast('Exercice mis à jour.', 'success');
       closeExEditModal();
