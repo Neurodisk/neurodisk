@@ -123,13 +123,13 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: .45rem;
-      padding: .65rem .75rem;
-      border-radius: 100px;
-      border: 1.5px solid rgba(255,255,255,.28);
+      gap: .6rem;
+      padding: 1.1rem .75rem;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,.28);
       background: rgba(255,255,255,.10);
-      color: rgba(255,255,255,.82);
-      font-size: .95rem;
+      color: rgba(255,255,255,.85);
+      font-size: 1.1rem;
       font-weight: 500;
       cursor: pointer;
       transition: background 180ms, border-color 180ms, color 180ms, box-shadow 180ms;
@@ -151,7 +151,7 @@
       outline: 3px solid rgba(255,255,255,.8);
       outline-offset: 2px;
     }
-    .hero-nav__tab__icon { font-size: 1.1rem; line-height: 1; }
+    .hero-nav__tab__icon { font-size: 1.5rem; line-height: 1; }
     @media (max-width: 640px) {
       .hero-nav { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-bottom: .15rem; }
       .hero-nav::-webkit-scrollbar { display: none; }
