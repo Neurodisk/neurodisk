@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "neurodisk",
+  "account_id": "c522704081e8f2e03231cf5459b45ba1",
   "compatibility_date": "2026-06-10",
   "observability": {
     "enabled": true
