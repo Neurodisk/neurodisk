@@ -249,12 +249,7 @@
       // Afficher la bonne section
       document.querySelectorAll('.section-view').forEach(s => s.style.display = 'none');
 
-      if (section === 'bibliotheque') {
-        document.getElementById('section-bibliotheque').style.display = '';
-        document.getElementById('viewCategories').style.display = '';
-        document.getElementById('viewResources').style.display = 'none';
-        renderCategories();
-      } else if (section === 'exercices') {
+      if (section === 'exercices') {
         document.getElementById('section-exercices').style.display = '';
         if (!programmeLoaded) loadProgramme();
       } else {
