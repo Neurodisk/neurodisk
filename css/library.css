@@ -115,14 +115,16 @@
     /* ── HERO NAV — onglets de navigation persistants ── */
     .hero-nav {
       display: flex;
-      flex-wrap: wrap;
       gap: .5rem;
+      width: 100%;
     }
     .hero-nav__tab {
+      flex: 1;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: .45rem;
-      padding: .6rem 1.15rem;
+      padding: .65rem .75rem;
       border-radius: 100px;
       border: 1.5px solid rgba(255,255,255,.28);
       background: rgba(255,255,255,.10);
@@ -151,9 +153,9 @@
     }
     .hero-nav__tab__icon { font-size: 1.1rem; line-height: 1; }
     @media (max-width: 640px) {
-      .hero-nav { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: .25rem; -webkit-overflow-scrolling: touch; }
+      .hero-nav { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-bottom: .15rem; }
       .hero-nav::-webkit-scrollbar { display: none; }
-      .hero-nav__tab { padding: .5rem .85rem; font-size: .88rem; }
+      .hero-nav__tab { flex: 0 0 auto; padding: .5rem .85rem; font-size: .88rem; }
     }
 
     /* ── MAIN ── */

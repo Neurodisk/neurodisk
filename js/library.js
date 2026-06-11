@@ -238,8 +238,7 @@
     function openSection(section) {
       const meta = getSectionMeta(section);
 
-      // Mettre à jour le sous-titre du hero
-      document.getElementById('heroSub').textContent = meta.sub || '';
+      // Pas de sous-titre — les onglets occupent toute la place
 
       // Marquer l'onglet actif
       document.querySelectorAll('.hero-nav__tab').forEach(t => {
