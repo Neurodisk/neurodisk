@@ -712,6 +712,24 @@
                 <label for="rDesc">Description</label>
                 <textarea id="rDesc" placeholder="Brève description de la ressource…"></textarea>
               </div>
+              <div class="field" style="grid-column:1/-1">
+                <label>Image de couverture <span style="font-weight:400;color:var(--muted)">optionnel — JPG, PNG, WebP</span></label>
+                <div style="display:flex;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+                  <label style="cursor:pointer">
+                    <div class="btn btn--ghost btn--sm" style="pointer-events:none">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                      Choisir une image
+                    </div>
+                    <input type="file" id="fileInputThumb" accept="image/*" style="display:none" aria-hidden="true">
+                  </label>
+                  <div id="thumbPreviewWrap" style="display:none;position:relative">
+                    <img id="thumbPreview" src="" alt="Aperçu" style="width:120px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #ccdaeb">
+                    <button type="button" id="btnRemoveThumb" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#e53e3e;color:#fff;border:none;cursor:pointer;font-size:.7rem;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
+                  </div>
+                  <span id="thumbUploadStatus" style="font-size:.8rem;color:var(--muted);align-self:center"></span>
+                </div>
+                <input type="text" id="rThumbnailUrl" style="display:none" aria-hidden="true" tabindex="-1">
+              </div>
             </div>
             <div style="margin-top:1rem">
               <button type="submit" class="btn btn--primary" id="btnAddResource">
@@ -2513,9 +2531,10 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       const pdfUrl   = document.getElementById('rPdfUrl').value.trim();
       const duration = parseInt(document.getElementById('rDuration').value) || null;
       const order    = parseInt(document.getElementById('rOrder').value) || 1;
-      const desc     = document.getElementById('rDesc').value.trim();
-      const btn      = document.getElementById('btnAddResource');
-      const alert    = document.getElementById('alertAddResource');
+      const desc         = document.getElementById('rDesc').value.trim();
+      const thumbnailUrl = document.getElementById('rThumbnailUrl').value.trim() || null;
+      const btn          = document.getElementById('btnAddResource');
+      const alert        = document.getElementById('alertAddResource');
 
       if (!cond) { setAlert(alert, 'Veuillez sélectionner une condition.', 'error'); return; }
       if (type === 'video' && !bunnyId) { setAlert(alert, 'Veuillez d\'abord uploader une vidéo.', 'error'); return; }
@@ -2530,6 +2549,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         bunny_video_id: type === 'video' ? bunnyId : null,
         pdf_url:        type === 'pdf'   ? pdfUrl  : null,
         duration_sec: duration, sort_order: order,
+        thumbnail_url: thumbnailUrl,
       };
 
       const { error } = await sb.from('resources').insert(payload);
@@ -2539,8 +2559,12 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       } else {
         setAlert(alert, '✓ Ressource ajoutée avec succès.', 'success');
         e.target.reset();
-        document.getElementById('fieldBunny').style.display = '';
-        document.getElementById('fieldPdf').style.display   = 'none';
+        document.getElementById('fieldBunny').style.display    = '';
+        document.getElementById('fieldPdf').style.display      = 'none';
+        document.getElementById('rThumbnailUrl').value         = '';
+        document.getElementById('thumbPreviewWrap').style.display = 'none';
+        document.getElementById('thumbPreview').src            = '';
+        document.getElementById('thumbUploadStatus').textContent = '';
         // Réinitialiser la zone d'upload vidéo
         dropFileName.textContent     = '';
         dropFileName.style.display   = 'none';
@@ -3742,6 +3766,45 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       uploadStatusPdf.textContent  = message;
       uploadStatusPdf.className    = 'upload-progress__status' + (statusClass ? ' ' + statusClass : '');
     }
+
+    // ── Upload miniature ressource ────────────────────────
+    const fileInputThumb   = document.getElementById('fileInputThumb');
+    const thumbPreview     = document.getElementById('thumbPreview');
+    const thumbPreviewWrap = document.getElementById('thumbPreviewWrap');
+    const thumbStatus      = document.getElementById('thumbUploadStatus');
+    const rThumbnailUrl    = document.getElementById('rThumbnailUrl');
+
+    fileInputThumb.addEventListener('change', async () => {
+      const file = fileInputThumb.files?.[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) { toast('Veuillez choisir une image.', 'error'); return; }
+
+      thumbStatus.textContent = 'Upload en cours…';
+      thumbPreviewWrap.style.display = 'none';
+
+      try {
+        const ext  = file.name.split('.').pop();
+        const name = `resources/${Date.now()}-thumb.${ext}`;
+        const { data, error } = await sb.storage.from('images').upload(name, file, { contentType: file.type, upsert: false });
+        if (error) throw error;
+        const { data: { publicUrl } } = sb.storage.from('images').getPublicUrl(data.path);
+        rThumbnailUrl.value         = publicUrl;
+        thumbPreview.src            = publicUrl;
+        thumbPreviewWrap.style.display = 'block';
+        thumbStatus.textContent     = '✅ Image prête';
+      } catch (err) {
+        thumbStatus.textContent = '❌ ' + err.message;
+        toast('Erreur upload image : ' + err.message, 'error');
+      }
+    });
+
+    document.getElementById('btnRemoveThumb').addEventListener('click', () => {
+      rThumbnailUrl.value              = '';
+      thumbPreview.src                 = '';
+      thumbPreviewWrap.style.display   = 'none';
+      thumbStatus.textContent          = '';
+      fileInputThumb.value             = '';
+    });
 
     // ══════════════════════════════════════════════════════
     // MODULE PROGRAMMES + EXERCICES (nouveau)
