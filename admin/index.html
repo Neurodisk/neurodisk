@@ -1388,6 +1388,35 @@
     </div>
   </div>
 
+  <!-- ── Modal Édition patient ───────────────────────────── -->
+  <div class="modal-pwd" id="modalEditPatient" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-pwd__box">
+      <div class="modal-pwd__header">
+        <div>
+          <h2 class="modal-pwd__title">✏️ Modifier le patient</h2>
+          <p class="modal-pwd__patient" id="modalEditPatientEmail" style="color:var(--muted)"></p>
+        </div>
+        <button class="modal-pwd__close" id="modalEditPatientClose" aria-label="Fermer">✕</button>
+      </div>
+      <div id="alertEditPatient" class="alert"></div>
+      <div class="field" style="margin-bottom:.75rem">
+        <label for="editPatientName">Nom complet</label>
+        <input type="text" id="editPatientName" placeholder="Marie Tremblay" autocomplete="off">
+      </div>
+      <div class="field" style="margin-bottom:1.25rem">
+        <label for="editPatientNote" style="display:flex;align-items:center;gap:.4rem">
+          Note interne
+          <span style="font-weight:400;color:var(--muted);font-size:.78rem">optionnel — visible uniquement par l'admin</span>
+        </label>
+        <textarea id="editPatientNote" rows="3" placeholder="Ex. : Suivi post-opératoire, appel mensuel…"></textarea>
+      </div>
+      <div style="display:flex;gap:.75rem">
+        <button class="btn btn--primary" id="btnSaveEditPatient">Enregistrer</button>
+        <button class="btn btn--ghost" id="btnCancelEditPatient">Annuler</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Modal Constructeur de champs ───────────────────── -->
   <div class="modal-edit" id="modalFormBuilder" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modal-edit__box" style="max-width:620px">
@@ -2128,6 +2157,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
                   <td>${progHtml}</td>
                   <td>
                     <div class="td-actions">
+                      <button class="btn btn--ghost btn--sm" onclick="openEditPatient('${p.id}')">
+                        ✏️ Modifier
+                      </button>
                       <button class="btn btn--ghost btn--sm" onclick="sendMagicLink('${esc(p.email)}', this)">
                         ✉️ Envoyer un lien
                       </button>
@@ -2146,7 +2178,58 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         </div>`;
     }
 
-    // Expose pour les onclick inline
+    // ── Édition patient ───────────────────────────────────
+    let editPatientId = null;
+
+    window.openEditPatient = (patientId) => {
+      const p = allPatients.find(x => x.id === patientId);
+      if (!p) return;
+      editPatientId = patientId;
+      document.getElementById('modalEditPatientEmail').textContent = p.email;
+      document.getElementById('editPatientName').value  = p.full_name || '';
+      document.getElementById('editPatientNote').value  = p.note || '';
+      setAlert(document.getElementById('alertEditPatient'), '', '');
+      document.getElementById('modalEditPatient').classList.add('is-open');
+      document.getElementById('modalEditPatient').setAttribute('aria-hidden', 'false');
+      document.getElementById('editPatientName').focus();
+    };
+
+    const closeEditPatient = () => {
+      document.getElementById('modalEditPatient').classList.remove('is-open');
+      document.getElementById('modalEditPatient').setAttribute('aria-hidden', 'true');
+      editPatientId = null;
+    };
+    document.getElementById('modalEditPatientClose').addEventListener('click', closeEditPatient);
+    document.getElementById('btnCancelEditPatient').addEventListener('click', closeEditPatient);
+    document.getElementById('modalEditPatient').addEventListener('click', e => {
+      if (e.target === document.getElementById('modalEditPatient')) closeEditPatient();
+    });
+
+    document.getElementById('btnSaveEditPatient').addEventListener('click', async () => {
+      const name  = document.getElementById('editPatientName').value.trim();
+      const note  = document.getElementById('editPatientNote').value.trim();
+      const alertEl = document.getElementById('alertEditPatient');
+      const btn   = document.getElementById('btnSaveEditPatient');
+
+      setAlert(alertEl, '', '');
+      btn.disabled = true; btn.textContent = '…';
+
+      const { error } = await sb.from('profiles')
+        .update({ full_name: name || null, note: note || null })
+        .eq('id', editPatientId);
+
+      btn.disabled = false; btn.textContent = 'Enregistrer';
+
+      if (error) { setAlert(alertEl, 'Erreur : ' + error.message, 'error'); return; }
+
+      const p = allPatients.find(x => x.id === editPatientId);
+      if (p) { p.full_name = name || null; p.note = note || null; }
+
+      toast('Patient mis à jour.', 'success');
+      closeEditPatient();
+      renderPatientsTable();
+    });
+
     // ── Envoyer un lien magique à un patient ──────────────
     window.sendMagicLink = async (email, btn) => {
       btn.disabled = true;
