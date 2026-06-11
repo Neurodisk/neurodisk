@@ -904,6 +904,10 @@
                   <textarea id="newExDesc" placeholder="Instructions, points d'attention…"></textarea>
                 </div>
                 <div class="field" style="grid-column:1/-1">
+                  <label>Conditions appropriées <span style="font-weight:400;color:var(--muted)">optionnel — s'affiche dans le sélecteur de programme</span></label>
+                  <div class="access-checks" id="newExConditions" style="max-height:130px"></div>
+                </div>
+                <div class="field" style="grid-column:1/-1">
                   <label>Photos <span style="font-weight:400;color:var(--muted)">optionnel — plusieurs fichiers acceptés</span></label>
                   <div class="drop-zone" id="dropZoneImages" tabindex="0" role="button" aria-label="Zone photos">
                     <div class="drop-zone__icon">🖼️</div>
@@ -1236,6 +1240,11 @@
       allConditions = data || [];
       renderAccessChecks('accessChecksInvite', 'pAccess');
       populateConditionSelects();
+      populateNewExConditions();
+    }
+
+    function populateNewExConditions() {
+      renderAccessChecks('newExConditions', 'newExCond');
     }
 
     function renderAccessChecks(containerId, name, checkedValues = []) {
@@ -2399,14 +2408,20 @@
         container.innerHTML = `<p style="color:var(--muted);font-size:.82rem;padding:.5rem">Aucun exercice trouvé.</p>`;
         return;
       }
-      container.innerHTML = filtered.map(ex => `
-        <div class="ex-lib-item" data-id="${ex.id}">
+      const COND = Object.fromEntries(allConditions.map(c => [c.id, c.label]));
+      container.innerHTML = filtered.map(ex => {
+        const condBadges = (ex.condition_ids || []).map(cid =>
+          `<span style="font-size:.7rem;background:#e8f1fb;color:#185FA5;border-radius:4px;padding:.1rem .4rem">${esc(COND[cid] || cid)}</span>`
+        ).join(' ');
+        return `<div class="ex-lib-item" data-id="${ex.id}">
           <div>
             <div class="ex-lib-item__name">${esc(ex.title)}</div>
             ${ex.muscle_group ? `<div class="ex-lib-item__sub">💪 ${esc(ex.muscle_group)}</div>` : ''}
+            ${condBadges ? `<div style="margin-top:.25rem;display:flex;flex-wrap:wrap;gap:.25rem">${condBadges}</div>` : ''}
           </div>
           <button class="ex-lib-btn" onclick="addExToProg('${ex.id}')" title="Ajouter">+</button>
-        </div>`).join('');
+        </div>`;
+      }).join('');
     }
 
     window.addExToProg = id => {
@@ -2729,9 +2744,14 @@
 
     // ── Charger les exercices ─────────────────────────────
     async function loadExercises() {
-      const { data, error } = await sb.from('exercises').select('*').order('created_at', { ascending: false });
+      const { data, error } = await sb.from('exercises')
+        .select('*, conditions:exercise_conditions(condition_id)')
+        .order('created_at', { ascending: false });
       if (error) { toast('Erreur exercices : ' + error.message, 'error'); return; }
-      allExercisesLib = data || [];
+      allExercisesLib = (data || []).map(ex => ({
+        ...ex,
+        condition_ids: (ex.conditions || []).map(c => c.condition_id),
+      }));
       renderExercisesTable();
     }
 
@@ -2755,6 +2775,7 @@
           <div class="ex-lib-card__badges">
             ${ex.muscle_group ? `<span class="badge" style="background:#e8f1fb;color:#185FA5">${esc(ex.muscle_group)}</span>` : ''}
             ${ex.bunny_video_id ? `<span class="badge" style="background:#e6f7ef;color:#0f8a48">▶ Vidéo</span>` : ''}
+            ${(ex.condition_ids||[]).map(cid => { const COND2 = Object.fromEntries(allConditions.map(c=>[c.id,c.label])); return `<span class="badge" style="background:#fff3cd;color:#856404">${esc(COND2[cid]||cid)}</span>`; }).join('')}
           </div>
           <div class="ex-lib-card__actions">
             <button class="btn btn--primary btn--sm" onclick="openExEditModal('${ex.id}')">✏️ Modifier</button>
@@ -2992,8 +3013,14 @@
           await sb.from('exercise_images').insert(imgRows);
         }
 
+        const checkedConds = [...document.querySelectorAll('#newExConditions input:checked')].map(c => c.value);
+        if (checkedConds.length) {
+          await sb.from('exercise_conditions').insert(checkedConds.map(cid => ({ exercise_id: ex.id, condition_id: cid })));
+        }
+
         setAlert(alertEl,'✓ Exercice ajouté avec succès.','success');
         e.target.reset();
+        document.querySelectorAll('#newExConditions input').forEach(cb => cb.checked = false);
         newExImages = [];
         renderImagesPreview();
         uploadProgressImages.style.display='none';
