@@ -2212,13 +2212,18 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       setAlert(alertEl, '', '');
       btn.disabled = true; btn.textContent = '…';
 
-      const { error: errName } = await sb.from('profiles')
+      const { data: updated, error: errName } = await sb.from('profiles')
         .update({ full_name: name || null })
-        .eq('id', editPatientId);
+        .eq('id', editPatientId)
+        .select('id');
 
       btn.disabled = false; btn.textContent = 'Enregistrer';
 
       if (errName) { setAlert(alertEl, 'Erreur : ' + errName.message, 'error'); return; }
+      if (!updated?.length) {
+        setAlert(alertEl, '⚠️ Modification bloquée par les permissions. Exécutez la migration RLS dans Supabase (voir documentation).', 'error');
+        return;
+      }
 
       // Note sauvegardée séparément — échoue silencieusement si colonne absente
       await sb.from('profiles').update({ note: note || null }).eq('id', editPatientId);
