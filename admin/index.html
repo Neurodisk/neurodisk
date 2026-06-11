@@ -2128,7 +2128,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     async function loadPatients() {
       const { data, error } = await sb
         .from('profiles')
-        .select('id, email, full_name, is_admin, created_at, note')
+        .select('id, email, full_name, is_admin, is_professional, created_at, note')
         .order('created_at', { ascending: false });
 
       if (error) { toast('Erreur chargement patients : ' + error.message, 'error'); return; }
@@ -2225,7 +2225,10 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
                         : `<button class="btn btn--ghost btn--sm" onclick="openEditPatient('${p.id}')">✏️ Modifier</button>
                            <button class="btn btn--ghost btn--sm" onclick="sendMagicLink('${esc(p.email)}', this)">✉️ Envoyer un lien</button>
                            <button class="btn btn--ghost btn--sm" onclick="openAssignSection('${p.id}')">Gérer les accès</button>
-                           <button class="btn btn--ghost btn--sm" onclick="openPasswordModal('${p.id}', '${esc(p.full_name || p.email)}', '${esc(p.email)}')">🔑 Mot de passe</button>`
+                           <button class="btn btn--ghost btn--sm" onclick="openPasswordModal('${p.id}', '${esc(p.full_name || p.email)}', '${esc(p.email)}')">🔑 Mot de passe</button>
+                           <button class="btn btn--sm ${p.is_professional ? 'btn--primary' : 'btn--ghost'}" onclick="togglePatientPro('${p.id}', ${!!p.is_professional}, this)" title="${p.is_professional ? 'Retirer l\'accès professionnel' : 'Donner l\'accès professionnel'}">
+                             ${p.is_professional ? '👔 Pro ✓' : '👔 Rendre pro'}
+                           </button>`
                       }
                     </div>
                   </td>
@@ -2993,6 +2996,19 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Créer le compte`;
       }
     });
+
+    // ── Rendre un patient pro / retirer le statut pro ─────
+    window.togglePatientPro = async (id, currentIsPro, btn) => {
+      btn.disabled = true;
+      const newVal = !currentIsPro;
+      const update = newVal
+        ? { is_professional: true, is_admin: true }
+        : { is_professional: false, is_admin: false };
+      const { error } = await sb.from('profiles').update(update).eq('id', id);
+      if (error) { toast('Erreur : ' + error.message, 'error'); btn.disabled = false; return; }
+      toast(newVal ? 'Accès professionnel activé.' : 'Accès professionnel retiré.', 'success');
+      await loadPatients();
+    };
 
     // ── Activer / désactiver l'accès panel ────────────────
     window.toggleProAccess = async (id, currentIsAdmin, btn) => {
