@@ -2068,7 +2068,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     async function loadPatients() {
       const { data, error } = await sb
         .from('profiles')
-        .select('id, email, full_name, is_admin, created_at')
+        .select('id, email, full_name, is_admin, created_at, note')
         .order('created_at', { ascending: false });
 
       if (error) { toast('Erreur chargement patients : ' + error.message, 'error'); return; }
@@ -2151,7 +2151,10 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
                     </div>`;
                 return `
                 <tr>
-                  <td><strong>${esc(p.full_name || '—')}</strong></td>
+                  <td>
+                    <strong>${esc(p.full_name || '—')}</strong>
+                    ${p.note ? `<div style="font-size:.75rem;color:var(--muted);margin-top:.2rem;font-style:italic">${esc(p.note)}</div>` : ''}
+                  </td>
                   <td style="color:var(--muted)">${esc(p.email)}</td>
                   <td style="color:var(--muted)">${fmtDate(p.created_at)}</td>
                   <td>${progHtml}</td>
@@ -2214,13 +2217,16 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       setAlert(alertEl, '', '');
       btn.disabled = true; btn.textContent = '…';
 
-      const { error } = await sb.from('profiles')
-        .update({ full_name: name || null, note: note || null })
+      const { error: errName } = await sb.from('profiles')
+        .update({ full_name: name || null })
         .eq('id', editPatientId);
 
       btn.disabled = false; btn.textContent = 'Enregistrer';
 
-      if (error) { setAlert(alertEl, 'Erreur : ' + error.message, 'error'); return; }
+      if (errName) { setAlert(alertEl, 'Erreur : ' + errName.message, 'error'); return; }
+
+      // Note sauvegardée séparément — échoue silencieusement si colonne absente
+      await sb.from('profiles').update({ note: note || null }).eq('id', editPatientId);
 
       const p = allPatients.find(x => x.id === editPatientId);
       if (p) { p.full_name = name || null; p.note = note || null; }
