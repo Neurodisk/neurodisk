@@ -77,9 +77,11 @@
       setGreeting(user);
       initTour();
 
-      const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+      const { data: profile } = await supabase.from('profiles').select('is_admin, is_professional').eq('id', user.id).single();
       const isAdmin = profile?.is_admin === true;
-      if (isAdmin) document.getElementById('btnAdmin').style.display = 'flex';
+      const isPro = profile?.is_professional === true;
+      if (isAdmin && !isPro) document.getElementById('btnAdmin').style.display = 'flex';
+      if (isPro) document.getElementById('btnProfessionnel').style.display = 'flex';
 
       await Promise.all([loadCategories(), loadResources(user.id, isAdmin), loadPatientForms(user.id, isAdmin)]);
     }
