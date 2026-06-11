@@ -112,11 +112,24 @@
 
     async function loadPatientForms(userId, isAdmin = false) {
       try {
-        let query = supabase.from('patient_forms').select(`category, form:forms(id, title, description, pdf_url)`);
+        let query = supabase.from('patient_forms').select(`category, form:forms(id, title, description, pdf_url, has_fields)`);
         if (!isAdmin) query = query.eq('patient_id', userId);
         const { data, error } = await query;
         if (error) throw error;
-        allPatientForms = (data || []).map(r => ({ ...r.form, category: r.category, _isForm: true })).filter(r => r?.id);
+
+        const forms = (data || []).map(r => ({ ...r.form, category: r.category, _isForm: true })).filter(r => r?.id);
+
+        // Pour chaque formulaire remplissable, charger le nb de champs
+        const fillable = forms.filter(f => f.has_fields);
+        if (fillable.length) {
+          const counts = await Promise.all(fillable.map(f =>
+            supabase.from('form_fields').select('id', { count: 'exact', head: true }).eq('form_id', f.id)
+          ));
+          fillable.forEach((f, i) => { f._fieldCount = counts[i].count || 0; });
+        }
+        forms.filter(f => !f.has_fields).forEach(f => { f._fieldCount = 0; });
+
+        allPatientForms = forms;
       } catch {
         allPatientForms = [];
       }
@@ -283,6 +296,7 @@
       grid.querySelectorAll('.card').forEach(c => {
         c.addEventListener('click', () => {
           if (c.dataset.type === 'video') openModal(c.dataset.id, c.dataset.title, c.dataset.url);
+          else if (c.dataset.type === 'form') openFillForm(c.dataset.id, c.dataset.title);
           else window.open(c.dataset.url, '_blank', 'noopener');
         });
         c.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); c.click(); } });
@@ -290,18 +304,121 @@
     }
 
     function renderFormCard(f) {
-      return `<article class="card" role="listitem" tabindex="0" data-id="${esc(f.id)}" data-type="pdf" data-url="${esc(f.pdf_url||'')}" data-title="${esc(f.title)}">
+      const hasFields = f._fieldCount > 0;
+      return `<article class="card" role="listitem" tabindex="0" data-id="${esc(f.id)}" data-type="${hasFields ? 'form' : 'pdf'}" data-url="${esc(f.pdf_url||'')}" data-title="${esc(f.title)}">
         <div class="card__thumb"><div class="card__thumb-bg">${svgPdf()}</div></div>
         <div class="card__body">
           <div class="card__meta">
             <span class="badge badge--pdf">📋 Formulaire</span>
+            ${hasFields ? `<span class="badge" style="background:#e6f5ed;color:#1a8c4e">✓ Remplissable</span>` : ''}
           </div>
           <h2 class="card__title">${esc(f.title)}</h2>
           ${f.description ? `<p class="card__desc">${esc(f.description)}</p>` : ''}
-          <p class="card__cta"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Ouvrir le formulaire</p>
+          ${hasFields
+            ? `<p class="card__cta" style="color:#185FA5"><svg viewBox="0 0 24 24" width="14" height="14"><polyline points="20 6 9 17 4 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg> Remplir en ligne</p>`
+            : `<p class="card__cta"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Ouvrir le formulaire</p>`
+          }
         </div>
       </article>`;
     }
+
+    // ── Remplir un formulaire en ligne ────────────────────
+    const modalFill    = document.getElementById('modalFillForm');
+    const fillFields   = document.getElementById('fillFormFields');
+    const fillMsg      = document.getElementById('fillFormMsg');
+    let   fillFormId   = null;
+    let   fillFormData = null; // { fields, patientName }
+
+    async function openFillForm(formId, title) {
+      fillFormId = formId;
+      document.getElementById('fillFormTitle').textContent = title;
+      document.getElementById('fillFormDesc').textContent  = '';
+      fillFields.innerHTML = `<div style="text-align:center;padding:1.5rem;color:#5a7085">Chargement…</div>`;
+      fillMsg.textContent  = '';
+      modalFill.style.display = 'flex';
+      modalFill.setAttribute('aria-hidden','false');
+      document.body.style.overflow = 'hidden';
+
+      const { data: fields } = await supabase
+        .from('form_fields').select('*').eq('form_id', formId).order('sort_order');
+
+      fillFormData = fields || [];
+      renderFillFields(fillFormData);
+    }
+
+    function renderFillFields(fields) {
+      if (!fields.length) { fillFields.innerHTML = `<p style="color:#5a7085;font-size:.85rem">Ce formulaire ne contient aucun champ.</p>`; return; }
+      fillFields.innerHTML = fields.map(f => {
+        const req = f.required ? `<span style="color:#c0392b;margin-left:.2rem">*</span>` : '';
+        const labelHtml = `<label style="display:block;font-size:.85rem;font-weight:700;color:#1a2b3c;margin-bottom:.35rem">${esc(f.label)}${req}</label>`;
+        let input = '';
+        if (f.type === 'text')     input = `<input type="text"     data-field="${esc(f.id)}" ${f.required?'required':''} style="width:100%;padding:.5rem .75rem;border:1.5px solid #ccdaeb;border-radius:8px;font-size:.88rem;font-family:inherit;outline:none">`;
+        if (f.type === 'textarea') input = `<textarea               data-field="${esc(f.id)}" ${f.required?'required':''} rows="3" style="width:100%;padding:.5rem .75rem;border:1.5px solid #ccdaeb;border-radius:8px;font-size:.88rem;font-family:inherit;outline:none;resize:vertical"></textarea>`;
+        if (f.type === 'number')   input = `<input type="number"   data-field="${esc(f.id)}" ${f.required?'required':''} style="width:100%;padding:.5rem .75rem;border:1.5px solid #ccdaeb;border-radius:8px;font-size:.88rem;font-family:inherit;outline:none">`;
+        if (f.type === 'date')     input = `<input type="date"     data-field="${esc(f.id)}" ${f.required?'required':''} style="width:100%;padding:.5rem .75rem;border:1.5px solid #ccdaeb;border-radius:8px;font-size:.88rem;font-family:inherit;outline:none">`;
+        if (f.type === 'checkbox') input = `<label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.88rem"><input type="checkbox" data-field="${esc(f.id)}" style="width:18px;height:18px;accent-color:#185FA5"> Oui</label>`;
+        if (f.type === 'radio') {
+          const opts = (f.options || '').split(',').map(o => o.trim()).filter(Boolean);
+          input = opts.map(opt => `<label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.88rem;margin-bottom:.3rem"><input type="radio" name="field_${esc(f.id)}" data-field="${esc(f.id)}" value="${esc(opt)}" style="width:16px;height:16px;accent-color:#185FA5"> ${esc(opt)}</label>`).join('');
+        }
+        return `<div style="margin-bottom:1rem">${labelHtml}${input}</div>`;
+      }).join('');
+    }
+
+    document.getElementById('btnSubmitForm').addEventListener('click', async () => {
+      if (!fillFormId || !fillFormData) return;
+      const btn = document.getElementById('btnSubmitForm');
+
+      // Collecter les réponses
+      const answers = {};
+      let missing = false;
+      fillFormData.forEach(f => {
+        if (f.type === 'checkbox') {
+          const el = fillFields.querySelector(`[data-field="${f.id}"]`);
+          answers[f.id] = el ? el.checked : false;
+        } else if (f.type === 'radio') {
+          const el = fillFields.querySelector(`input[name="field_${f.id}"]:checked`);
+          answers[f.id] = el ? el.value : '';
+          if (f.required && !answers[f.id]) missing = true;
+        } else {
+          const el = fillFields.querySelector(`[data-field="${f.id}"]`);
+          answers[f.id] = el ? el.value.trim() : '';
+          if (f.required && !answers[f.id]) missing = true;
+        }
+      });
+
+      if (missing) { fillMsg.textContent = '⚠️ Veuillez remplir tous les champs obligatoires.'; fillMsg.style.color = '#c0392b'; return; }
+
+      btn.disabled = true; btn.textContent = '⏳ Envoi…';
+      fillMsg.textContent = '';
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const name = session?.user?.user_metadata?.full_name || session?.user?.email || 'Patient';
+
+      const { error } = await supabase.from('form_submissions').insert({
+        form_id: fillFormId, patient_id: session.user.id, patient_name: name, answers,
+      });
+
+      btn.disabled = false;
+      btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Soumettre le formulaire`;
+
+      if (error) { fillMsg.textContent = '❌ Erreur : ' + error.message; fillMsg.style.color = '#c0392b'; return; }
+
+      fillFields.innerHTML = `<div style="text-align:center;padding:2rem"><div style="font-size:2.5rem;margin-bottom:.75rem">✅</div><p style="font-size:1rem;font-weight:700;color:#1a8c4e">Formulaire soumis !</p><p style="font-size:.85rem;color:#5a7085;margin-top:.35rem">Votre équipe de soins a été notifiée.</p></div>`;
+      document.getElementById('fillFormFooter').style.display = 'none';
+      setTimeout(() => closeFillForm(), 2500);
+    });
+
+    function closeFillForm() {
+      modalFill.style.display = 'none';
+      modalFill.setAttribute('aria-hidden','true');
+      document.body.style.overflow = '';
+      document.getElementById('fillFormFooter').style.display = 'flex';
+      fillFormId = null; fillFormData = null;
+    }
+    document.getElementById('fillFormClose').addEventListener('click', closeFillForm);
+    document.getElementById('btnCancelFillForm').addEventListener('click', closeFillForm);
+    modalFill.addEventListener('click', e => { if (e.target === modalFill) closeFillForm(); });
 
     document.getElementById('btnBackCategories').addEventListener('click', () => {
       document.getElementById('viewResources').style.display = 'none';

@@ -472,6 +472,24 @@
       accent-color: var(--blue); cursor: pointer; flex-shrink: 0;
     }
 
+    /* ── Constructeur de champs formulaire ── */
+    .field-builder-list { display: flex; flex-direction: column; gap: .4rem; max-height: 320px; overflow-y: auto; margin-top: .75rem; }
+    .field-builder-item { display: flex; align-items: center; gap: .6rem; padding: .55rem .75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); }
+    .field-builder-item__type { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--blue); background: var(--blue-light); padding: .15rem .45rem; border-radius: 100px; flex-shrink: 0; }
+    .field-builder-item__label { flex: 1; font-size: .84rem; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .field-builder-item__req { font-size: .72rem; color: var(--danger); font-weight: 700; flex-shrink: 0; }
+    .sub-section-title { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 1rem 0 .5rem; }
+    /* ── Soumissions ── */
+    .submission-item { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: .6rem; overflow: hidden; }
+    .submission-item__header { display: flex; align-items: center; gap: .75rem; padding: .65rem 1rem; background: var(--bg); cursor: pointer; }
+    .submission-item__name { font-weight: 700; font-size: .88rem; flex: 1; }
+    .submission-item__date { font-size: .78rem; color: var(--muted); }
+    .submission-item__body { padding: .75rem 1rem; border-top: 1px solid var(--border); display: none; }
+    .submission-item__body.is-open { display: block; }
+    .submission-answer { margin-bottom: .6rem; }
+    .submission-answer__q { font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: .2rem; }
+    .submission-answer__a { font-size: .88rem; color: var(--text); white-space: pre-wrap; }
+
     /* Note informationnelle */
     .info-note {
       background: var(--blue-light); border-left: 3px solid var(--blue);
@@ -1366,6 +1384,79 @@
       <div style="display:flex;gap:.75rem">
         <button class="btn btn--primary" id="btnProgEditSave">Enregistrer</button>
         <button class="btn btn--ghost" id="btnProgEditCancel">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal Constructeur de champs ───────────────────── -->
+  <div class="modal-edit" id="modalFormBuilder" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-edit__box" style="max-width:620px">
+      <div class="modal-edit__header">
+        <h2 class="modal-edit__title">⚙️ Champs du formulaire</h2>
+        <button class="modal-edit__close" id="modalFormBuilderClose" aria-label="Fermer">✕</button>
+      </div>
+      <p id="modalFormBuilderName" style="font-size:.82rem;color:var(--muted);margin-bottom:1rem"></p>
+      <div id="alertFormBuilder" class="alert"></div>
+
+      <!-- Ajouter un champ -->
+      <div class="sub-section-title">Ajouter un champ</div>
+      <div class="form-grid" style="gap:.6rem">
+        <div class="field">
+          <label for="newFieldType">Type</label>
+          <select id="newFieldType">
+            <option value="text">Texte court</option>
+            <option value="textarea">Texte long</option>
+            <option value="number">Nombre</option>
+            <option value="date">Date</option>
+            <option value="checkbox">Case à cocher (oui/non)</option>
+            <option value="radio">Choix multiple</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="newFieldLabel">Libellé *</label>
+          <input type="text" id="newFieldLabel" placeholder="Ex. : Niveau de douleur (0-10)">
+        </div>
+        <div class="field" id="newFieldOptionsWrap" style="grid-column:1/-1;display:none">
+          <label for="newFieldOptions">Options <span style="font-weight:400;color:var(--muted)">séparées par une virgule</span></label>
+          <input type="text" id="newFieldOptions" placeholder="Ex. : Jamais, Parfois, Souvent, Toujours">
+        </div>
+        <div class="field" style="grid-column:1/-1;display:flex;align-items:center;gap:.5rem">
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.85rem;font-weight:400">
+            <input type="checkbox" id="newFieldRequired" style="width:16px;height:16px;accent-color:var(--blue)">
+            Réponse obligatoire
+          </label>
+        </div>
+      </div>
+      <div style="margin-top:.75rem">
+        <button class="btn btn--primary btn--sm" id="btnAddField">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Ajouter le champ
+        </button>
+      </div>
+
+      <!-- Liste des champs -->
+      <div class="sub-section-title" style="margin-top:1.25rem">Champs du formulaire</div>
+      <div id="fieldBuilderList" class="field-builder-list">
+        <div class="empty-state" style="font-size:.82rem">Aucun champ défini — le formulaire est PDF uniquement.</div>
+      </div>
+
+      <div style="margin-top:1.25rem;display:flex;gap:.75rem">
+        <button class="btn btn--ghost" id="btnCloseFormBuilder">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal Soumissions ─────────────────────────────── -->
+  <div class="modal-edit" id="modalFormSubmissions" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-edit__box" style="max-width:660px">
+      <div class="modal-edit__header">
+        <h2 class="modal-edit__title">📊 Soumissions</h2>
+        <button class="modal-edit__close" id="modalFormSubmissionsClose" aria-label="Fermer">✕</button>
+      </div>
+      <p id="modalSubmissionsName" style="font-size:.82rem;color:var(--muted);margin-bottom:1rem"></p>
+      <div id="submissionsListWrap"><div class="empty-state">Chargement…</div></div>
+      <div style="margin-top:1.25rem">
+        <button class="btn btn--ghost" id="btnCloseFormSubmissions">Fermer</button>
       </div>
     </div>
   </div>
@@ -2458,17 +2549,26 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         return;
       }
       wrap.innerHTML = allForms.map(f => `
-        <div class="prog-list-item">
+        <div class="prog-list-item" style="flex-wrap:wrap;gap:.6rem">
           <div style="flex:1;min-width:0">
-            <strong>${esc(f.title)}</strong>
+            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+              <strong>${esc(f.title)}</strong>
+              ${f.has_fields ? `<span style="font-size:.7rem;font-weight:700;text-transform:uppercase;background:#e6f5ed;color:var(--success);padding:.1rem .45rem;border-radius:100px">✓ Remplissable</span>` : ''}
+            </div>
             ${f.description ? `<div style="font-size:.8rem;color:var(--muted);margin-top:.15rem">${esc(f.description)}</div>` : ''}
             <div style="font-size:.78rem;color:var(--muted);margin-top:.1rem">${fmtDate(f.created_at)}</div>
           </div>
-          <div class="td-actions">
+          <div class="td-actions" style="flex-wrap:wrap">
             <a href="${esc(f.pdf_url)}" target="_blank" rel="noopener" class="btn btn--ghost btn--sm">
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-              Voir
+              Voir PDF
             </a>
+            <button class="btn btn--ghost btn--sm" onclick="openFormBuilder('${esc(f.id)}')">
+              ⚙️ Champs
+            </button>
+            <button class="btn btn--ghost btn--sm" onclick="openFormSubmissions('${esc(f.id)}', '${esc(f.title)}')">
+              📊 Soumissions
+            </button>
             <button class="btn btn--primary btn--sm" onclick="openSendFormModal('${esc(f.id)}', this)">
               📤 Envoyer à un patient
             </button>
@@ -2634,6 +2734,178 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
     document.querySelector('[data-section="forms"]').addEventListener('click', () => {
       loadForms();
+    });
+
+    // ── Constructeur de champs ────────────────────────────
+    let builderFormId  = null;
+    let currentFields  = [];
+
+    const FIELD_LABELS = { text:'Texte court', textarea:'Texte long', number:'Nombre', date:'Date', checkbox:'Case à cocher', radio:'Choix multiple' };
+
+    document.getElementById('newFieldType').addEventListener('change', function() {
+      document.getElementById('newFieldOptionsWrap').style.display = this.value === 'radio' ? '' : 'none';
+    });
+
+    window.openFormBuilder = async (formId) => {
+      builderFormId = formId;
+      const form = allForms.find(f => f.id === formId);
+      document.getElementById('modalFormBuilderName').textContent = form?.title || '';
+      setAlert(document.getElementById('alertFormBuilder'), '', '');
+      document.getElementById('newFieldLabel').value   = '';
+      document.getElementById('newFieldOptions').value = '';
+      document.getElementById('newFieldRequired').checked = false;
+      document.getElementById('newFieldType').value    = 'text';
+      document.getElementById('newFieldOptionsWrap').style.display = 'none';
+      document.getElementById('modalFormBuilder').classList.add('is-open');
+      document.getElementById('modalFormBuilder').setAttribute('aria-hidden','false');
+      await refreshFieldList();
+    };
+
+    async function refreshFieldList() {
+      const { data } = await sb.from('form_fields').select('*').eq('form_id', builderFormId).order('sort_order');
+      currentFields = data || [];
+      renderFieldList();
+    }
+
+    function renderFieldList() {
+      const wrap = document.getElementById('fieldBuilderList');
+      if (!currentFields.length) {
+        wrap.innerHTML = `<div class="empty-state" style="font-size:.82rem">Aucun champ défini — le formulaire est PDF uniquement.</div>`;
+        return;
+      }
+      wrap.innerHTML = currentFields.map((f, idx) => `
+        <div class="field-builder-item">
+          <div style="display:flex;flex-direction:column;gap:.15rem">
+            <button class="btn btn--ghost btn--sm" style="padding:.1rem .3rem" ${idx===0?'disabled':''} onclick="moveField('${f.id}',-1)">↑</button>
+            <button class="btn btn--ghost btn--sm" style="padding:.1rem .3rem" ${idx===currentFields.length-1?'disabled':''} onclick="moveField('${f.id}',1)">↓</button>
+          </div>
+          <span class="field-builder-item__type">${FIELD_LABELS[f.type]||f.type}</span>
+          <span class="field-builder-item__label">${esc(f.label)}${f.options ? `<span style="color:var(--muted);font-weight:400"> — ${esc(f.options)}</span>` : ''}</span>
+          ${f.required ? `<span class="field-builder-item__req">*</span>` : ''}
+          <button class="btn btn--danger btn--sm" onclick="deleteField('${f.id}',this)">✕</button>
+        </div>`).join('');
+    }
+
+    document.getElementById('btnAddField').addEventListener('click', async () => {
+      const type    = document.getElementById('newFieldType').value;
+      const label   = document.getElementById('newFieldLabel').value.trim();
+      const options = document.getElementById('newFieldOptions').value.trim();
+      const required = document.getElementById('newFieldRequired').checked;
+      const alertEl = document.getElementById('alertFormBuilder');
+
+      setAlert(alertEl, '', '');
+      if (!label) { setAlert(alertEl, 'Le libellé est obligatoire.', 'error'); return; }
+      if (type === 'radio' && !options) { setAlert(alertEl, 'Les options sont obligatoires pour un choix multiple.', 'error'); return; }
+
+      const sortOrder = currentFields.length ? Math.max(...currentFields.map(f => f.sort_order)) + 1 : 0;
+      const { error } = await sb.from('form_fields').insert({
+        form_id: builderFormId, type, label,
+        options: type === 'radio' ? options : null,
+        required, sort_order: sortOrder,
+      });
+      if (error) { setAlert(alertEl, 'Erreur : ' + error.message, 'error'); return; }
+
+      document.getElementById('newFieldLabel').value   = '';
+      document.getElementById('newFieldOptions').value = '';
+      document.getElementById('newFieldRequired').checked = false;
+
+      await refreshFieldList();
+      await updateFormHasFields();
+      toast('Champ ajouté.', 'success');
+    });
+
+    window.moveField = async (id, dir) => {
+      const idx     = currentFields.findIndex(f => f.id === id);
+      const swapIdx = idx + dir;
+      if (swapIdx < 0 || swapIdx >= currentFields.length) return;
+      const a = currentFields[idx], b = currentFields[swapIdx];
+      await Promise.all([
+        sb.from('form_fields').update({ sort_order: b.sort_order }).eq('id', a.id),
+        sb.from('form_fields').update({ sort_order: a.sort_order }).eq('id', b.id),
+      ]);
+      await refreshFieldList();
+    };
+
+    window.deleteField = async (id, btn) => {
+      if (!confirm('Supprimer ce champ ?')) return;
+      btn.disabled = true;
+      const { error } = await sb.from('form_fields').delete().eq('id', id);
+      if (error) { toast('Erreur : ' + error.message, 'error'); btn.disabled=false; return; }
+      await refreshFieldList();
+      await updateFormHasFields();
+      toast('Champ supprimé.', 'success');
+    };
+
+    async function updateFormHasFields() {
+      const hasFields = currentFields.length > 0;
+      await sb.from('forms').update({ has_fields: hasFields }).eq('id', builderFormId);
+      const form = allForms.find(f => f.id === builderFormId);
+      if (form) form.has_fields = hasFields;
+      renderFormsList();
+    }
+
+    const closeFormBuilder = () => {
+      document.getElementById('modalFormBuilder').classList.remove('is-open');
+      document.getElementById('modalFormBuilder').setAttribute('aria-hidden','true');
+      builderFormId = null;
+    };
+    document.getElementById('modalFormBuilderClose').addEventListener('click', closeFormBuilder);
+    document.getElementById('btnCloseFormBuilder').addEventListener('click', closeFormBuilder);
+    document.getElementById('modalFormBuilder').addEventListener('click', e => {
+      if (e.target === document.getElementById('modalFormBuilder')) closeFormBuilder();
+    });
+
+    // ── Soumissions ───────────────────────────────────────
+    window.openFormSubmissions = async (formId, title) => {
+      document.getElementById('modalSubmissionsName').textContent = title;
+      document.getElementById('submissionsListWrap').innerHTML = `<div class="empty-state">Chargement…</div>`;
+      document.getElementById('modalFormSubmissions').classList.add('is-open');
+      document.getElementById('modalFormSubmissions').setAttribute('aria-hidden','false');
+
+      const [{ data: fields }, { data: subs }] = await Promise.all([
+        sb.from('form_fields').select('id,label,type').eq('form_id', formId).order('sort_order'),
+        sb.from('form_submissions').select('*').eq('form_id', formId).order('submitted_at', { ascending: false }),
+      ]);
+
+      const wrap = document.getElementById('submissionsListWrap');
+      if (!subs?.length) { wrap.innerHTML = `<div class="empty-state">Aucune soumission reçue pour l'instant.</div>`; return; }
+
+      wrap.innerHTML = subs.map((s, i) => {
+        const date = new Date(s.submitted_at).toLocaleDateString('fr-CA', { year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' });
+        const answers = (fields || []).map(field => {
+          const val = s.answers?.[field.id];
+          if (val === undefined || val === null || val === '') return '';
+          const display = field.type === 'checkbox' ? (val ? '✅ Oui' : '❌ Non') : String(val);
+          return `<div class="submission-answer">
+            <div class="submission-answer__q">${esc(field.label)}</div>
+            <div class="submission-answer__a">${esc(display)}</div>
+          </div>`;
+        }).filter(Boolean).join('');
+        return `<div class="submission-item">
+          <div class="submission-item__header" onclick="toggleSubmission(this)">
+            <span class="submission-item__name">${esc(s.patient_name || 'Patient inconnu')}</span>
+            <span class="submission-item__date">${esc(date)}</span>
+            <span style="color:var(--muted);font-size:.8rem">▼</span>
+          </div>
+          <div class="submission-item__body">${answers || '<em style="color:var(--muted)">Aucune réponse enregistrée.</em>'}</div>
+        </div>`;
+      }).join('');
+    };
+
+    window.toggleSubmission = (header) => {
+      const body = header.nextElementSibling;
+      body.classList.toggle('is-open');
+      header.querySelector('span:last-child').textContent = body.classList.contains('is-open') ? '▲' : '▼';
+    };
+
+    const closeFormSubmissions = () => {
+      document.getElementById('modalFormSubmissions').classList.remove('is-open');
+      document.getElementById('modalFormSubmissions').setAttribute('aria-hidden','true');
+    };
+    document.getElementById('modalFormSubmissionsClose').addEventListener('click', closeFormSubmissions);
+    document.getElementById('btnCloseFormSubmissions').addEventListener('click', closeFormSubmissions);
+    document.getElementById('modalFormSubmissions').addEventListener('click', e => {
+      if (e.target === document.getElementById('modalFormSubmissions')) closeFormSubmissions();
     });
 
     // ══════════════════════════════════════════════════════
