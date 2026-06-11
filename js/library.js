@@ -23,7 +23,48 @@
     };
 
     let allResources = [];
+    let allCategories = [];
     const loader = document.getElementById('pageLoader');
+
+    async function loadCategories() {
+      const { data } = await supabase
+        .from('resource_categories')
+        .select('*')
+        .order('sort_order');
+      allCategories = data || [];
+      renderTiles();
+    }
+
+    function renderTiles() {
+      const tilesEl = document.getElementById('homeTiles');
+      if (!tilesEl) return;
+      const catTiles = allCategories.map(cat => `
+        <button class="home-tile" data-section="${esc(cat.id)}">
+          <span class="home-tile__icon">${cat.icon}</span>
+          <span class="home-tile__label">${esc(cat.label)}</span>
+        </button>`).join('');
+      const exTile = `
+        <button class="home-tile" data-section="exercices">
+          <span class="home-tile__icon"><svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></span>
+          <span class="home-tile__label">Mes exercices</span>
+        </button>`;
+      tilesEl.innerHTML = catTiles + exTile;
+      tilesEl.querySelectorAll('.home-tile').forEach(tile => {
+        tile.addEventListener('click', () => openSection(tile.dataset.section));
+      });
+    }
+
+    function getSectionMeta(section) {
+      if (section === 'exercices') return { title: 'Mes exercices', sub: 'Exercices prescrits par votre professionnel.' };
+      const cat = allCategories.find(c => c.id === section);
+      if (cat) {
+        const sub = section === 'bibliotheque'
+          ? 'Toutes vos ressources, classées par condition.'
+          : 'Vos ressources dans cette catégorie.';
+        return { title: cat.label, sub };
+      }
+      return { title: section, sub: '' };
+    }
 
     async function init() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -40,7 +81,7 @@
       const isAdmin = profile?.is_admin === true;
       if (isAdmin) document.getElementById('btnAdmin').style.display = 'flex';
 
-      await loadResources(user.id, isAdmin);
+      await Promise.all([loadCategories(), loadResources(user.id, isAdmin)]);
     }
 
     function setGreeting(user) {
@@ -190,13 +231,6 @@
     init().catch(() => { loader.classList.add('is-hidden'); renderError(); });
 
     // ── NAVIGATION PAR TUILES ─────────────────────────────
-    const SECTION_META = {
-      bibliotheque:        { title: 'Ma bibliothèque',         sub: 'Toutes vos ressources, classées par condition.' },
-      exercices:           { title: 'Mes exercices',           sub: 'Exercices prescrits par votre professionnel.' },
-      recommandations:     { title: 'Mes recommandations',     sub: 'Conseils et documents recommandés par votre équipe.' },
-      videos_explicatives: { title: 'Mes vidéos explicatives', sub: 'Vidéos pour mieux comprendre votre condition.' },
-      habitudes_de_vie:    { title: 'Mes habitudes de vie',    sub: 'Pour prendre soin de vous au quotidien.' },
-    };
 
     function showHome() {
       document.getElementById('viewHome').style.display = '';
@@ -207,7 +241,7 @@
     }
 
     function openSection(section) {
-      const meta = SECTION_META[section] || {};
+      const meta = getSectionMeta(section);
       document.getElementById('viewHome').style.display = 'none';
       document.querySelectorAll('.section-view').forEach(s => s.style.display = 'none');
       document.getElementById('heroTitle').textContent = meta.title || '';
@@ -229,9 +263,6 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    document.querySelectorAll('.home-tile').forEach(tile => {
-      tile.addEventListener('click', () => openSection(tile.dataset.section));
-    });
     document.querySelectorAll('[data-back-home]').forEach(btn => {
       btn.addEventListener('click', showHome);
     });

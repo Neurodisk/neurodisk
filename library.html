@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/library.css?v=6">
+  <link rel="stylesheet" href="/css/library.css?v=7">
 </head>
 <body>
 
@@ -49,29 +49,10 @@
   <!-- Contenu -->
   <main class="main">
 
-    <!-- Accueil : 5 grandes tuiles -->
+    <!-- Accueil : tuiles générées dynamiquement depuis resource_categories -->
     <div id="viewHome">
-      <div class="home-tiles">
-        <button class="home-tile" data-section="bibliotheque">
-          <span class="home-tile__icon"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
-          <span class="home-tile__label">Ma bibliothèque</span>
-        </button>
-        <button class="home-tile" data-section="exercices">
-          <span class="home-tile__icon"><svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></span>
-          <span class="home-tile__label">Mes exercices</span>
-        </button>
-        <button class="home-tile" data-section="recommandations">
-          <span class="home-tile__icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
-          <span class="home-tile__label">Mes recommandations</span>
-        </button>
-        <button class="home-tile" data-section="videos_explicatives">
-          <span class="home-tile__icon"><svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span>
-          <span class="home-tile__label">Mes vidéos explicatives</span>
-        </button>
-        <button class="home-tile" data-section="habitudes_de_vie">
-          <span class="home-tile__icon"><svg viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg></span>
-          <span class="home-tile__label">Mes habitudes de vie</span>
-        </button>
+      <div class="home-tiles" id="homeTiles">
+        <!-- Rempli par library.js -->
       </div>
     </div>
 
@@ -223,6 +204,6 @@
 
   <div class="toast-wrap" id="toasts"></div>
 
-  <script type="module" src="/js/library.js?v=3"></script>
+  <script type="module" src="/js/library.js?v=4"></script>
 </body>
 </html>

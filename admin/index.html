@@ -519,6 +519,10 @@
         <svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
         Programmes
       </a>
+      <a class="sidebar__link" data-section="categories" href="#">
+        <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        Catégories
+      </a>
     </aside>
 
     <!-- Contenu -->
@@ -726,6 +730,54 @@
           Sélectionnez un patient pour voir et modifier ses ressources assignées.
         </p>
         <div id="assignmentsList">
+          <div class="empty-state">Chargement…</div>
+        </div>
+
+      </section>
+
+      <!-- ══════════════════════════════ CATÉGORIES ══ -->
+      <section id="sec-categories" class="section">
+
+        <div class="section-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          Gérer les catégories
+        </div>
+        <p style="color:var(--muted);font-size:.85rem;margin-bottom:1.25rem">
+          Les catégories correspondent aux tuiles affichées sur la page d'accueil des patients. Vous pouvez les renommer, changer leur icône ou en créer de nouvelles.
+        </p>
+
+        <!-- Formulaire ajout -->
+        <div class="card">
+          <div class="card__title">Ajouter une catégorie</div>
+          <div id="alertAddCat" class="alert"></div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="catLabel">Nom *</label>
+              <input type="text" id="catLabel" placeholder="Ex. : Mes articles">
+            </div>
+            <div class="field">
+              <label for="catIcon">Icône (emoji)</label>
+              <input type="text" id="catIcon" placeholder="📁" maxlength="4" value="📁" style="font-size:1.4rem;width:80px">
+            </div>
+            <div class="field">
+              <label for="catSlug">Identifiant <span style="font-weight:400;color:var(--muted)">optionnel — auto-généré depuis le nom</span></label>
+              <input type="text" id="catSlug" placeholder="ex_ma_categorie" pattern="[a-z0-9_]+" title="Lettres minuscules, chiffres et _ uniquement">
+            </div>
+          </div>
+          <div style="margin-top:1rem">
+            <button class="btn btn--primary" id="btnAddCat">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Ajouter la catégorie
+            </button>
+          </div>
+        </div>
+
+        <!-- Liste -->
+        <div class="section-title" style="margin-top:2rem">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Catégories existantes
+        </div>
+        <div id="categoriesTableWrap">
           <div class="empty-state">Chargement…</div>
         </div>
 
@@ -1098,6 +1150,32 @@
     </div>
   </div>
 
+  <!-- ── Modal Édition Catégorie ───────────────────────── -->
+  <div class="modal-pwd" id="modalCatEdit" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-pwd__box">
+      <div class="modal-pwd__header">
+        <div>
+          <h2 class="modal-pwd__title">✏️ Modifier la catégorie</h2>
+          <p class="modal-pwd__patient" id="modalCatSlug" style="font-family:monospace"></p>
+        </div>
+        <button class="modal-pwd__close" id="modalCatEditClose" aria-label="Fermer">✕</button>
+      </div>
+      <div id="alertCatEdit" class="alert"></div>
+      <div class="field" style="margin-bottom:.75rem">
+        <label for="catEditLabel">Nom *</label>
+        <input type="text" id="catEditLabel" placeholder="Nom de la catégorie">
+      </div>
+      <div class="field" style="margin-bottom:1.25rem">
+        <label for="catEditIcon">Icône (emoji)</label>
+        <input type="text" id="catEditIcon" maxlength="4" style="font-size:1.4rem;width:80px">
+      </div>
+      <div style="display:flex;gap:.75rem">
+        <button class="btn btn--primary" id="btnCatEditSave">Enregistrer</button>
+        <button class="btn btn--ghost" id="btnCatEditCancel">Annuler</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast-wrap" id="toastWrap"></div>
 
   <script type="module">
@@ -1136,7 +1214,7 @@
         hideLoader();
 
         // 3. Charger les données
-        await Promise.all([loadPatients(), loadResources()]);
+        await Promise.all([loadPatients(), loadResources(), loadCategories()]);
         renderAssignments();
 
       } catch (err) {
@@ -1679,6 +1757,180 @@
     }
 
     init();
+
+    // ══════════════════════════════════════════════════════
+    // CATÉGORIES
+    // ══════════════════════════════════════════════════════
+    let allCategories = [];
+    let catEditId     = null;
+
+    async function loadCategories() {
+      const { data, error } = await sb
+        .from('resource_categories')
+        .select('*')
+        .order('sort_order');
+      if (error) { toast('Erreur catégories : ' + error.message, 'error'); return; }
+      allCategories = data || [];
+      renderCategoriesTable();
+      populateCategorySelects();
+    }
+
+    function renderCategoriesTable() {
+      const wrap = document.getElementById('categoriesTableWrap');
+      if (!wrap) return;
+      if (!allCategories.length) {
+        wrap.innerHTML = `<div class="empty-state">Aucune catégorie. Ajoutez-en une ci-dessus.</div>`;
+        return;
+      }
+      const usageCounts = {};
+      allResources.forEach(r => {
+        const c = r.category || 'bibliotheque';
+        usageCounts[c] = (usageCounts[c] || 0) + 1;
+      });
+      wrap.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Icône</th><th>Nom</th><th>Identifiant</th><th>Ressources</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${allCategories.map(cat => {
+                const count = usageCounts[cat.id] || 0;
+                return `<tr>
+                  <td style="font-size:1.6rem;line-height:1">${cat.icon}</td>
+                  <td><strong>${esc(cat.label)}</strong></td>
+                  <td style="color:var(--muted);font-family:monospace;font-size:.8rem">${esc(cat.id)}</td>
+                  <td style="color:var(--muted)">${count}</td>
+                  <td>
+                    <div class="td-actions">
+                      <button class="btn btn--ghost btn--sm" onclick="openCatEditModal('${esc(cat.id)}')">✏️ Modifier</button>
+                      <button class="btn btn--danger btn--sm" onclick="deleteCategory('${esc(cat.id)}', this)"
+                        ${count > 0 ? `disabled title="${count} ressource(s) utilisent cette catégorie — réassignez-les d'abord"` : ''}>
+                        Supprimer
+                      </button>
+                    </div>
+                  </td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    function populateCategorySelects() {
+      const opts = allCategories.map(c =>
+        `<option value="${esc(c.id)}">${c.icon} ${esc(c.label)}</option>`
+      ).join('');
+      const rCat   = document.getElementById('rCategory');
+      const editCat = document.getElementById('editCategory');
+      if (rCat)    rCat.innerHTML    = opts;
+      if (editCat) editCat.innerHTML = opts;
+    }
+
+    // ── Ajouter une catégorie ─────────────────────────────
+    document.getElementById('btnAddCat').addEventListener('click', async () => {
+      const label   = document.getElementById('catLabel').value.trim();
+      const icon    = document.getElementById('catIcon').value.trim() || '📁';
+      let   slug    = document.getElementById('catSlug').value.trim();
+      const alertEl = document.getElementById('alertAddCat');
+
+      setAlert(alertEl, '', '');
+      if (!label) { setAlert(alertEl, 'Le nom est obligatoire.', 'error'); return; }
+
+      if (!slug) {
+        slug = label.toLowerCase()
+          .replace(/[àáâãäå]/g,'a').replace(/[èéêë]/g,'e').replace(/[ìíîï]/g,'i')
+          .replace(/[òóôõö]/g,'o').replace(/[ùúûü]/g,'u').replace(/[ç]/g,'c')
+          .replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+      }
+
+      if (!/^[a-z0-9_]+$/.test(slug)) {
+        setAlert(alertEl, 'L\'identifiant ne peut contenir que des minuscules, chiffres et _.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('btnAddCat');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-inline"></span> Ajout…`;
+
+      const { error } = await sb.from('resource_categories').insert({
+        id: slug, label, icon, sort_order: allCategories.length,
+      });
+
+      btn.disabled = false;
+      btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Ajouter la catégorie`;
+
+      if (error) { setAlert(alertEl, 'Erreur : ' + error.message, 'error'); return; }
+
+      setAlert(alertEl, `✓ Catégorie "${label}" ajoutée.`, 'success');
+      document.getElementById('catLabel').value = '';
+      document.getElementById('catSlug').value  = '';
+      document.getElementById('catIcon').value  = '📁';
+      await loadCategories();
+    });
+
+    // ── Modal édition catégorie ───────────────────────────
+    window.openCatEditModal = (id) => {
+      const cat = allCategories.find(c => c.id === id);
+      if (!cat) return;
+      catEditId = id;
+      document.getElementById('catEditLabel').value = cat.label;
+      document.getElementById('catEditIcon').value  = cat.icon;
+      document.getElementById('modalCatSlug').textContent = `Identifiant : ${cat.id}`;
+      setAlert(document.getElementById('alertCatEdit'), '', '');
+      document.getElementById('modalCatEdit').classList.add('is-open');
+      document.getElementById('modalCatEdit').setAttribute('aria-hidden', 'false');
+      document.getElementById('catEditLabel').focus();
+    };
+
+    const closeCatEditModal = () => {
+      document.getElementById('modalCatEdit').classList.remove('is-open');
+      document.getElementById('modalCatEdit').setAttribute('aria-hidden', 'true');
+      catEditId = null;
+    };
+
+    document.getElementById('modalCatEditClose').addEventListener('click', closeCatEditModal);
+    document.getElementById('btnCatEditCancel').addEventListener('click', closeCatEditModal);
+    document.getElementById('modalCatEdit').addEventListener('click', e => {
+      if (e.target === document.getElementById('modalCatEdit')) closeCatEditModal();
+    });
+
+    document.getElementById('btnCatEditSave').addEventListener('click', async () => {
+      const label   = document.getElementById('catEditLabel').value.trim();
+      const icon    = document.getElementById('catEditIcon').value.trim() || '📁';
+      const alertEl = document.getElementById('alertCatEdit');
+      const btn     = document.getElementById('btnCatEditSave');
+
+      setAlert(alertEl, '', '');
+      if (!label) { setAlert(alertEl, 'Le nom est obligatoire.', 'error'); return; }
+
+      btn.disabled = true; btn.textContent = '…';
+
+      const { error } = await sb.from('resource_categories')
+        .update({ label, icon }).eq('id', catEditId);
+
+      btn.disabled = false; btn.textContent = 'Enregistrer';
+
+      if (error) { setAlert(alertEl, 'Erreur : ' + error.message, 'error'); return; }
+
+      toast('Catégorie mise à jour.', 'success');
+      closeCatEditModal();
+      await loadCategories();
+    });
+
+    // ── Supprimer une catégorie ───────────────────────────
+    window.deleteCategory = async (id, btn) => {
+      const cat = allCategories.find(c => c.id === id);
+      if (!confirm(`Supprimer la catégorie "${cat?.label || id}" ?`)) return;
+      btn.disabled = true; btn.textContent = '…';
+      const { error } = await sb.from('resource_categories').delete().eq('id', id);
+      if (error) { toast('Erreur : ' + error.message, 'error'); btn.disabled=false; btn.textContent='Supprimer'; return; }
+      toast('Catégorie supprimée.', 'success');
+      await loadCategories();
+    };
+
+    // ── Charger les catégories quand on navigue vers la section ──
+    document.querySelector('[data-section="categories"]').addEventListener('click', () => {
+      loadCategories();
+    });
 
 
     // ══════════════════════════════════════════════════════
