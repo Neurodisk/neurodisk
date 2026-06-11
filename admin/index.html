@@ -1790,7 +1790,7 @@
       wrap.innerHTML = `
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Ordre</th><th>Icône</th><th>Nom</th><th>Identifiant</th><th>Ressources</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Ordre</th><th>Icône</th><th>Nom</th><th>Identifiant</th><th>Ressources</th><th>Programme</th><th>Actions</th></tr></thead>
             <tbody>
               ${allCategories.map((cat, idx) => {
                 const count = usageCounts[cat.id] || 0;
@@ -1807,6 +1807,10 @@
                   <td><strong>${esc(cat.label)}</strong></td>
                   <td style="color:var(--muted);font-family:monospace;font-size:.8rem">${esc(cat.id)}</td>
                   <td style="color:var(--muted)">${count}</td>
+                  <td style="text-align:center">
+                    <input type="checkbox" style="width:20px;height:20px;cursor:pointer" ${cat.shows_programme ? 'checked' : ''}
+                      onchange="setCatProgramme('${esc(cat.id)}', this.checked, this)" title="Afficher le programme d'exercices dans cette catégorie">
+                  </td>
                   <td>
                     <div class="td-actions">
                       <button class="btn btn--ghost btn--sm" onclick="openCatEditModal('${esc(cat.id)}')">✏️ Modifier</button>
@@ -1939,6 +1943,22 @@
         sb.from('resource_categories').update({ sort_order: b.sort_order }).eq('id', a.id),
         sb.from('resource_categories').update({ sort_order: tempOrder    }).eq('id', b.id),
       ]);
+      await loadCategories();
+    };
+
+    // ── Lier le programme d'exercices à une catégorie ─────
+    // Une seule catégorie à la fois : cocher l'une décoche les autres.
+    window.setCatProgramme = async (id, checked, input) => {
+      input.disabled = true;
+      // D'abord tout désactiver, puis activer la cible si cochée
+      const updates = allCategories
+        .filter(c => c.shows_programme && c.id !== id)
+        .map(c => sb.from('resource_categories').update({ shows_programme: false }).eq('id', c.id));
+      updates.push(sb.from('resource_categories').update({ shows_programme: checked }).eq('id', id));
+      const results = await Promise.all(updates);
+      const err = results.find(r => r.error);
+      if (err) { toast('Erreur : ' + err.error.message, 'error'); }
+      else toast(checked ? 'Programme lié à cette catégorie.' : 'Programme retiré.', 'success');
       await loadCategories();
     };
 

@@ -244,7 +244,10 @@
       // Afficher la bonne section
       document.querySelectorAll('.section-view').forEach(s => s.style.display = 'none');
 
-      if (section === 'exercices') {
+      const cat = allCategories.find(c => c.id === section);
+      const isProgramme = section === 'exercices' || cat?.shows_programme;
+
+      if (isProgramme) {
         document.getElementById('section-exercices').style.display = '';
         if (!programmeLoaded) loadProgramme();
       } else {
