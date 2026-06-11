@@ -2126,7 +2126,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
     function renderPatientsTable() {
       const wrap = document.getElementById('patientsTableWrap');
-      const patients = allPatients.filter(p => !p.is_admin);
+      const patients = allPatients;
 
       if (!patients.length) {
         wrap.innerHTML = `<div class="empty-state">Aucun patient enregistré pour l'instant.</div>`;
@@ -2160,18 +2160,13 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
                   <td>${progHtml}</td>
                   <td>
                     <div class="td-actions">
-                      <button class="btn btn--ghost btn--sm" onclick="openEditPatient('${p.id}')">
-                        ✏️ Modifier
-                      </button>
-                      <button class="btn btn--ghost btn--sm" onclick="sendMagicLink('${esc(p.email)}', this)">
-                        ✉️ Envoyer un lien
-                      </button>
-                      <button class="btn btn--ghost btn--sm" onclick="openAssignSection('${p.id}')">
-                        Gérer les accès
-                      </button>
-                      <button class="btn btn--ghost btn--sm" onclick="openPasswordModal('${p.id}', '${esc(p.full_name || p.email)}', '${esc(p.email)}')">
-                        🔑 Mot de passe
-                      </button>
+                      ${p.is_admin
+                        ? `<span class="badge badge--admin">Admin</span>`
+                        : `<button class="btn btn--ghost btn--sm" onclick="openEditPatient('${p.id}')">✏️ Modifier</button>
+                           <button class="btn btn--ghost btn--sm" onclick="sendMagicLink('${esc(p.email)}', this)">✉️ Envoyer un lien</button>
+                           <button class="btn btn--ghost btn--sm" onclick="openAssignSection('${p.id}')">Gérer les accès</button>
+                           <button class="btn btn--ghost btn--sm" onclick="openPasswordModal('${p.id}', '${esc(p.full_name || p.email)}', '${esc(p.email)}')">🔑 Mot de passe</button>`
+                      }
                     </div>
                   </td>
                 </tr>`;
