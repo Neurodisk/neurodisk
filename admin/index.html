@@ -531,6 +531,10 @@
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
         Lettre de référence
       </a>
+      <a class="sidebar__link" data-section="forms" href="#">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+        Formulaires
+      </a>
     </aside>
 
     <!-- Contenu -->
@@ -1036,6 +1040,67 @@
         </div>
       </section>
 
+      <!-- ══════════════════════════════ FORMULAIRES ══ -->
+      <section id="sec-forms" class="section">
+
+        <div class="section-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+          Formulaires
+        </div>
+
+        <p style="color:var(--muted);font-size:.85rem;margin-bottom:1.25rem">
+          Gérez votre bibliothèque de formulaires PDF (questionnaires, consentements, etc.) et envoyez-les à vos patients dans la catégorie de leur choix.
+        </p>
+
+        <!-- Ajouter un formulaire -->
+        <div class="card">
+          <div class="card__title">Ajouter un formulaire PDF</div>
+          <div id="alertAddForm" class="alert"></div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="formTitle">Titre *</label>
+              <input type="text" id="formTitle" placeholder="Ex. : Questionnaire douleur">
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="formDesc">Description <span style="font-weight:400;color:var(--muted)">optionnel</span></label>
+              <textarea id="formDesc" placeholder="Brève description du formulaire…"></textarea>
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label>PDF *</label>
+              <div class="drop-zone" id="dropZoneForm" tabindex="0" role="button" aria-label="Zone d'upload formulaire PDF">
+                <div class="drop-zone__icon">📋</div>
+                <p class="drop-zone__label">
+                  <strong>Glissez votre formulaire ici</strong> ou cliquez pour choisir
+                </p>
+                <p class="drop-zone__file" id="dropFormName" style="display:none"></p>
+              </div>
+              <input type="file" id="fileInputForm" accept=".pdf,application/pdf" style="display:none" aria-hidden="true">
+              <div class="upload-progress" id="uploadProgressForm" style="display:none">
+                <div class="upload-progress__track">
+                  <div class="upload-progress__bar" id="uploadBarForm"></div>
+                </div>
+                <p class="upload-progress__status" id="uploadStatusForm">Upload en cours…</p>
+              </div>
+              <input type="url" id="formPdfUrl" style="display:none" aria-hidden="true" tabindex="-1">
+            </div>
+          </div>
+          <div style="margin-top:1rem">
+            <button class="btn btn--primary" id="btnAddForm">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Ajouter le formulaire
+            </button>
+          </div>
+        </div>
+
+        <!-- Liste des formulaires -->
+        <div class="section-title" style="margin-top:2rem">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Formulaires disponibles
+        </div>
+        <div id="formsListWrap"><div class="empty-state">Chargement…</div></div>
+
+      </section>
+
     </main>
   </div>
 
@@ -1301,6 +1366,32 @@
       <div style="display:flex;gap:.75rem">
         <button class="btn btn--primary" id="btnProgEditSave">Enregistrer</button>
         <button class="btn btn--ghost" id="btnProgEditCancel">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal Envoyer formulaire ───────────────────────── -->
+  <div class="modal-pwd" id="modalSendForm" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-pwd__box">
+      <div class="modal-pwd__header">
+        <div>
+          <h2 class="modal-pwd__title">📤 Envoyer à un patient</h2>
+          <p class="modal-pwd__patient" id="modalSendFormTitle" style="color:var(--muted)"></p>
+        </div>
+        <button class="modal-pwd__close" id="modalSendFormClose" aria-label="Fermer">✕</button>
+      </div>
+      <div id="alertSendForm" class="alert"></div>
+      <div class="field" style="margin-bottom:.75rem">
+        <label for="sendFormPatient">Patient *</label>
+        <select id="sendFormPatient"><option value="">— Sélectionner un patient —</option></select>
+      </div>
+      <div class="field" style="margin-bottom:1.25rem">
+        <label for="sendFormCategory">Catégorie (onglet patient) *</label>
+        <select id="sendFormCategory"><option value="">— Sélectionner une catégorie —</option></select>
+      </div>
+      <div style="display:flex;gap:.75rem">
+        <button class="btn btn--primary" id="btnConfirmSendForm">📤 Envoyer</button>
+        <button class="btn btn--ghost" id="btnCancelSendForm">Annuler</button>
       </div>
     </div>
   </div>
@@ -2346,6 +2437,204 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     }
 
     init();
+
+    // ══════════════════════════════════════════════════════
+    // FORMULAIRES
+    // ══════════════════════════════════════════════════════
+    let allForms  = [];
+    let sendFormId = null;
+
+    async function loadForms() {
+      const { data, error } = await sb.from('forms').select('*').order('created_at', { ascending: false });
+      if (error) { toast('Erreur formulaires : ' + error.message, 'error'); return; }
+      allForms = data || [];
+      renderFormsList();
+    }
+
+    function renderFormsList() {
+      const wrap = document.getElementById('formsListWrap');
+      if (!allForms.length) {
+        wrap.innerHTML = `<div class="empty-state">Aucun formulaire ajouté pour l'instant.</div>`;
+        return;
+      }
+      wrap.innerHTML = allForms.map(f => `
+        <div class="prog-list-item">
+          <div style="flex:1;min-width:0">
+            <strong>${esc(f.title)}</strong>
+            ${f.description ? `<div style="font-size:.8rem;color:var(--muted);margin-top:.15rem">${esc(f.description)}</div>` : ''}
+            <div style="font-size:.78rem;color:var(--muted);margin-top:.1rem">${fmtDate(f.created_at)}</div>
+          </div>
+          <div class="td-actions">
+            <a href="${esc(f.pdf_url)}" target="_blank" rel="noopener" class="btn btn--ghost btn--sm">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Voir
+            </a>
+            <button class="btn btn--primary btn--sm" onclick="openSendFormModal('${esc(f.id)}', this)">
+              📤 Envoyer à un patient
+            </button>
+            <button class="btn btn--danger btn--sm" onclick="deleteForm('${esc(f.id)}', this)">Supprimer</button>
+          </div>
+        </div>`).join('');
+    }
+
+    // ── Upload PDF formulaire ──────────────────────────────
+    const dropZoneForm       = document.getElementById('dropZoneForm');
+    const fileInputForm      = document.getElementById('fileInputForm');
+    const dropFormName       = document.getElementById('dropFormName');
+    const uploadProgressForm = document.getElementById('uploadProgressForm');
+    const uploadBarForm      = document.getElementById('uploadBarForm');
+    const uploadStatusForm   = document.getElementById('uploadStatusForm');
+    const formPdfUrlInput    = document.getElementById('formPdfUrl');
+
+    dropZoneForm.addEventListener('click',  () => fileInputForm.click());
+    dropZoneForm.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fileInputForm.click(); });
+    fileInputForm.addEventListener('change', () => { if (fileInputForm.files?.[0]) uploadFormPdf(fileInputForm.files[0]); });
+    dropZoneForm.addEventListener('dragover', e => { e.preventDefault(); dropZoneForm.classList.add('is-over'); });
+    dropZoneForm.addEventListener('dragleave', () => dropZoneForm.classList.remove('is-over'));
+    dropZoneForm.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZoneForm.classList.remove('is-over');
+      const file = e.dataTransfer?.files?.[0];
+      if (file && file.type === 'application/pdf') uploadFormPdf(file);
+      else toast('Veuillez déposer un fichier PDF.', 'error');
+    });
+
+    async function uploadFormPdf(file) {
+      dropFormName.textContent    = `📎 ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+      dropFormName.style.display  = 'block';
+      uploadProgressForm.style.display = 'block';
+      setFormProgress(15, 'Upload en cours…');
+      formPdfUrlInput.value = '';
+      try {
+        const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const fileName = `formulaires/${Date.now()}-${safeName}`;
+        const { data, error } = await sb.storage
+          .from('PDFS formation')
+          .upload(fileName, file, { contentType: 'application/pdf', upsert: false });
+        if (error) throw error;
+        const { data: { publicUrl } } = sb.storage.from('PDFS formation').getPublicUrl(data.path);
+        setFormProgress(100, '✅ PDF uploadé !', 'is-done');
+        formPdfUrlInput.value = publicUrl;
+        toast('PDF uploadé avec succès !', 'success');
+      } catch (err) {
+        setFormProgress(0, `❌ ${err.message}`, 'is-error');
+        toast('Erreur upload : ' + err.message, 'error');
+      }
+    }
+
+    function setFormProgress(pct, msg, cls = '') {
+      uploadBarForm.style.width     = pct + '%';
+      uploadStatusForm.textContent  = msg;
+      uploadStatusForm.className    = 'upload-progress__status' + (cls ? ' ' + cls : '');
+    }
+
+    // ── Ajouter un formulaire ─────────────────────────────
+    document.getElementById('btnAddForm').addEventListener('click', async () => {
+      const title   = document.getElementById('formTitle').value.trim();
+      const desc    = document.getElementById('formDesc').value.trim();
+      const pdfUrl  = formPdfUrlInput.value.trim();
+      const alertEl = document.getElementById('alertAddForm');
+      const btn     = document.getElementById('btnAddForm');
+
+      setAlert(alertEl, '', '');
+      if (!title)  { setAlert(alertEl, 'Le titre est obligatoire.', 'error'); return; }
+      if (!pdfUrl) { setAlert(alertEl, 'Veuillez d\'abord uploader un PDF.', 'error'); return; }
+
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-inline"></span> Ajout…`;
+
+      const { error } = await sb.from('forms').insert({ title, description: desc || null, pdf_url: pdfUrl });
+
+      btn.disabled = false;
+      btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Ajouter le formulaire`;
+
+      if (error) { setAlert(alertEl, 'Erreur : ' + error.message, 'error'); return; }
+
+      setAlert(alertEl, '✓ Formulaire ajouté avec succès.', 'success');
+      document.getElementById('formTitle').value = '';
+      document.getElementById('formDesc').value  = '';
+      formPdfUrlInput.value              = '';
+      dropFormName.style.display         = 'none';
+      uploadProgressForm.style.display   = 'none';
+      uploadBarForm.style.width          = '0%';
+      uploadStatusForm.textContent       = 'Upload en cours…';
+      uploadStatusForm.className         = 'upload-progress__status';
+      fileInputForm.value                = '';
+      await loadForms();
+    });
+
+    window.deleteForm = async (id, btn) => {
+      if (!confirm('Supprimer ce formulaire ? Les envois aux patients seront également supprimés.')) return;
+      btn.disabled = true; btn.textContent = '…';
+      const { error } = await sb.from('forms').delete().eq('id', id);
+      if (error) { toast('Erreur : ' + error.message, 'error'); btn.disabled = false; btn.textContent = 'Supprimer'; return; }
+      toast('Formulaire supprimé.', 'success');
+      await loadForms();
+    };
+
+    // ── Modal envoi à un patient ──────────────────────────
+    window.openSendFormModal = (formId, triggerBtn) => {
+      const form = allForms.find(f => f.id === formId);
+      if (!form) return;
+      sendFormId = formId;
+      document.getElementById('modalSendFormTitle').textContent = form.title;
+
+      const patSel = document.getElementById('sendFormPatient');
+      patSel.innerHTML = `<option value="">— Sélectionner un patient —</option>` +
+        allPatients.filter(p => !p.is_admin).map(p =>
+          `<option value="${esc(p.id)}">${esc(p.full_name || p.email)}</option>`
+        ).join('');
+
+      const catSel = document.getElementById('sendFormCategory');
+      catSel.innerHTML = `<option value="">— Sélectionner une catégorie —</option>` +
+        allCategories.map(c => `<option value="${esc(c.id)}">${c.icon} ${esc(c.label)}</option>`).join('');
+
+      setAlert(document.getElementById('alertSendForm'), '', '');
+      document.getElementById('modalSendForm').classList.add('is-open');
+      document.getElementById('modalSendForm').setAttribute('aria-hidden', 'false');
+      patSel.focus();
+    };
+
+    const closeSendFormModal = () => {
+      document.getElementById('modalSendForm').classList.remove('is-open');
+      document.getElementById('modalSendForm').setAttribute('aria-hidden', 'true');
+      sendFormId = null;
+    };
+    document.getElementById('modalSendFormClose').addEventListener('click', closeSendFormModal);
+    document.getElementById('btnCancelSendForm').addEventListener('click', closeSendFormModal);
+    document.getElementById('modalSendForm').addEventListener('click', e => {
+      if (e.target === document.getElementById('modalSendForm')) closeSendFormModal();
+    });
+
+    document.getElementById('btnConfirmSendForm').addEventListener('click', async () => {
+      const patientId = document.getElementById('sendFormPatient').value;
+      const category  = document.getElementById('sendFormCategory').value;
+      const alertEl   = document.getElementById('alertSendForm');
+      const btn       = document.getElementById('btnConfirmSendForm');
+
+      setAlert(alertEl, '', '');
+      if (!patientId) { setAlert(alertEl, 'Sélectionnez un patient.', 'error'); return; }
+      if (!category)  { setAlert(alertEl, 'Sélectionnez une catégorie.', 'error'); return; }
+
+      btn.disabled = true; btn.textContent = '…';
+
+      const { error } = await sb.from('patient_forms').upsert(
+        { patient_id: patientId, form_id: sendFormId, category },
+        { onConflict: 'patient_id,form_id', ignoreDuplicates: false }
+      );
+
+      btn.disabled = false; btn.innerHTML = '📤 Envoyer';
+
+      if (error) { setAlert(alertEl, 'Erreur : ' + error.message, 'error'); return; }
+
+      const pat = allPatients.find(p => p.id === patientId);
+      toast(`Formulaire envoyé à ${pat?.full_name || pat?.email || 'ce patient'}.`, 'success');
+      closeSendFormModal();
+    });
+
+    document.querySelector('[data-section="forms"]').addEventListener('click', () => {
+      loadForms();
+    });
 
     // ══════════════════════════════════════════════════════
     // CATÉGORIES

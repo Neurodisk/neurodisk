@@ -24,6 +24,7 @@
 
     let allResources = [];
     let allCategories = [];
+    let allPatientForms = [];
     const loader = document.getElementById('pageLoader');
 
     async function loadCategories() {
@@ -80,7 +81,7 @@
       const isAdmin = profile?.is_admin === true;
       if (isAdmin) document.getElementById('btnAdmin').style.display = 'flex';
 
-      await Promise.all([loadCategories(), loadResources(user.id, isAdmin)]);
+      await Promise.all([loadCategories(), loadResources(user.id, isAdmin), loadPatientForms(user.id, isAdmin)]);
     }
 
     function setGreeting(user) {
@@ -106,6 +107,18 @@
         renderCategories();
       } catch (e) {
         renderError(); toast('Impossible de charger vos ressources.', 'error');
+      }
+    }
+
+    async function loadPatientForms(userId, isAdmin = false) {
+      try {
+        let query = supabase.from('patient_forms').select(`category, form:forms(id, title, description, pdf_url)`);
+        if (!isAdmin) query = query.eq('patient_id', userId);
+        const { data, error } = await query;
+        if (error) throw error;
+        allPatientForms = (data || []).map(r => ({ ...r.form, category: r.category, _isForm: true })).filter(r => r?.id);
+      } catch {
+        allPatientForms = [];
       }
     }
 
@@ -258,13 +271,15 @@
 
     // Grille filtrée par catégorie de ressource
     function renderCatGrid(category) {
-      const list = allResources.filter(r => (r.category || 'bibliotheque') === category);
-      const grid = document.getElementById('catGrid');
+      const resources = allResources.filter(r => (r.category || 'bibliotheque') === category);
+      const forms     = allPatientForms.filter(f => f.category === category);
+      const list      = [...resources, ...forms];
+      const grid      = document.getElementById('catGrid');
       if (!list.length) {
         grid.innerHTML = `<div class="state-wrap"><div class="state-icon"><svg viewBox="0 0 24 24"><path d="M22 16.74V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h16"/><path d="M7 8h10M7 12h6"/></svg></div><p class="state-title">Rien ici pour l'instant</p><p class="state-text">Votre équipe n'a pas encore ajouté de contenu dans cette section.</p></div>`;
         return;
       }
-      grid.innerHTML = list.map(r => renderCard(r)).join('');
+      grid.innerHTML = list.map(r => r._isForm ? renderFormCard(r) : renderCard(r)).join('');
       grid.querySelectorAll('.card').forEach(c => {
         c.addEventListener('click', () => {
           if (c.dataset.type === 'video') openModal(c.dataset.id, c.dataset.title, c.dataset.url);
@@ -272,6 +287,20 @@
         });
         c.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); c.click(); } });
       });
+    }
+
+    function renderFormCard(f) {
+      return `<article class="card" role="listitem" tabindex="0" data-id="${esc(f.id)}" data-type="pdf" data-url="${esc(f.pdf_url||'')}" data-title="${esc(f.title)}">
+        <div class="card__thumb"><div class="card__thumb-bg">${svgPdf()}</div></div>
+        <div class="card__body">
+          <div class="card__meta">
+            <span class="badge badge--pdf">📋 Formulaire</span>
+          </div>
+          <h2 class="card__title">${esc(f.title)}</h2>
+          ${f.description ? `<p class="card__desc">${esc(f.description)}</p>` : ''}
+          <p class="card__cta"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Ouvrir le formulaire</p>
+        </div>
+      </article>`;
     }
 
     document.getElementById('btnBackCategories').addEventListener('click', () => {
