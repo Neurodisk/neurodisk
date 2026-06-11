@@ -553,20 +553,11 @@
                 <input type="text" id="pName" placeholder="Marie Tremblay">
               </div>
               <div class="field" style="grid-column:1/-1">
-                <label>Accès <span style="font-weight:400;color:var(--muted)">— cochez les catégories que le patient pourra consulter</span></label>
-                <div class="access-checks">
-                  <label class="access-check"><input type="checkbox" name="pAccess" value="trousse_depart"> Trousse de départ</label>
-                  <label class="access-check"><input type="checkbox" name="pAccess" value="hernie_discale"> Hernie discale</label>
-                  <label class="access-check"><input type="checkbox" name="pAccess" value="sciatique"> Sciatique</label>
-                  <label class="access-check"><input type="checkbox" name="pAccess" value="radiculopathie"> Radiculopathie</label>
-                  <label class="access-check"><input type="checkbox" name="pAccess" value="stenose_foraminale"> Sténose foraminale</label>
-                  <label class="access-check"><input type="checkbox" name="pAccess" value="stenose_spinale"> Sténose spinale</label>
-                  <label class="access-check"><input type="checkbox" name="pAccess" value="arthrose_cervicale"> Arthrose cervicale</label>
-                  <label class="access-check"><input type="checkbox" name="pAccess" value="arthrose_lombaire"> Arthrose lombaire</label>
-                  <label class="access-check"><input type="checkbox" name="pAccess" value="spondylolyse"> Spondylolyse</label>
-                  <label class="access-check"><input type="checkbox" name="pAccess" value="spondylolisthesis"> Spondylolisthésis</label>
-                  <label class="access-check"><input type="checkbox" name="pAccess" value="autre"> Autre</label>
+                <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.4rem">
+                  <label>Accès <span style="font-weight:400;color:var(--muted)">— cochez les catégories que le patient pourra consulter</span></label>
+                  <button type="button" class="btn btn--ghost btn--sm" id="btnManageAccess" style="white-space:nowrap">⚙️ Modifier les accès</button>
                 </div>
+                <div class="access-checks" id="accessChecksInvite"></div>
               </div>
             </div>
             <div style="margin-top:1rem">
@@ -617,17 +608,6 @@
                 <label for="rCondition">Condition *</label>
                 <select id="rCondition" required>
                   <option value="">— Sélectionner —</option>
-                  <option value="trousse_depart">Trousse de départ</option>
-                  <option value="hernie_discale">Hernie discale</option>
-                  <option value="sciatique">Sciatique</option>
-                  <option value="radiculopathie">Radiculopathie</option>
-                  <option value="stenose_foraminale">Sténose foraminale</option>
-                  <option value="stenose_spinale">Sténose spinale</option>
-                  <option value="arthrose_cervicale">Arthrose cervicale</option>
-                  <option value="arthrose_lombaire">Arthrose lombaire</option>
-                  <option value="spondylolyse">Spondylolyse</option>
-                  <option value="spondylolisthesis">Spondylolisthésis</option>
-                  <option value="autre">Autre</option>
                 </select>
               </div>
               <div class="field">
@@ -1085,17 +1065,6 @@
             <label for="editCondition">Condition *</label>
             <select id="editCondition" required>
               <option value="">— Sélectionner —</option>
-              <option value="trousse_depart">Trousse de départ</option>
-              <option value="hernie_discale">Hernie discale</option>
-              <option value="sciatique">Sciatique</option>
-              <option value="radiculopathie">Radiculopathie</option>
-              <option value="stenose_foraminale">Sténose foraminale</option>
-              <option value="stenose_spinale">Sténose spinale</option>
-              <option value="arthrose_cervicale">Arthrose cervicale</option>
-              <option value="arthrose_lombaire">Arthrose lombaire</option>
-              <option value="spondylolyse">Spondylolyse</option>
-              <option value="spondylolisthesis">Spondylolisthésis</option>
-              <option value="autre">Autre</option>
             </select>
           </div>
           <div class="field">
@@ -1189,6 +1158,24 @@
     </div>
   </div>
 
+  <!-- Modal gestion des accès (conditions) -->
+  <div class="modal-pwd" id="modalManageAccess" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-pwd__box" style="max-width:560px">
+      <div class="modal-pwd__header">
+        <div>
+          <h2 class="modal-pwd__title">⚙️ Gérer les accès</h2>
+          <p style="color:var(--muted);font-size:.85rem;margin-top:.2rem">Ces accès apparaissent comme cases à cocher lors de l'invitation d'un patient.</p>
+        </div>
+        <button class="modal-pwd__close" id="modalManageAccessClose" aria-label="Fermer">✕</button>
+      </div>
+      <div style="display:flex;gap:.5rem;margin-bottom:1rem">
+        <input type="text" id="newAccessLabel" class="field__input" placeholder="Ex. : Arthrose facettaire" style="flex:1">
+        <button class="btn btn--primary" id="btnAddAccess">+ Ajouter</button>
+      </div>
+      <div id="accessListWrap"><div class="empty-state">Chargement…</div></div>
+    </div>
+  </div>
+
   <!-- Modal édition programme -->
   <div class="modal-pwd" id="modalProgEdit" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modal-pwd__box">
@@ -1236,8 +1223,126 @@
     const adminEmail = document.getElementById('adminEmail');
 
     // ── State ─────────────────────────────────────────────
-    let allPatients  = [];
-    let allResources = [];
+    let allPatients   = [];
+    let allResources  = [];
+    let allConditions = [];
+
+    // ── Conditions (accès) ────────────────────────────────
+    async function loadConditions() {
+      const { data } = await sb.from('conditions').select('*').order('sort_order');
+      allConditions = data || [];
+      renderAccessChecks('accessChecksInvite', 'pAccess');
+      populateConditionSelects();
+    }
+
+    function renderAccessChecks(containerId, name, checkedValues = []) {
+      const wrap = document.getElementById(containerId);
+      if (!wrap) return;
+      wrap.innerHTML = allConditions.map(c => `
+        <label class="access-check">
+          <input type="checkbox" name="${name}" value="${esc(c.id)}" ${checkedValues.includes(c.id) ? 'checked' : ''}>
+          ${esc(c.label)}
+        </label>`).join('');
+    }
+
+    function populateConditionSelects() {
+      const opts = `<option value="">— Sélectionner —</option>` +
+        allConditions.map(c => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('');
+      ['rCondition', 'editCondition'].forEach(id => {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const cur = sel.value;
+        sel.innerHTML = opts;
+        if (cur) sel.value = cur;
+      });
+    }
+
+    // ── Modal gérer les accès ─────────────────────────────
+    document.getElementById('btnManageAccess').addEventListener('click', () => {
+      renderAccessList();
+      document.getElementById('modalManageAccess').setAttribute('aria-hidden','false');
+      document.getElementById('modalManageAccess').style.display = 'flex';
+      document.getElementById('newAccessLabel').focus();
+    });
+
+    const closeAccessModal = () => {
+      document.getElementById('modalManageAccess').setAttribute('aria-hidden','true');
+      document.getElementById('modalManageAccess').style.display = 'none';
+    };
+    document.getElementById('modalManageAccessClose').addEventListener('click', closeAccessModal);
+
+    function renderAccessList() {
+      const wrap = document.getElementById('accessListWrap');
+      if (!allConditions.length) {
+        wrap.innerHTML = `<div class="empty-state">Aucun accès défini.</div>`; return;
+      }
+      wrap.innerHTML = allConditions.map((c, idx) => `
+        <div class="prog-list-item">
+          <div style="display:flex;align-items:center;gap:.5rem;flex:1">
+            <div style="display:flex;flex-direction:column;gap:.1rem">
+              <button class="btn btn--ghost btn--sm" style="padding:.1rem .35rem" ${idx===0?'disabled':''} onclick="moveCondition('${c.id}',-1,this)">↑</button>
+              <button class="btn btn--ghost btn--sm" style="padding:.1rem .35rem" ${idx===allConditions.length-1?'disabled':''} onclick="moveCondition('${c.id}',1,this)">↓</button>
+            </div>
+            <span id="condLabel_${c.id}">${esc(c.label)}</span>
+          </div>
+          <div class="td-actions">
+            <button class="btn btn--ghost btn--sm" onclick="renameCondition('${c.id}')">✏️</button>
+            <button class="btn btn--danger btn--sm" onclick="deleteCondition('${c.id}',this)">Supprimer</button>
+          </div>
+        </div>`).join('');
+    }
+
+    document.getElementById('btnAddAccess').addEventListener('click', async () => {
+      const input = document.getElementById('newAccessLabel');
+      const label = input.value.trim();
+      if (!label) { toast('Entrez un nom.', 'error'); return; }
+      const slug = label.toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g,'')
+        .replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+      const sort = allConditions.length ? Math.max(...allConditions.map(c => c.sort_order)) + 1 : 0;
+      const { error } = await sb.from('conditions').insert({ id: slug, label, sort_order: sort });
+      if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+      input.value = '';
+      toast('Accès ajouté.', 'success');
+      await loadConditions();
+      renderAccessList();
+    });
+
+    window.renameCondition = async (id) => {
+      const c = allConditions.find(x => x.id === id);
+      const label = prompt('Renommer :', c?.label || '');
+      if (!label?.trim()) return;
+      const { error } = await sb.from('conditions').update({ label: label.trim() }).eq('id', id);
+      if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+      toast('Renommé.', 'success');
+      await loadConditions();
+      renderAccessList();
+    };
+
+    window.moveCondition = async (id, dir, btn) => {
+      btn.disabled = true;
+      const idx = allConditions.findIndex(c => c.id === id);
+      const swapIdx = idx + dir;
+      if (swapIdx < 0 || swapIdx >= allConditions.length) { btn.disabled = false; return; }
+      const a = allConditions[idx], b = allConditions[swapIdx];
+      await Promise.all([
+        sb.from('conditions').update({ sort_order: b.sort_order }).eq('id', a.id),
+        sb.from('conditions').update({ sort_order: a.sort_order }).eq('id', b.id),
+      ]);
+      await loadConditions();
+      renderAccessList();
+    };
+
+    window.deleteCondition = async (id, btn) => {
+      const c = allConditions.find(x => x.id === id);
+      if (!confirm(`Supprimer l'accès "${c?.label || id}" ?`)) return;
+      btn.disabled = true; btn.textContent = '…';
+      const { error } = await sb.from('conditions').delete().eq('id', id);
+      if (error) { toast('Erreur : ' + error.message, 'error'); btn.disabled=false; btn.textContent='Supprimer'; return; }
+      toast('Accès supprimé.', 'success');
+      await loadConditions();
+      renderAccessList();
+    };
     let openPanelId  = null; // ID du patient dont le panneau est ouvert
 
     // ── Init ──────────────────────────────────────────────
@@ -1257,7 +1362,7 @@
         hideLoader();
 
         // 3. Charger les données
-        await Promise.all([loadPatients(), loadResources(), loadCategories()]);
+        await Promise.all([loadPatients(), loadResources(), loadCategories(), loadConditions()]);
         renderAssignments();
 
       } catch (err) {
@@ -1524,13 +1629,7 @@
         wrap.innerHTML = `<div class="empty-state">Aucune ressource ajoutée pour l'instant.</div>`;
         return;
       }
-      const COND = {
-        trousse_depart:'Trousse de départ', hernie_discale:'Hernie discale',
-        sciatique:'Sciatique', radiculopathie:'Radiculopathie',
-        stenose_foraminale:'Sténose foraminale', stenose_spinale:'Sténose spinale',
-        arthrose_cervicale:'Arthrose cervicale', arthrose_lombaire:'Arthrose lombaire',
-        spondylolyse:'Spondylolyse', spondylolisthesis:'Spondylolisthésis', autre:'Autre',
-      };
+      const COND = Object.fromEntries(allConditions.map(c => [c.id, c.label]));
       const CAT = {
         bibliotheque:'Bibliothèque', recommandations:'Recommandations',
         videos_explicatives:'Vidéos explicatives', habitudes_de_vie:'Habitudes de vie',
@@ -1696,13 +1795,7 @@
       const assignedIds = new Set((assignments || []).map(a => a.resource_id));
 
       // Grouper les ressources par condition
-      const COND = {
-        trousse_depart:'Trousse de départ', hernie_discale:'Hernie discale',
-        sciatique:'Sciatique', radiculopathie:'Radiculopathie',
-        stenose_foraminale:'Sténose foraminale', stenose_spinale:'Sténose spinale',
-        arthrose_cervicale:'Arthrose cervicale', arthrose_lombaire:'Arthrose lombaire',
-        spondylolyse:'Spondylolyse', spondylolisthesis:'Spondylolisthésis', autre:'Autre',
-      };
+      const COND = Object.fromEntries(allConditions.map(c => [c.id, c.label]));
       const grouped = {};
       allResources.forEach(r => {
         if (!grouped[r.condition_tag]) grouped[r.condition_tag] = [];
@@ -2958,7 +3051,7 @@
       const r = allResources.find(r => r.id === id);
       if (!r) return;
 
-      const COND = { hernie_discale:'Hernie discale', arthrose:'Arthrose', douleurs_persistantes:'Douleurs persistantes', general:'Général' };
+      const COND = Object.fromEntries(allConditions.map(c => [c.id, c.label]));
 
       document.getElementById('editResourceId').value   = r.id;
       document.getElementById('editResourceType').value = r.type;
