@@ -1073,24 +1073,28 @@
           Les professionnels ont accès au panel via un bouton dédié sur leur page principale. Ils peuvent gérer les patients, programmes, assignations, catégories, lettres et formulaires — mais pas les ressources ni cette section.
         </p>
 
-        <!-- Inviter un professionnel -->
+        <!-- Créer un professionnel -->
         <div class="card">
-          <div class="card__title">Inviter un professionnel</div>
+          <div class="card__title">Créer un compte professionnel</div>
           <div id="alertAddPro" class="alert"></div>
           <div class="form-grid">
+            <div class="field">
+              <label for="proName">Nom complet *</label>
+              <input type="text" id="proName" placeholder="Dr. Marie Tremblay" autocomplete="off">
+            </div>
             <div class="field">
               <label for="proEmail">Courriel *</label>
               <input type="email" id="proEmail" placeholder="clinicien@exemple.com" autocomplete="off">
             </div>
             <div class="field">
-              <label for="proName">Nom complet</label>
-              <input type="text" id="proName" placeholder="Dr. Marie Tremblay">
+              <label for="proPassword">Mot de passe *</label>
+              <input type="password" id="proPassword" placeholder="Min. 6 caractères" autocomplete="new-password">
             </div>
           </div>
           <div style="margin-top:1rem">
             <button class="btn btn--primary" id="btnInvitePro">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Inviter le professionnel
+              Créer le compte
             </button>
           </div>
         </div>
@@ -2893,7 +2897,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     async function loadProfessionals2() {
       const { data } = await sb.from('profiles')
         .select('id, email, full_name, is_professional, is_admin, created_at')
-        .eq('is_professional', true)
+        .or('is_professional.eq.true,is_admin.eq.true')
         .order('created_at', { ascending: false });
       allPro = data || [];
       renderProfessionalsTable();
@@ -2909,13 +2913,19 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         <div class="table-wrap">
           <table>
             <thead><tr>
-              <th>Nom</th><th>Courriel</th><th>Accès panel</th><th>Créé le</th><th>Actions</th>
+              <th>Nom</th><th>Courriel</th><th>Rôle</th><th>Accès panel</th><th>Créé le</th><th>Actions</th>
             </tr></thead>
             <tbody>
-              ${allPro.map(p => `
+              ${allPro.map(p => {
+                const isAdminOnly = p.is_admin && !p.is_professional;
+                const roleBadge = isAdminOnly
+                  ? `<span style="display:inline-block;padding:.15rem .55rem;border-radius:20px;font-size:.75rem;font-weight:700;background:#e8f0fe;color:#1a56db">Admin</span>`
+                  : `<span style="display:inline-block;padding:.15rem .55rem;border-radius:20px;font-size:.75rem;font-weight:700;background:#f0fdf4;color:#16a34a">Professionnel</span>`;
+                return `
                 <tr>
                   <td><strong>${esc(p.full_name || '—')}</strong></td>
                   <td style="color:var(--muted)">${esc(p.email)}</td>
+                  <td>${roleBadge}</td>
                   <td>
                     <span style="display:inline-flex;align-items:center;gap:.4rem;font-size:.82rem;font-weight:600;color:${p.is_admin ? 'var(--success)' : 'var(--muted)'}">
                       ${p.is_admin ? '✅ Actif' : '⏸ Inactif'}
@@ -2924,64 +2934,63 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
                   <td style="color:var(--muted)">${fmtDate(p.created_at)}</td>
                   <td>
                     <div class="td-actions">
+                      ${!isAdminOnly ? `
                       <button class="btn btn--ghost btn--sm" onclick="toggleProAccess('${p.id}', ${p.is_admin}, this)">
                         ${p.is_admin ? 'Désactiver' : '✅ Activer'}
                       </button>
-                      <button class="btn btn--ghost btn--sm" onclick="sendMagicLink('${esc(p.email)}', this)">
-                        ✉️ Envoyer un lien
-                      </button>
                       <button class="btn btn--danger btn--sm" onclick="removeProfessional('${p.id}', this)">
                         Supprimer
-                      </button>
+                      </button>` : `<span style="color:var(--muted);font-size:.8rem">—</span>`}
                     </div>
                   </td>
-                </tr>`).join('')}
+                </tr>`;
+              }).join('')}
             </tbody>
           </table>
         </div>`;
     }
 
-    // ── Inviter un professionnel ──────────────────────────
+    // ── Créer un compte professionnel ─────────────────────
     document.getElementById('btnInvitePro').addEventListener('click', async () => {
-      const email   = document.getElementById('proEmail').value.trim().toLowerCase();
-      const name    = document.getElementById('proName').value.trim();
-      const alertEl = document.getElementById('alertAddPro');
-      const btn     = document.getElementById('btnInvitePro');
+      const email    = document.getElementById('proEmail').value.trim().toLowerCase();
+      const name     = document.getElementById('proName').value.trim();
+      const password = document.getElementById('proPassword').value;
+      const alertEl  = document.getElementById('alertAddPro');
+      const btn      = document.getElementById('btnInvitePro');
 
       setAlert(alertEl, '', '');
-      if (!email) { setAlert(alertEl, 'Le courriel est obligatoire.', 'error'); return; }
+      if (!name)     { setAlert(alertEl, 'Le nom complet est obligatoire.', 'error'); return; }
+      if (!email)    { setAlert(alertEl, 'Le courriel est obligatoire.', 'error'); return; }
+      if (!password) { setAlert(alertEl, 'Le mot de passe est obligatoire.', 'error'); return; }
+      if (password.length < 6) { setAlert(alertEl, 'Le mot de passe doit contenir au moins 6 caractères.', 'error'); return; }
 
       btn.disabled = true;
-      btn.innerHTML = `<span class="spinner-inline"></span> Envoi…`;
+      btn.innerHTML = `<span class="spinner-inline"></span> Création…`;
 
       try {
-        // 1. Envoyer le lien magic link
-        const { error } = await sb.auth.signInWithOtp({
-          email,
-          options: {
-            shouldCreateUser: true,
-            emailRedirectTo: `${window.location.origin}/auth/callback.html`,
-            data: { full_name: name },
+        const { data: { session } } = await sb.auth.getSession();
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/create-professional`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
           },
+          body: JSON.stringify({ email, password, fullName: name }),
         });
-        if (error) throw error;
+        const result = await resp.json();
+        if (!resp.ok) throw new Error(result.error || 'Erreur inconnue');
 
-        // 2. Pré-marquer comme professionnel dans profiles (si le compte existe déjà)
-        await sb.from('profiles').upsert(
-          { email, full_name: name || null, is_professional: true },
-          { onConflict: 'email', ignoreDuplicates: false }
-        );
-
-        setAlert(alertEl, `✓ Invitation envoyée à ${email}. Activez l'accès panel après sa première connexion.`, 'success');
-        document.getElementById('proEmail').value = '';
-        document.getElementById('proName').value  = '';
+        setAlert(alertEl, `✓ Compte créé pour ${name} (${email}). L'accès panel est activé.`, 'success');
+        document.getElementById('proEmail').value    = '';
+        document.getElementById('proName').value     = '';
+        document.getElementById('proPassword').value = '';
         await loadProfessionals2();
 
       } catch (err) {
         setAlert(alertEl, 'Erreur : ' + err.message, 'error');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Inviter le professionnel`;
+        btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Créer le compte`;
       }
     });
 
