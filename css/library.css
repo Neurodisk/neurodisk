@@ -59,25 +59,40 @@
       padding: 0 2rem; height: 100%;
       display: flex; align-items: center; justify-content: space-between; gap: 1rem;
     }
-    .nav__brand { display: flex; flex-direction: column; justify-content: center; gap: .1rem; min-width: 0; }
-    .nav__brand-title { font-size: 1.1rem; font-weight: 500; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .nav__brand-sub { font-size: .875rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .nav__right { display: flex; align-items: center; gap: .6rem; }
-    .nav__logo-img { height: 36px; width: auto; flex-shrink: 0; }
-    .nav__greeting { font-size: 1rem; font-weight: 500; color: var(--muted); white-space: nowrap; }
+    .nav__brand { display: flex; flex-direction: column; justify-content: center; gap: .15rem; min-width: 0; }
+    .nav__brand-title {
+      font-size: 1.05rem; font-weight: 500; color: var(--navy);
+      white-space: nowrap; letter-spacing: -.01em;
+    }
+    .nav__brand-sub {
+      font-size: .875rem; color: var(--muted);
+      white-space: nowrap; font-weight: 400;
+    }
+    .nav__right { display: flex; align-items: center; gap: .75rem; }
+    .nav__logo-img {
+      height: 28px; width: auto; flex-shrink: 0;
+      opacity: .75; margin-left: .25rem;
+    }
+    .nav__greeting { font-size: 1rem; font-weight: 400; color: var(--muted); white-space: nowrap; }
     .nav__greeting strong { color: var(--text); font-weight: 500; }
     .nav-btn {
       display: inline-flex; align-items: center; gap: .4rem;
-      padding: .75rem 1.1rem; border-radius: 100px;
-      font-size: 1rem; font-weight: 500;
+      padding: .6rem 1.1rem; border-radius: 100px;
+      font-size: .9rem; font-weight: 500;
       border: 1.5px solid var(--border); color: var(--muted);
       transition: all var(--transition); white-space: nowrap;
-      text-decoration: none; min-height: 48px;
+      text-decoration: none; min-height: 44px;
     }
     .nav-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
-    .nav-btn--primary { background: var(--blue); color: var(--white); border-color: var(--blue); }
+    .nav-btn--primary {
+      background: var(--blue); color: var(--white); border-color: var(--blue);
+    }
     .nav-btn--primary:hover { background: var(--blue-dark); border-color: var(--blue-dark); color: var(--white); }
-    .nav-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .nav-btn--ghost {
+      border-color: transparent; color: var(--muted); background: none;
+    }
+    .nav-btn--ghost:hover { border-color: var(--border); background: var(--blue-soft); color: var(--blue); }
+    .nav-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
     /* ── HERO ── */
     .hero {
