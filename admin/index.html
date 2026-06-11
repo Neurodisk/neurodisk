@@ -1189,6 +1189,36 @@
     </div>
   </div>
 
+  <!-- Modal édition programme -->
+  <div class="modal-pwd" id="modalProgEdit" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-pwd__box">
+      <div class="modal-pwd__header">
+        <div>
+          <h2 class="modal-pwd__title">✏️ Modifier le programme</h2>
+          <p class="modal-pwd__patient" id="modalProgPatientName" style="color:var(--muted)"></p>
+        </div>
+        <button class="modal-pwd__close" id="modalProgEditClose" aria-label="Fermer">✕</button>
+      </div>
+      <div id="alertProgEdit" class="alert"></div>
+      <div class="field" style="margin-bottom:.75rem">
+        <label for="progEditName">Nom *</label>
+        <input type="text" id="progEditName" placeholder="Nom du programme">
+      </div>
+      <div class="field" style="margin-bottom:.75rem">
+        <label for="progEditDesc">Description <span style="font-weight:400;color:var(--muted)">optionnel</span></label>
+        <textarea id="progEditDesc" placeholder="Objectifs, durée recommandée…"></textarea>
+      </div>
+      <div class="field" style="margin-bottom:1.25rem">
+        <label for="progEditSection">Grand titre <span style="font-weight:400;color:var(--muted)">optionnel</span></label>
+        <select id="progEditSection"><option value="">— Aucun grand titre —</option></select>
+      </div>
+      <div style="display:flex;gap:.75rem">
+        <button class="btn btn--primary" id="btnProgEditSave">Enregistrer</button>
+        <button class="btn btn--ghost" id="btnProgEditCancel">Annuler</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast-wrap" id="toastWrap"></div>
 
   <script type="module">
@@ -2528,7 +2558,10 @@
               ${p.description ? ` · <em>${esc(p.description.substring(0,60))}${p.description.length>60?'…':''}</em>` : ''}
             </div>
           </div>
-          <button class="btn btn--danger btn--sm" onclick="deleteProgramme('${p.id}','${esc(p.name)}',this)">Supprimer</button>
+          <div class="td-actions">
+            <button class="btn btn--ghost btn--sm" onclick="openProgEditModal('${p.id}')">✏️ Modifier</button>
+            <button class="btn btn--danger btn--sm" onclick="deleteProgramme('${p.id}','${esc(p.name)}',this)">Supprimer</button>
+          </div>
         </div>`;
 
       // Regrouper par grand titre, dans l'ordre des sections, puis « Sans grand titre »
@@ -2545,6 +2578,49 @@
     }
 
     document.getElementById('progPatientFilter').addEventListener('change', renderProgrammesList);
+
+    // ── Modifier un programme ─────────────────────────────
+    let editingProgId = null;
+
+    window.openProgEditModal = (id) => {
+      const p = allProgrammes.find(x => x.id === id);
+      if (!p) return;
+      editingProgId = id;
+      document.getElementById('progEditName').value    = p.name || '';
+      document.getElementById('progEditDesc').value    = p.description || '';
+      document.getElementById('modalProgPatientName').textContent = p.patient?.full_name || p.patient?.email || '';
+      // Peupler le select des grands titres
+      const sel = document.getElementById('progEditSection');
+      sel.innerHTML = `<option value="">— Aucun grand titre —</option>` +
+        allSections.map(s => `<option value="${s.id}" ${s.id === p.section_id ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
+      document.getElementById('alertProgEdit').style.display = 'none';
+      document.getElementById('modalProgEdit').setAttribute('aria-hidden', 'false');
+      document.getElementById('modalProgEdit').style.display = 'flex';
+      document.getElementById('progEditName').focus();
+    };
+
+    const closeProgEditModal = () => {
+      document.getElementById('modalProgEdit').setAttribute('aria-hidden', 'true');
+      document.getElementById('modalProgEdit').style.display = 'none';
+      editingProgId = null;
+    };
+    document.getElementById('modalProgEditClose').addEventListener('click', closeProgEditModal);
+    document.getElementById('btnProgEditCancel').addEventListener('click', closeProgEditModal);
+
+    document.getElementById('btnProgEditSave').addEventListener('click', async () => {
+      const name = document.getElementById('progEditName').value.trim();
+      if (!name) { toast('Le nom est obligatoire.', 'error'); return; }
+      const desc      = document.getElementById('progEditDesc').value.trim() || null;
+      const sectionId = document.getElementById('progEditSection').value || null;
+      const btn = document.getElementById('btnProgEditSave');
+      btn.disabled = true; btn.textContent = '…';
+      const { error } = await sb.from('programmes').update({ name, description: desc, section_id: sectionId }).eq('id', editingProgId);
+      btn.disabled = false; btn.textContent = 'Enregistrer';
+      if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+      toast('Programme mis à jour.', 'success');
+      closeProgEditModal();
+      await loadProgrammes();
+    });
 
     window.deleteProgramme = async (id, name, btn) => {
       if (!confirm(`Supprimer le programme "${name}" ? Les exercices prescrits liés seront supprimés.`)) return;
