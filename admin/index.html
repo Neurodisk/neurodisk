@@ -800,6 +800,15 @@
               <span>Ajouter à la bibliothèque</span>
             </button>
           </div>
+          <div class="section-title">Grands titres <span style="font-weight:400;color:var(--muted);font-size:.85rem">— regroupent les programmes chez le patient</span></div>
+          <div class="card" style="margin-bottom:1.5rem">
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">
+              <input type="text" id="newSectionName" class="field__input" placeholder="Ex. : Exercices globaux santé articulaire" style="flex:1;min-width:240px">
+              <button class="btn btn--primary" id="btnAddSection">+ Ajouter</button>
+            </div>
+            <div id="sectionsWrap"><div class="empty-state">Chargement…</div></div>
+          </div>
+
           <div class="section-title">Programmes</div>
           <div style="margin-bottom:1rem">
             <select id="progPatientFilter" class="field__input" style="max-width:320px">
@@ -847,6 +856,10 @@
                 <div class="field" style="grid-column:1/-1">
                   <label for="progPatient">Patient *</label>
                   <select id="progPatient"><option value="">— Sélectionner un patient —</option></select>
+                </div>
+                <div class="field" style="grid-column:1/-1">
+                  <label for="progSection">Grand titre <span style="font-weight:400;color:var(--muted)">optionnel — regroupe le programme chez le patient</span></label>
+                  <select id="progSection"><option value="">— Aucun grand titre —</option></select>
                 </div>
                 <div class="field" style="grid-column:1/-1">
                   <label for="progDesc">Description <span style="font-weight:400;color:var(--muted)">optionnel</span></label>
@@ -2351,8 +2364,9 @@
       try {
         const { data: { user } } = await sb.auth.getUser();
 
+        const sectionId = document.getElementById('progSection').value || null;
         const { data: prog, error: progErr } = await sb.from('programmes').insert({
-          name, patient_id: patId, description: desc||null, created_by: user.id,
+          name, patient_id: patId, description: desc||null, created_by: user.id, section_id: sectionId,
         }).select().single();
         if (progErr) throw progErr;
 
@@ -2370,6 +2384,7 @@
         document.getElementById('progName').value = '';
         document.getElementById('progPatient').value = '';
         document.getElementById('progDesc').value = '';
+        document.getElementById('progSection').value = '';
         progSelectedEx = [];
         await loadProgrammesSection();
 
@@ -2394,6 +2409,95 @@
       renderProgrammesList();
     }
 
+    // ── Grands titres (sections de programmes) ────────────
+    let allSections = [];
+
+    async function loadSections() {
+      const { data, error } = await sb.from('programme_sections').select('*').order('sort_order');
+      if (error) { toast('Erreur grands titres : ' + error.message, 'error'); return; }
+      allSections = data || [];
+      renderSectionsManager();
+      populateSectionSelect();
+    }
+
+    function renderSectionsManager() {
+      const wrap = document.getElementById('sectionsWrap');
+      if (!wrap) return;
+      if (!allSections.length) {
+        wrap.innerHTML = `<div class="empty-state">Aucun grand titre. Ajoutez-en un ci-dessus.</div>`;
+        return;
+      }
+      wrap.innerHTML = allSections.map((s, idx) => `
+        <div class="prog-list-item">
+          <div style="display:flex;align-items:center;gap:.6rem;flex:1">
+            <div style="display:flex;flex-direction:column;gap:.15rem">
+              <button class="btn btn--ghost btn--sm" style="padding:.1rem .4rem" ${idx===0?'disabled':''} onclick="moveSection('${s.id}',-1,this)" title="Monter">↑</button>
+              <button class="btn btn--ghost btn--sm" style="padding:.1rem .4rem" ${idx===allSections.length-1?'disabled':''} onclick="moveSection('${s.id}',1,this)" title="Descendre">↓</button>
+            </div>
+            <strong>${esc(s.name)}</strong>
+          </div>
+          <div class="td-actions">
+            <button class="btn btn--ghost btn--sm" onclick="renameSection('${s.id}')">✏️ Renommer</button>
+            <button class="btn btn--danger btn--sm" onclick="deleteSection('${s.id}',this)">Supprimer</button>
+          </div>
+        </div>`).join('');
+    }
+
+    function populateSectionSelect() {
+      const sel = document.getElementById('progSection');
+      if (!sel) return;
+      const current = sel.value;
+      sel.innerHTML = `<option value="">— Aucun grand titre —</option>` +
+        allSections.map(s => `<option value="${s.id}" ${s.id===current?'selected':''}>${esc(s.name)}</option>`).join('');
+    }
+
+    document.getElementById('btnAddSection').addEventListener('click', async () => {
+      const input = document.getElementById('newSectionName');
+      const name = input.value.trim();
+      if (!name) { toast('Entrez un nom.', 'error'); return; }
+      const sort = allSections.length ? Math.max(...allSections.map(s => s.sort_order)) + 1 : 0;
+      const { error } = await sb.from('programme_sections').insert({ name, sort_order: sort });
+      if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+      input.value = '';
+      toast('Grand titre ajouté.', 'success');
+      await loadSections();
+    });
+
+    window.renameSection = async (id) => {
+      const s = allSections.find(x => x.id === id);
+      const name = prompt('Renommer le grand titre :', s?.name || '');
+      if (name === null) return;
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      const { error } = await sb.from('programme_sections').update({ name: trimmed }).eq('id', id);
+      if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+      toast('Renommé.', 'success');
+      await loadSections();
+    };
+
+    window.moveSection = async (id, direction, btn) => {
+      btn.disabled = true;
+      const idx = allSections.findIndex(s => s.id === id);
+      const swapIdx = idx + direction;
+      if (swapIdx < 0 || swapIdx >= allSections.length) { btn.disabled = false; return; }
+      const a = allSections[idx], b = allSections[swapIdx];
+      await Promise.all([
+        sb.from('programme_sections').update({ sort_order: b.sort_order }).eq('id', a.id),
+        sb.from('programme_sections').update({ sort_order: a.sort_order }).eq('id', b.id),
+      ]);
+      await loadSections();
+    };
+
+    window.deleteSection = async (id, btn) => {
+      const s = allSections.find(x => x.id === id);
+      if (!confirm(`Supprimer le grand titre "${s?.name || id}" ? Les programmes liés ne seront pas supprimés, ils perdront simplement ce regroupement.`)) return;
+      btn.disabled = true; btn.textContent = '…';
+      const { error } = await sb.from('programme_sections').delete().eq('id', id);
+      if (error) { toast('Erreur : ' + error.message, 'error'); btn.disabled=false; btn.textContent='Supprimer'; return; }
+      toast('Grand titre supprimé.', 'success');
+      await Promise.all([loadSections(), loadProgrammes()]);
+    }
+
     function populateProgFilter() {
       const sel = document.getElementById('progPatientFilter');
       const current = sel.value;
@@ -2415,7 +2519,7 @@
       if (!list.length) {
         wrap.innerHTML = `<div class="empty-state">Aucun programme pour ce patient.</div>`; return;
       }
-      wrap.innerHTML = list.map(p => `
+      const itemHtml = p => `
         <div class="prog-list-item">
           <div>
             <div class="prog-list-item__name">${esc(p.name)}</div>
@@ -2425,6 +2529,18 @@
             </div>
           </div>
           <button class="btn btn--danger btn--sm" onclick="deleteProgramme('${p.id}','${esc(p.name)}',this)">Supprimer</button>
+        </div>`;
+
+      // Regrouper par grand titre, dans l'ordre des sections, puis « Sans grand titre »
+      const groups = [
+        ...allSections.map(s => ({ title: s.name, items: list.filter(p => p.section_id === s.id) })),
+        { title: 'Sans grand titre', items: list.filter(p => !p.section_id) },
+      ].filter(g => g.items.length);
+
+      wrap.innerHTML = groups.map(g => `
+        <div style="margin-bottom:1.25rem">
+          <div style="font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-size:.85rem;margin-bottom:.5rem">${esc(g.title)}</div>
+          ${g.items.map(itemHtml).join('')}
         </div>`).join('');
     }
 
@@ -2545,7 +2661,7 @@
     }
 
     async function loadProgrammesSection() {
-      await Promise.all([loadProgrammes(), loadExercises()]);
+      await Promise.all([loadProgrammes(), loadExercises(), loadSections()]);
     }
 
     window.deleteExercise = async (id, btn) => {

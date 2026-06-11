@@ -366,7 +366,7 @@
 
         const { data, error } = await supabase
           .from('programmes')
-          .select('id, name, description, created_at')
+          .select('id, name, description, created_at, section_id, section:programme_sections(name, sort_order)')
           .eq('patient_id', session.user.id)
           .order('created_at', { ascending: false });
 
@@ -395,14 +395,38 @@
         </div>`;
         return;
       }
-      summaryEl.innerHTML = `<div class="prog-cards">${allProgrammes.map(p => `
+      const cardHtml = p => `
         <div class="prog-card" data-prog-id="${p.id}">
           <div class="prog-card__icon">🗂️</div>
           <div class="prog-card__body">
             <div class="prog-card__title">${esc(p.name)}</div>
             <div class="prog-card__meta">${p.description ? esc(p.description) : 'Appuyer pour voir les exercices →'}</div>
           </div>
-        </div>`).join('')}</div>`;
+        </div>`;
+
+      // Regrouper par grand titre. Ordre : sort_order de la section, puis sans titre à la fin.
+      const sectionsMap = new Map();
+      const noSection = [];
+      allProgrammes.forEach(p => {
+        if (p.section?.name) {
+          const key = p.section.name;
+          if (!sectionsMap.has(key)) sectionsMap.set(key, { order: p.section.sort_order ?? 999, items: [] });
+          sectionsMap.get(key).items.push(p);
+        } else {
+          noSection.push(p);
+        }
+      });
+      const groups = [...sectionsMap.entries()]
+        .sort((a, b) => a[1].order - b[1].order)
+        .map(([title, g]) => ({ title, items: g.items }));
+      if (noSection.length) groups.push({ title: null, items: noSection });
+
+      // S'il n'y a aucun grand titre du tout, affichage simple sans en-tête
+      const hasSections = sectionsMap.size > 0;
+      summaryEl.innerHTML = groups.map(g => `
+        ${hasSections && g.title ? `<h2 class="prog-section-title">${esc(g.title)}</h2>` : ''}
+        <div class="prog-cards">${g.items.map(cardHtml).join('')}</div>
+      `).join('');
 
       summaryEl.querySelectorAll('.prog-card').forEach(card => {
         card.addEventListener('click', () => openProgramme(card.dataset.progId));

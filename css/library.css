@@ -494,7 +494,15 @@
     .ex-modal__photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
 
     /* ── LISTE DES PROGRAMMES ── */
+    .prog-section-title {
+      font-size: 1.35rem; font-weight: 800; color: var(--navy);
+      text-transform: uppercase; letter-spacing: .03em;
+      margin: 2rem 0 1rem; padding-bottom: .5rem;
+      border-bottom: 3px solid var(--blue-light);
+    }
+    .prog-section-title:first-child { margin-top: 0; }
     .prog-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+    .prog-cards + .prog-section-title { margin-top: 2.5rem; }
     .prog-card {
       background: var(--surface); border-radius: var(--radius-xl); border: 2px solid var(--border);
       box-shadow: var(--shadow-card); padding: 2.5rem 2.25rem; min-height: 140px;
