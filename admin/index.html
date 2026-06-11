@@ -1467,6 +1467,39 @@
     </div>
   </div>
 
+  <!-- ── Modal Édition professionnel ───────────────────── -->
+  <div class="modal-pwd" id="modalEditPro" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-pwd__box">
+      <div class="modal-pwd__header">
+        <div>
+          <h2 class="modal-pwd__title">✏️ Modifier le professionnel</h2>
+          <p class="modal-pwd__patient" id="modalEditProEmail" style="color:var(--muted)"></p>
+        </div>
+        <button class="modal-pwd__close" id="modalEditProClose" aria-label="Fermer">✕</button>
+      </div>
+      <div id="alertEditPro" class="alert"></div>
+      <div class="field" style="margin-bottom:.75rem">
+        <label for="editProName">Nom complet</label>
+        <input type="text" id="editProName" placeholder="Dr. Marie Tremblay" autocomplete="off">
+      </div>
+      <div class="field" style="margin-bottom:.75rem">
+        <label for="editProEmail">Courriel</label>
+        <input type="email" id="editProEmailInput" placeholder="clinicien@exemple.com" autocomplete="off">
+      </div>
+      <div class="field" style="margin-bottom:1.25rem">
+        <label for="editProRole">Rôle</label>
+        <select id="editProRole" style="width:100%;padding:.5rem .75rem;border:1.5px solid #ccdaeb;border-radius:8px;font-size:.88rem;background:#fff">
+          <option value="pro">Professionnel (panel partiel)</option>
+          <option value="admin">Admin (accès complet)</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:.75rem">
+        <button class="btn btn--primary" id="btnSaveEditPro">Enregistrer</button>
+        <button class="btn btn--ghost" id="btnCancelEditPro">Annuler</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Modal Constructeur de champs ───────────────────── -->
   <div class="modal-edit" id="modalFormBuilder" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modal-edit__box" style="max-width:620px">
@@ -2916,34 +2949,28 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         <div class="table-wrap">
           <table>
             <thead><tr>
-              <th>Nom</th><th>Courriel</th><th>Rôle</th><th>Accès panel</th><th>Créé le</th><th>Actions</th>
+              <th>Nom</th><th>Courriel</th><th>Rôle</th><th>Créé le</th><th>Actions</th>
             </tr></thead>
             <tbody>
               ${allPro.map(p => {
                 const isAdminOnly = p.is_admin && !p.is_professional;
                 const roleBadge = isAdminOnly
                   ? `<span style="display:inline-block;padding:.15rem .55rem;border-radius:20px;font-size:.75rem;font-weight:700;background:#e8f0fe;color:#1a56db">Admin</span>`
-                  : `<span style="display:inline-block;padding:.15rem .55rem;border-radius:20px;font-size:.75rem;font-weight:700;background:#f0fdf4;color:#16a34a">Professionnel</span>`;
+                  : p.is_admin
+                    ? `<span style="display:inline-block;padding:.15rem .55rem;border-radius:20px;font-size:.75rem;font-weight:700;background:#f0fdf4;color:#16a34a">Professionnel</span><span style="display:inline-block;padding:.15rem .55rem;border-radius:20px;font-size:.75rem;font-weight:700;background:#e8f0fe;color:#1a56db;margin-left:.3rem">+ Admin</span>`
+                    : `<span style="display:inline-block;padding:.15rem .55rem;border-radius:20px;font-size:.75rem;font-weight:700;background:#f0fdf4;color:#16a34a">Professionnel</span>`;
                 return `
                 <tr>
                   <td><strong>${esc(p.full_name || '—')}</strong></td>
                   <td style="color:var(--muted)">${esc(p.email)}</td>
                   <td>${roleBadge}</td>
-                  <td>
-                    <span style="display:inline-flex;align-items:center;gap:.4rem;font-size:.82rem;font-weight:600;color:${p.is_admin ? 'var(--success)' : 'var(--muted)'}">
-                      ${p.is_admin ? '✅ Actif' : '⏸ Inactif'}
-                    </span>
-                  </td>
                   <td style="color:var(--muted)">${fmtDate(p.created_at)}</td>
                   <td>
                     <div class="td-actions">
                       ${!isAdminOnly ? `
-                      <button class="btn btn--ghost btn--sm" onclick="toggleProAccess('${p.id}', ${p.is_admin}, this)">
-                        ${p.is_admin ? 'Désactiver' : '✅ Activer'}
-                      </button>
-                      <button class="btn btn--danger btn--sm" onclick="removeProfessional('${p.id}', this)">
-                        Supprimer
-                      </button>` : `<span style="color:var(--muted);font-size:.8rem">—</span>`}
+                      <button class="btn btn--ghost btn--sm" onclick="openEditPro('${p.id}')">✏️ Modifier</button>
+                      <button class="btn btn--danger btn--sm" onclick="removeProfessional('${p.id}', this)">Supprimer</button>
+                      ` : `<span style="color:var(--muted);font-size:.8rem">—</span>`}
                     </div>
                   </td>
                 </tr>`;
@@ -3031,6 +3058,82 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       toast('Professionnel retiré.', 'success');
       await loadProfessionals2();
     };
+
+    // ── Édition professionnel ─────────────────────────────
+    let editProId = null;
+
+    window.openEditPro = (id) => {
+      const p = allPro.find(x => x.id === id);
+      if (!p) return;
+      editProId = id;
+      document.getElementById('modalEditProEmail').textContent = p.email;
+      document.getElementById('editProName').value       = p.full_name || '';
+      document.getElementById('editProEmailInput').value = p.email || '';
+      document.getElementById('editProRole').value       = p.is_admin ? 'admin' : 'pro';
+      setAlert(document.getElementById('alertEditPro'), '', '');
+      document.getElementById('modalEditPro').classList.add('is-open');
+      document.getElementById('modalEditPro').setAttribute('aria-hidden', 'false');
+    };
+
+    const closeEditPro = () => {
+      document.getElementById('modalEditPro').classList.remove('is-open');
+      document.getElementById('modalEditPro').setAttribute('aria-hidden', 'true');
+      editProId = null;
+    };
+
+    document.getElementById('modalEditProClose').addEventListener('click', closeEditPro);
+    document.getElementById('btnCancelEditPro').addEventListener('click', closeEditPro);
+
+    document.getElementById('btnSaveEditPro').addEventListener('click', async () => {
+      if (!editProId) return;
+      const name     = document.getElementById('editProName').value.trim();
+      const newEmail = document.getElementById('editProEmailInput').value.trim().toLowerCase();
+      const role     = document.getElementById('editProRole').value;
+      const alertEl  = document.getElementById('alertEditPro');
+      const btn      = document.getElementById('btnSaveEditPro');
+
+      setAlert(alertEl, '', '');
+      if (!newEmail) { setAlert(alertEl, 'Le courriel est obligatoire.', 'error'); return; }
+
+      btn.disabled = true;
+      btn.textContent = 'Enregistrement…';
+
+      try {
+        const isAdmin = role === 'admin';
+        const p = allPro.find(x => x.id === editProId);
+
+        // Mise à jour du profil (nom + rôle)
+        const { error: profileErr } = await sb.from('profiles')
+          .update({ full_name: name || null, is_admin: isAdmin })
+          .eq('id', editProId);
+        if (profileErr) throw profileErr;
+
+        // Changement de courriel si modifié
+        if (newEmail !== p.email) {
+          const { data: { session } } = await sb.auth.getSession();
+          const resp = await fetch(`${SUPABASE_URL}/functions/v1/update-professional`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ userId: editProId, email: newEmail }),
+          });
+          const result = await resp.json();
+          if (!resp.ok) throw new Error(result.error || 'Erreur lors du changement de courriel');
+        }
+
+        toast('Professionnel mis à jour.', 'success');
+        closeEditPro();
+        await loadProfessionals2();
+
+      } catch (err) {
+        setAlert(alertEl, 'Erreur : ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Enregistrer';
+      }
+    });
 
     // ── Constructeur de champs ────────────────────────────
     let builderFormId  = null;
