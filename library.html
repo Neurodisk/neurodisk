@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/library.css?v=7">
+  <link rel="stylesheet" href="/css/library.css?v=8">
 </head>
 <body>
 
@@ -42,26 +42,16 @@
   <div class="hero">
     <div class="hero__inner">
       <h1 class="hero__title" id="heroTitle">Ma plateforme Neurodisk</h1>
-      <p class="hero__sub" id="heroSub">Choisissez une section pour accéder à vos ressources.</p>
+      <p class="hero__sub" id="heroSub"></p>
+      <nav class="hero-nav" id="heroNav" aria-label="Sections"></nav>
     </div>
   </div>
 
   <!-- Contenu -->
   <main class="main">
 
-    <!-- Accueil : tuiles générées dynamiquement depuis resource_categories -->
-    <div id="viewHome">
-      <div class="home-tiles" id="homeTiles">
-        <!-- Rempli par library.js -->
-      </div>
-    </div>
-
     <!-- Section bibliothèque -->
     <div class="section-view" id="section-bibliotheque" style="display:none">
-      <button class="btn-back btn-back--home" data-back-home>
-        <svg viewBox="0 0 24 24" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
-        Retour à l'accueil
-      </button>
       <div id="viewCategories">
         <div class="categories-grid" id="categoriesGrid">
           <div class="state-wrap"><div class="spinner"></div></div>
@@ -79,19 +69,11 @@
 
     <!-- Section catégorie (recommandations / vidéos / habitudes) -->
     <div class="section-view" id="section-cat" style="display:none">
-      <button class="btn-back btn-back--home" data-back-home>
-        <svg viewBox="0 0 24 24" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
-        Retour à l'accueil
-      </button>
       <div class="grid" id="catGrid" role="list"></div>
     </div>
 
     <!-- Section exercices (programme) -->
     <div class="section-view" id="section-exercices" style="display:none">
-      <button class="btn-back btn-back--home" data-back-home>
-        <svg viewBox="0 0 24 24" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
-        Retour à l'accueil
-      </button>
 
       <!-- Vue 1 : Liste des programmes (affichée si > 1 programme) -->
       <div id="viewProgrammeSummary">
@@ -204,6 +186,6 @@
 
   <div class="toast-wrap" id="toasts"></div>
 
-  <script type="module" src="/js/library.js?v=4"></script>
+  <script type="module" src="/js/library.js?v=5"></script>
 </body>
 </html>

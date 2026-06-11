@@ -36,22 +36,25 @@
     }
 
     function renderTiles() {
-      const tilesEl = document.getElementById('homeTiles');
-      if (!tilesEl) return;
-      const catTiles = allCategories.map(cat => `
-        <button class="home-tile" data-section="${esc(cat.id)}">
-          <span class="home-tile__icon">${cat.icon}</span>
-          <span class="home-tile__label">${esc(cat.label)}</span>
+      const nav = document.getElementById('heroNav');
+      if (!nav) return;
+      const catTabs = allCategories.map(cat => `
+        <button class="hero-nav__tab" data-section="${esc(cat.id)}">
+          <span class="hero-nav__tab__icon">${cat.icon}</span>
+          ${esc(cat.label)}
         </button>`).join('');
-      const exTile = `
-        <button class="home-tile" data-section="exercices">
-          <span class="home-tile__icon"><svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></span>
-          <span class="home-tile__label">Mes exercices</span>
+      const exTab = `
+        <button class="hero-nav__tab" data-section="exercices">
+          <span class="hero-nav__tab__icon">💪</span>
+          Mes exercices
         </button>`;
-      tilesEl.innerHTML = catTiles + exTile;
-      tilesEl.querySelectorAll('.home-tile').forEach(tile => {
-        tile.addEventListener('click', () => openSection(tile.dataset.section));
+      nav.innerHTML = catTabs + exTab;
+      nav.querySelectorAll('.hero-nav__tab').forEach(tab => {
+        tab.addEventListener('click', () => openSection(tab.dataset.section));
       });
+      // Ouvrir la première section automatiquement
+      const firstSection = allCategories[0]?.id || 'exercices';
+      openSection(firstSection);
     }
 
     function getSectionMeta(section) {
@@ -230,42 +233,34 @@
 
     init().catch(() => { loader.classList.add('is-hidden'); renderError(); });
 
-    // ── NAVIGATION PAR TUILES ─────────────────────────────
-
-    function showHome() {
-      document.getElementById('viewHome').style.display = '';
-      document.querySelectorAll('.section-view').forEach(s => s.style.display = 'none');
-      document.getElementById('heroTitle').textContent = 'Ma plateforme Neurodisk';
-      document.getElementById('heroSub').textContent = 'Choisissez une section pour accéder à vos ressources.';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    // ── NAVIGATION PAR ONGLETS ────────────────────────────
 
     function openSection(section) {
       const meta = getSectionMeta(section);
-      document.getElementById('viewHome').style.display = 'none';
-      document.querySelectorAll('.section-view').forEach(s => s.style.display = 'none');
-      document.getElementById('heroTitle').textContent = meta.title || '';
+
+      // Mettre à jour le sous-titre du hero
       document.getElementById('heroSub').textContent = meta.sub || '';
+
+      // Marquer l'onglet actif
+      document.querySelectorAll('.hero-nav__tab').forEach(t => {
+        t.classList.toggle('is-active', t.dataset.section === section);
+      });
+
+      // Afficher la bonne section
+      document.querySelectorAll('.section-view').forEach(s => s.style.display = 'none');
 
       if (section === 'bibliotheque') {
         document.getElementById('section-bibliotheque').style.display = '';
-        // revenir à la liste des catégories
         document.getElementById('viewCategories').style.display = '';
         document.getElementById('viewResources').style.display = 'none';
       } else if (section === 'exercices') {
         document.getElementById('section-exercices').style.display = '';
         if (!programmeLoaded) loadProgramme();
       } else {
-        // catégorie de ressources (recommandations / vidéos / habitudes)
         document.getElementById('section-cat').style.display = '';
         renderCatGrid(section);
       }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-
-    document.querySelectorAll('[data-back-home]').forEach(btn => {
-      btn.addEventListener('click', showHome);
-    });
 
     // Grille filtrée par catégorie de ressource
     function renderCatGrid(category) {
