@@ -526,6 +526,11 @@
         <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
         Catégories
       </a>
+      <div class="sidebar__section">Documents</div>
+      <a class="sidebar__link" data-section="referral" href="#">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Lettre de référence
+      </a>
     </aside>
 
     <!-- Contenu -->
@@ -948,6 +953,43 @@
 
       </section>
 
+      <!-- ══════════════════════════════ LETTRE DE RÉFÉRENCE ══ -->
+      <section id="sec-referral" class="section">
+        <div class="section-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Lettre de référence
+        </div>
+        <div class="card" style="max-width:760px">
+          <div class="form-grid">
+            <div class="field">
+              <label for="refClientName">Nom du client *</label>
+              <input type="text" id="refClientName" placeholder="Ex. : Marie Tremblay">
+            </div>
+            <div class="field">
+              <label for="refProfName">Professionnel destinataire *</label>
+              <input type="text" id="refProfName" placeholder="Ex. : Dr Jean Martin, physiothérapeute">
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="refCondition">Diagnostic / condition</label>
+              <select id="refCondition">
+                <option value="">— Sélectionner ou laisser vide —</option>
+              </select>
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="refBody">Corps de la lettre</label>
+              <textarea id="refBody" rows="14" style="font-family:Georgia,serif;font-size:.9rem;line-height:1.7"></textarea>
+            </div>
+          </div>
+          <div style="margin-top:1rem;display:flex;gap:.75rem;align-items:center">
+            <button class="btn btn--primary" id="btnGeneratePDF">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Générer le PDF
+            </button>
+            <button class="btn btn--ghost" id="btnResetLetter">Réinitialiser</button>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 
@@ -1360,6 +1402,99 @@
       renderAccessList();
     };
     let openPanelId  = null; // ID du patient dont le panneau est ouvert
+
+    // ══════════════════════════════════════════════════════
+    // LETTRE DE RÉFÉRENCE
+    // ══════════════════════════════════════════════════════
+
+    const LETTER_DEFAULT = (client, prof, cond) =>
+`Objet : Lettre de référence — ${client}
+
+À l'attention de ${prof || '[Professionnel destinataire]'},
+
+Je vous écris afin de vous référer mon patient(e), ${client}${cond ? `, présentant ${cond}` : ''}, pour une évaluation et une prise en charge dans votre domaine d'expertise.
+
+${client} est suivi(e) à la Clinique Neurodisk dans le cadre d'un programme de réadaptation personnalisé. Au cours de notre suivi, nous avons observé des besoins qui correspondent à votre champ de compétences, et nous croyons qu'une collaboration interprofessionnelle serait bénéfique pour la progression de ce patient(e).
+
+Nous vous prions d'accepter cette référence et demeurons disponibles pour tout échange d'informations cliniques pertinentes. N'hésitez pas à communiquer avec nous pour toute question.
+
+Nous vous remercions de votre collaboration et vous prions d'agréer l'expression de nos salutations distinguées.
+
+
+________________________________
+Clinique Neurodisk
+`;
+
+    function initReferralSection() {
+      // Peupler le select conditions
+      const sel = document.getElementById('refCondition');
+      if (sel) {
+        sel.innerHTML = `<option value="">— Sélectionner ou laisser vide —</option>` +
+          allConditions.map(c => `<option value="${esc(c.label)}">${esc(c.label)}</option>`).join('');
+      }
+      // Pré-remplir le corps si vide
+      refreshLetterBody();
+    }
+
+    function refreshLetterBody() {
+      const client = document.getElementById('refClientName').value.trim();
+      const prof   = document.getElementById('refProfName').value.trim();
+      const cond   = document.getElementById('refCondition').value;
+      const body   = document.getElementById('refBody');
+      if (body) body.value = LETTER_DEFAULT(client || '[Nom du client]', prof, cond);
+    }
+
+    document.getElementById('refClientName').addEventListener('input', refreshLetterBody);
+    document.getElementById('refProfName').addEventListener('input', refreshLetterBody);
+    document.getElementById('refCondition').addEventListener('change', refreshLetterBody);
+
+    document.getElementById('btnResetLetter').addEventListener('click', () => {
+      document.getElementById('refClientName').value = '';
+      document.getElementById('refProfName').value   = '';
+      document.getElementById('refCondition').value  = '';
+      refreshLetterBody();
+    });
+
+    document.getElementById('btnGeneratePDF').addEventListener('click', () => {
+      const client = document.getElementById('refClientName').value.trim();
+      const prof   = document.getElementById('refProfName').value.trim();
+      if (!client) { toast('Entrez le nom du client.', 'error'); return; }
+      const body = document.getElementById('refBody').value;
+      const today = new Date().toLocaleDateString('fr-CA', { year:'numeric', month:'long', day:'numeric' });
+
+      const win = window.open('', '_blank');
+      win.document.write(`<!DOCTYPE html><html lang="fr"><head>
+        <meta charset="UTF-8">
+        <title>Lettre de référence — ${client}</title>
+        <style>
+          @page { size: letter; margin: 2.5cm 2.8cm; }
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: Georgia, 'Times New Roman', serif; font-size: 11.5pt; color: #1a1a1a; line-height: 1.7; }
+          .header { display: flex; align-items: center; gap: 1.2rem; border-bottom: 2px solid #1B2B6B; padding-bottom: .8rem; margin-bottom: 1.5rem; }
+          .header__logo { font-size: 1.5rem; font-weight: 900; color: #1B2B6B; font-family: Montserrat, Arial, sans-serif; letter-spacing: -.02em; }
+          .header__sub  { font-size: .8rem; color: #666; font-family: Arial, sans-serif; }
+          .date   { text-align: right; margin-bottom: 2rem; font-size: 10.5pt; color: #444; }
+          .body   { white-space: pre-wrap; font-size: 11pt; line-height: 1.85; }
+          @media print { button { display: none; } }
+        </style>
+      </head><body>
+        <div class="header">
+          <div>
+            <div class="header__logo">Neurodisk</div>
+            <div class="header__sub">Clinique de réadaptation</div>
+          </div>
+        </div>
+        <div class="date">${today}</div>
+        <div class="body">${body.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+        <script>window.onload=()=>{ window.print(); }<\/script>
+      </body></html>`);
+      win.document.close();
+    });
+
+    // Initialiser quand on clique sur la section
+    document.querySelector('[data-section="referral"]').addEventListener('click', () => {
+      initReferralSection();
+    });
 
     // ── Init ──────────────────────────────────────────────
     async function init() {
