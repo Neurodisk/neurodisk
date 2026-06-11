@@ -959,15 +959,37 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           Lettre de référence
         </div>
+
+        <!-- Gestion des professionnels sauvegardés -->
+        <div class="card" style="max-width:760px;margin-bottom:1.5rem">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+            <strong>Professionnels fréquents</strong>
+            <button class="btn btn--ghost btn--sm" id="btnToggleProfManager">⚙️ Gérer</button>
+          </div>
+          <div id="profManagerWrap" style="display:none">
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
+              <input type="text" id="newProfName" class="field__input" placeholder="Nom complet" style="flex:1;min-width:160px">
+              <input type="text" id="newProfTitle" class="field__input" placeholder="Titre (ex: physiothérapeute)" style="flex:1;min-width:160px">
+              <button class="btn btn--primary btn--sm" id="btnAddProf">+ Ajouter</button>
+            </div>
+            <div id="profListWrap"><div class="empty-state">Aucun professionnel sauvegardé.</div></div>
+          </div>
+        </div>
+
+        <!-- Formulaire lettre -->
         <div class="card" style="max-width:760px">
           <div class="form-grid">
             <div class="field">
-              <label for="refClientName">Nom du client *</label>
-              <input type="text" id="refClientName" placeholder="Ex. : Marie Tremblay">
+              <label for="refClientSelect">Patient *</label>
+              <select id="refClientSelect">
+                <option value="">— Sélectionner un patient —</option>
+              </select>
             </div>
             <div class="field">
-              <label for="refProfName">Professionnel destinataire *</label>
-              <input type="text" id="refProfName" placeholder="Ex. : Dr Jean Martin, physiothérapeute">
+              <label for="refProfSelect">Professionnel destinataire *</label>
+              <select id="refProfSelect">
+                <option value="">— Sélectionner un professionnel —</option>
+              </select>
             </div>
             <div class="field" style="grid-column:1/-1">
               <label for="refCondition">Diagnostic / condition</label>
@@ -976,7 +998,7 @@
               </select>
             </div>
             <div class="field" style="grid-column:1/-1">
-              <label for="refBody">Corps de la lettre</label>
+              <label for="refBody">Corps de la lettre <span style="font-weight:400;color:var(--muted)">— modifiable avant génération</span></label>
               <textarea id="refBody" rows="14" style="font-family:Georgia,serif;font-size:.9rem;line-height:1.7"></textarea>
             </div>
           </div>
@@ -1404,94 +1426,224 @@
     let openPanelId  = null; // ID du patient dont le panneau est ouvert
 
     // ══════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════
     // LETTRE DE RÉFÉRENCE
     // ══════════════════════════════════════════════════════
+    let allProfessionals = [];
+
+    async function loadProfessionals() {
+      const { data } = await sb.from('referral_professionals').select('*').order('sort_order');
+      allProfessionals = data || [];
+      populateProfSelect();
+      renderProfList();
+    }
+
+    function populateProfSelect() {
+      const sel = document.getElementById('refProfSelect');
+      if (!sel) return;
+      sel.innerHTML = `<option value="">— Sélectionner un professionnel —</option>` +
+        allProfessionals.map(p => `<option value="${esc(p.id)}">${esc(p.name)}${p.title ? ' — ' + esc(p.title) : ''}</option>`).join('');
+    }
+
+    function renderProfList() {
+      const wrap = document.getElementById('profListWrap');
+      if (!wrap) return;
+      if (!allProfessionals.length) { wrap.innerHTML = `<div class="empty-state">Aucun professionnel sauvegardé.</div>`; return; }
+      wrap.innerHTML = allProfessionals.map(p => `
+        <div class="prog-list-item">
+          <div><strong>${esc(p.name)}</strong>${p.title ? `<span style="color:var(--muted);margin-left:.5rem">${esc(p.title)}</span>` : ''}</div>
+          <div class="td-actions">
+            <button class="btn btn--danger btn--sm" onclick="deleteProf('${p.id}',this)">Supprimer</button>
+          </div>
+        </div>`).join('');
+    }
+
+    document.getElementById('btnToggleProfManager').addEventListener('click', () => {
+      const w = document.getElementById('profManagerWrap');
+      w.style.display = w.style.display === 'none' ? '' : 'none';
+    });
+
+    document.getElementById('btnAddProf').addEventListener('click', async () => {
+      const name  = document.getElementById('newProfName').value.trim();
+      const title = document.getElementById('newProfTitle').value.trim();
+      if (!name) { toast('Entrez un nom.', 'error'); return; }
+      const sort = allProfessionals.length ? Math.max(...allProfessionals.map(p => p.sort_order)) + 1 : 0;
+      const { error } = await sb.from('referral_professionals').insert({ name, title: title || null, sort_order: sort });
+      if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+      document.getElementById('newProfName').value  = '';
+      document.getElementById('newProfTitle').value = '';
+      toast('Professionnel ajouté.', 'success');
+      await loadProfessionals();
+    });
+
+    window.deleteProf = async (id, btn) => {
+      if (!confirm('Supprimer ce professionnel ?')) return;
+      btn.disabled = true;
+      const { error } = await sb.from('referral_professionals').delete().eq('id', id);
+      if (error) { toast('Erreur : ' + error.message, 'error'); btn.disabled=false; return; }
+      toast('Supprimé.', 'success');
+      await loadProfessionals();
+    };
+
+    function initReferralSection() {
+      // Patients
+      const patSel = document.getElementById('refClientSelect');
+      if (patSel) {
+        patSel.innerHTML = `<option value="">— Sélectionner un patient —</option>` +
+          allPatients.filter(p => !p.is_admin).map(p =>
+            `<option value="${esc(p.full_name || p.email)}">${esc(p.full_name || p.email)}</option>`
+          ).join('');
+      }
+      // Conditions
+      const condSel = document.getElementById('refCondition');
+      if (condSel) {
+        condSel.innerHTML = `<option value="">— Sélectionner ou laisser vide —</option>` +
+          allConditions.map(c => `<option value="${esc(c.label)}">${esc(c.label)}</option>`).join('');
+      }
+      loadProfessionals();
+      refreshLetterBody();
+    }
+
+    function getSelectedProf() {
+      const sel = document.getElementById('refProfSelect');
+      const id = sel?.value;
+      if (!id) return '';
+      const p = allProfessionals.find(x => x.id === id);
+      if (!p) return '';
+      return p.title ? `${p.name}, ${p.title}` : p.name;
+    }
 
     const LETTER_DEFAULT = (client, prof, cond) =>
-`Objet : Lettre de référence — ${client}
+`À l'attention de ${prof || '[Professionnel destinataire]'},
 
-À l'attention de ${prof || '[Professionnel destinataire]'},
+Objet : Lettre de référence — ${client}
 
-Je vous écris afin de vous référer mon patient(e), ${client}${cond ? `, présentant ${cond}` : ''}, pour une évaluation et une prise en charge dans votre domaine d'expertise.
+Madame, Monsieur,
 
-${client} est suivi(e) à la Clinique Neurodisk dans le cadre d'un programme de réadaptation personnalisé. Au cours de notre suivi, nous avons observé des besoins qui correspondent à votre champ de compétences, et nous croyons qu'une collaboration interprofessionnelle serait bénéfique pour la progression de ce patient(e).
+Je me permets de vous adresser la présente afin de vous référer mon patient(e), ${client}${cond ? `, qui présente ${cond}` : ''}, pour une évaluation et une prise en charge dans votre domaine d'expertise.
 
-Nous vous prions d'accepter cette référence et demeurons disponibles pour tout échange d'informations cliniques pertinentes. N'hésitez pas à communiquer avec nous pour toute question.
+${client} est actuellement suivi(e) à la Clinique Neurodisk dans le cadre d'un programme de réadaptation personnalisé. Au cours de notre suivi, nous avons identifié des besoins spécifiques qui correspondent à votre champ de compétences, et nous sommes convaincus qu'une collaboration interprofessionnelle contribuerait de façon significative à la progression de ce patient(e).
 
-Nous vous remercions de votre collaboration et vous prions d'agréer l'expression de nos salutations distinguées.
+Nous demeurons disponibles pour tout échange d'informations cliniques pertinentes et vous invitons à communiquer avec nous si vous avez des questions.
+
+En vous remerciant de votre précieuse collaboration, veuillez agréer l'expression de nos salutations distinguées.
 
 
 ________________________________
 Clinique Neurodisk
 `;
 
-    function initReferralSection() {
-      // Peupler le select conditions
-      const sel = document.getElementById('refCondition');
-      if (sel) {
-        sel.innerHTML = `<option value="">— Sélectionner ou laisser vide —</option>` +
-          allConditions.map(c => `<option value="${esc(c.label)}">${esc(c.label)}</option>`).join('');
-      }
-      // Pré-remplir le corps si vide
-      refreshLetterBody();
-    }
-
     function refreshLetterBody() {
-      const client = document.getElementById('refClientName').value.trim();
-      const prof   = document.getElementById('refProfName').value.trim();
-      const cond   = document.getElementById('refCondition').value;
+      const client = document.getElementById('refClientSelect')?.value || '';
+      const prof   = getSelectedProf();
+      const cond   = document.getElementById('refCondition')?.value || '';
       const body   = document.getElementById('refBody');
-      if (body) body.value = LETTER_DEFAULT(client || '[Nom du client]', prof, cond);
+      if (body) body.value = LETTER_DEFAULT(client || '[Nom du patient]', prof, cond);
     }
 
-    document.getElementById('refClientName').addEventListener('input', refreshLetterBody);
-    document.getElementById('refProfName').addEventListener('input', refreshLetterBody);
+    document.getElementById('refClientSelect').addEventListener('change', refreshLetterBody);
+    document.getElementById('refProfSelect').addEventListener('change', refreshLetterBody);
     document.getElementById('refCondition').addEventListener('change', refreshLetterBody);
 
     document.getElementById('btnResetLetter').addEventListener('click', () => {
-      document.getElementById('refClientName').value = '';
-      document.getElementById('refProfName').value   = '';
-      document.getElementById('refCondition').value  = '';
+      document.getElementById('refClientSelect').value = '';
+      document.getElementById('refProfSelect').value   = '';
+      document.getElementById('refCondition').value    = '';
       refreshLetterBody();
     });
 
     document.getElementById('btnGeneratePDF').addEventListener('click', () => {
-      const client = document.getElementById('refClientName').value.trim();
-      const prof   = document.getElementById('refProfName').value.trim();
-      if (!client) { toast('Entrez le nom du client.', 'error'); return; }
-      const body = document.getElementById('refBody').value;
+      const client = document.getElementById('refClientSelect').value.trim();
+      const prof   = getSelectedProf();
+      if (!client) { toast('Sélectionnez un patient.', 'error'); return; }
+      const body  = document.getElementById('refBody').value;
+      const cond  = document.getElementById('refCondition').value;
       const today = new Date().toLocaleDateString('fr-CA', { year:'numeric', month:'long', day:'numeric' });
+
+      const profParts = prof ? prof.split(',') : [];
+      const profName  = profParts[0]?.trim() || '';
+      const profTitle = profParts.slice(1).join(',').trim();
+
+      const esc2 = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
       const win = window.open('', '_blank');
       win.document.write(`<!DOCTYPE html><html lang="fr"><head>
         <meta charset="UTF-8">
-        <title>Lettre de référence — ${client}</title>
+        <title>Lettre de référence — ${esc2(client)}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
         <style>
-          @page { size: letter; margin: 2.5cm 2.8cm; }
+          @page { size: letter; margin: 0; }
           * { box-sizing: border-box; margin: 0; padding: 0; }
-          body { font-family: Georgia, 'Times New Roman', serif; font-size: 11.5pt; color: #1a1a1a; line-height: 1.7; }
-          .header { display: flex; align-items: center; gap: 1.2rem; border-bottom: 2px solid #1B2B6B; padding-bottom: .8rem; margin-bottom: 1.5rem; }
-          .header__logo { font-size: 1.5rem; font-weight: 900; color: #1B2B6B; font-family: Montserrat, Arial, sans-serif; letter-spacing: -.02em; }
-          .header__sub  { font-size: .8rem; color: #666; font-family: Arial, sans-serif; }
-          .date   { text-align: right; margin-bottom: 2rem; font-size: 10.5pt; color: #444; }
-          .body   { white-space: pre-wrap; font-size: 11pt; line-height: 1.85; }
-          @media print { button { display: none; } }
+          body { font-family: Georgia, 'Times New Roman', serif; font-size: 11pt; color: #1a1a2e; line-height: 1.8; background: #fff; }
+
+          .page { min-height: 100vh; display: flex; flex-direction: column; }
+
+          /* Bande bleue en haut */
+          .topbar { background: #1B2B6B; height: 6px; width: 100%; }
+
+          .content { padding: 2.2cm 2.8cm 2cm; flex: 1; }
+
+          /* En-tête */
+          .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; padding-bottom: 1.2rem; border-bottom: 1px solid #d0d8f0; }
+          .header__brand { font-family: 'Montserrat', Arial, sans-serif; }
+          .header__brand-name { font-size: 22pt; font-weight: 800; color: #1B2B6B; letter-spacing: -.03em; line-height: 1; }
+          .header__brand-sub  { font-size: 8pt; color: #2468D6; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin-top: 2px; }
+          .header__meta { text-align: right; font-family: 'Montserrat', Arial, sans-serif; font-size: 8.5pt; color: #555; line-height: 1.6; }
+
+          /* Info destinataire */
+          .recipient { margin-bottom: 1.5rem; }
+          .recipient__name  { font-size: 11pt; font-weight: bold; }
+          .recipient__title { font-size: 10pt; color: #444; }
+
+          /* Objet */
+          .subject { background: #f0f4ff; border-left: 3px solid #2468D6; padding: .55rem .9rem; margin-bottom: 1.5rem; font-family: 'Montserrat', Arial, sans-serif; font-size: 10pt; color: #1B2B6B; font-weight: 600; }
+
+          /* Corps */
+          .body { white-space: pre-wrap; font-size: 11pt; line-height: 1.85; color: #1a1a2e; }
+
+          /* Pied de page */
+          .footer { background: #f7f9fd; border-top: 1px solid #d0d8f0; padding: .6cm 2.8cm; display: flex; justify-content: space-between; align-items: center; }
+          .footer__brand { font-family: 'Montserrat', Arial, sans-serif; font-size: 8pt; font-weight: 700; color: #1B2B6B; }
+          .footer__note  { font-family: 'Montserrat', Arial, sans-serif; font-size: 7.5pt; color: #888; }
+          .bottombar { background: #2468D6; height: 3px; }
+
+          @media print { * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
         </style>
       </head><body>
-        <div class="header">
-          <div>
-            <div class="header__logo">Neurodisk</div>
-            <div class="header__sub">Clinique de réadaptation</div>
+        <div class="page">
+          <div class="topbar"></div>
+          <div class="content">
+            <div class="header">
+              <div class="header__brand">
+                <div class="header__brand-name">Neurodisk</div>
+                <div class="header__brand-sub">Clinique de réadaptation</div>
+              </div>
+              <div class="header__meta">
+                ${esc2(today)}<br>
+                ${cond ? `<span style="color:#2468D6">${esc2(cond)}</span>` : ''}
+              </div>
+            </div>
+
+            ${profName ? `<div class="recipient">
+              <div class="recipient__name">${esc2(profName)}</div>
+              ${profTitle ? `<div class="recipient__title">${esc2(profTitle)}</div>` : ''}
+            </div>` : ''}
+
+            <div class="subject">Objet : Lettre de référence — ${esc2(client)}</div>
+
+            <div class="body">${esc2(body.replace(/^À l'attention de[^\n]*\n\nObjet[^\n]*\n\n/,''))}</div>
           </div>
+          <div class="footer">
+            <div class="footer__brand">Neurodisk — Clinique de réadaptation</div>
+            <div class="footer__note">Document confidentiel — ${esc2(today)}</div>
+          </div>
+          <div class="bottombar"></div>
         </div>
-        <div class="date">${today}</div>
-        <div class="body">${body.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
         <script>window.onload=()=>{ window.print(); }<\/script>
       </body></html>`);
       win.document.close();
     });
 
-    // Initialiser quand on clique sur la section
     document.querySelector('[data-section="referral"]').addEventListener('click', () => {
       initReferralSection();
     });
