@@ -2219,7 +2219,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
     function renderPatientsTable() {
       const wrap = document.getElementById('patientsTableWrap');
-      const patients = allPatients;
+      const patients = allPatients.filter(p => !p.is_admin);
 
       if (!patients.length) {
         wrap.innerHTML = `<div class="empty-state">Aucun patient enregistré pour l'instant.</div>`;
