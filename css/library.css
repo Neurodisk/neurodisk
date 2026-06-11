@@ -59,12 +59,13 @@
       padding: 0 2rem; height: 100%;
       display: flex; align-items: center; justify-content: space-between; gap: 1rem;
     }
-    .nav__logo { display: flex; align-items: center; text-decoration: none; flex-shrink: 0; }
-    .nav__logo img { height: 40px; width: auto; }
-    .nav__logo-text { font-size: 1.2rem; font-weight: 800; color: var(--navy); letter-spacing: -0.03em; }
+    .nav__brand { display: flex; flex-direction: column; justify-content: center; gap: .1rem; min-width: 0; }
+    .nav__brand-title { font-size: 1.1rem; font-weight: 500; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .nav__brand-sub { font-size: .875rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .nav__right { display: flex; align-items: center; gap: .6rem; }
-    .nav__greeting { font-size: .83rem; font-weight: 500; color: var(--muted); white-space: nowrap; }
-    .nav__greeting strong { color: var(--text); font-weight: 700; }
+    .nav__logo-img { height: 36px; width: auto; flex-shrink: 0; }
+    .nav__greeting { font-size: 1rem; font-weight: 500; color: var(--muted); white-space: nowrap; }
+    .nav__greeting strong { color: var(--text); font-weight: 500; }
     .nav-btn {
       display: inline-flex; align-items: center; gap: .4rem;
       padding: .75rem 1.1rem; border-radius: 100px;
@@ -688,9 +689,14 @@
       .ex-modal__params { grid-template-columns: 1fr 1fr; }
       .ex-modal__body { padding: 1.25rem 1.25rem 1.75rem; }
     }
+    @media (max-width: 600px) {
+      .nav__brand-sub { display: none; }
+      .nav__logo-img { display: none; }
+    }
     @media (max-width: 480px) {
       .nav-btn span { display: none; }
       .nav-btn { padding: .45rem .65rem; }
+      .nav__brand-title { font-size: 1rem; }
     }
 
     /* ── Calendrier de progression ──────────────────────── */

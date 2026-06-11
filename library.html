@@ -16,13 +16,14 @@
   <!-- Nav -->
   <nav class="nav">
     <div class="nav__inner">
-      <a href="/" class="nav__logo">
-        <img src="/assets/logo-neurodisk.png" alt="Neurodisk"
-          onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
-        <span class="nav__logo-text" style="display:none">Neurodisk</span>
-      </a>
+      <div class="nav__brand">
+        <span class="nav__brand-title">Ma plateforme Neurodisk</span>
+        <span class="nav__brand-sub">L'ensemble de mes ressources cliniques</span>
+      </div>
       <div class="nav__right">
         <span class="nav__greeting" id="greeting"></span>
+        <img src="/assets/logo-neurodisk.png" alt="Neurodisk" class="nav__logo-img"
+          onerror="this.style.display='none';">
         <a href="/admin/" id="btnAdmin" style="display:none" class="nav-btn">
           <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           <span>Admin</span>
