@@ -43,12 +43,7 @@
           <span class="hero-nav__tab__icon">${cat.icon}</span>
           ${esc(cat.label)}
         </button>`).join('');
-      const exTab = `
-        <button class="hero-nav__tab" data-section="exercices">
-          <span class="hero-nav__tab__icon">💪</span>
-          Mes exercices
-        </button>`;
-      nav.innerHTML = catTabs + exTab;
+      nav.innerHTML = catTabs;
       nav.onclick = e => {
         const tab = e.target.closest('.hero-nav__tab');
         if (tab) openSection(tab.dataset.section);
