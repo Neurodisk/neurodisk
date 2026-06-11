@@ -2967,10 +2967,8 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
                   <td style="color:var(--muted)">${fmtDate(p.created_at)}</td>
                   <td>
                     <div class="td-actions">
-                      ${!isAdminOnly ? `
                       <button class="btn btn--ghost btn--sm" onclick="openEditPro('${p.id}')">✏️ Modifier</button>
-                      <button class="btn btn--danger btn--sm" onclick="removeProfessional('${p.id}', this)">Supprimer</button>
-                      ` : `<span style="color:var(--muted);font-size:.8rem">—</span>`}
+                      ${!isAdminOnly ? `<button class="btn btn--danger btn--sm" onclick="removeProfessional('${p.id}', this)">Supprimer</button>` : ''}
                     </div>
                   </td>
                 </tr>`;
