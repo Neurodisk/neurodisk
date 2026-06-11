@@ -49,9 +49,10 @@
           Mes exercices
         </button>`;
       nav.innerHTML = catTabs + exTab;
-      nav.querySelectorAll('.hero-nav__tab').forEach(tab => {
-        tab.addEventListener('click', () => openSection(tab.dataset.section));
-      });
+      nav.onclick = e => {
+        const tab = e.target.closest('.hero-nav__tab');
+        if (tab) openSection(tab.dataset.section);
+      };
       // Ouvrir la première section automatiquement
       const firstSection = allCategories[0]?.id || 'exercices';
       openSection(firstSection);

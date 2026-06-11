@@ -1790,11 +1790,19 @@
       wrap.innerHTML = `
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Icône</th><th>Nom</th><th>Identifiant</th><th>Ressources</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Ordre</th><th>Icône</th><th>Nom</th><th>Identifiant</th><th>Ressources</th><th>Actions</th></tr></thead>
             <tbody>
-              ${allCategories.map(cat => {
+              ${allCategories.map((cat, idx) => {
                 const count = usageCounts[cat.id] || 0;
+                const isFirst = idx === 0;
+                const isLast  = idx === allCategories.length - 1;
                 return `<tr>
+                  <td>
+                    <div style="display:flex;flex-direction:column;gap:.2rem;align-items:center">
+                      <button class="btn btn--ghost btn--sm" style="padding:.2rem .4rem" ${isFirst ? 'disabled' : ''} onclick="moveCat('${esc(cat.id)}', -1, this)" title="Monter">↑</button>
+                      <button class="btn btn--ghost btn--sm" style="padding:.2rem .4rem" ${isLast  ? 'disabled' : ''} onclick="moveCat('${esc(cat.id)}',  1, this)" title="Descendre">↓</button>
+                    </div>
+                  </td>
                   <td style="font-size:1.6rem;line-height:1">${cat.icon}</td>
                   <td><strong>${esc(cat.label)}</strong></td>
                   <td style="color:var(--muted);font-family:monospace;font-size:.8rem">${esc(cat.id)}</td>
@@ -1803,7 +1811,7 @@
                     <div class="td-actions">
                       <button class="btn btn--ghost btn--sm" onclick="openCatEditModal('${esc(cat.id)}')">✏️ Modifier</button>
                       <button class="btn btn--danger btn--sm" onclick="deleteCategory('${esc(cat.id)}', this)"
-                        ${count > 0 ? `disabled title="${count} ressource(s) utilisent cette catégorie — réassignez-les d'abord"` : ''}>
+                        ${count > 0 ? `disabled title="${count} ressource(s) utilisent cette catégorie"` : ''}>
                         Supprimer
                       </button>
                     </div>
@@ -1915,6 +1923,24 @@
       closeCatEditModal();
       await loadCategories();
     });
+
+    // ── Réordonner les catégories ─────────────────────────
+    window.moveCat = async (id, direction, btn) => {
+      btn.disabled = true;
+      const idx     = allCategories.findIndex(c => c.id === id);
+      const swapIdx = idx + direction;
+      if (swapIdx < 0 || swapIdx >= allCategories.length) { btn.disabled = false; return; }
+
+      const a = allCategories[idx];
+      const b = allCategories[swapIdx];
+      const tempOrder = a.sort_order;
+
+      await Promise.all([
+        sb.from('resource_categories').update({ sort_order: b.sort_order }).eq('id', a.id),
+        sb.from('resource_categories').update({ sort_order: tempOrder    }).eq('id', b.id),
+      ]);
+      await loadCategories();
+    };
 
     // ── Supprimer une catégorie ───────────────────────────
     window.deleteCategory = async (id, btn) => {

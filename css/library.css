@@ -99,7 +99,7 @@
     /* ── HERO ── */
     .hero {
       background: linear-gradient(135deg, var(--navy) 0%, var(--navy-dark) 60%, var(--blue) 100%);
-      padding: 2.5rem 2rem;
+      padding: 2rem 2rem;
       position: relative; overflow: hidden;
     }
     .hero::after {
@@ -121,15 +121,16 @@
     .hero-nav__tab {
       flex: 1;
       display: inline-flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: .6rem;
-      padding: 1.1rem .75rem;
+      gap: .4rem;
+      padding: 1.4rem .75rem;
       border-radius: 14px;
       border: 2px solid rgba(255,255,255,.28);
       background: rgba(255,255,255,.10);
       color: rgba(255,255,255,.85);
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: 500;
       cursor: pointer;
       transition: background 180ms, border-color 180ms, color 180ms, box-shadow 180ms;
@@ -151,7 +152,7 @@
       outline: 3px solid rgba(255,255,255,.8);
       outline-offset: 2px;
     }
-    .hero-nav__tab__icon { font-size: 1.5rem; line-height: 1; }
+    .hero-nav__tab__icon { font-size: 1.8rem; line-height: 1; display: block; }
     @media (max-width: 640px) {
       .hero-nav { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-bottom: .15rem; }
       .hero-nav::-webkit-scrollbar { display: none; }
