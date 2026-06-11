@@ -2571,19 +2571,34 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
     function renderAssignments() {
       const container = document.getElementById('assignmentsList');
-      const patients  = allPatients.filter(p => !p.is_admin);
+      const patients  = allPatients.filter(p => !p.is_admin || p.is_professional);
+      const allUsers  = allPatients;
 
-      if (!patients.length) {
-        container.innerHTML = `<div class="empty-state">Aucun patient enregistré.</div>`;
+      const patientList = allUsers.filter(p => !p.is_admin && !p.is_professional);
+      const proList     = allUsers.filter(p => p.is_professional);
+      const adminList   = allUsers.filter(p => p.is_admin && !p.is_professional);
+
+      const makeOption = (p, label) =>
+        `<option value="${p.id}" ${p.id === (openPanelId || '') ? 'selected' : ''}>${esc(p.full_name || p.email)}${label ? ' — ' + label : ''}</option>`;
+
+      const hasAny = patientList.length || proList.length || adminList.length;
+      if (!hasAny) {
+        container.innerHTML = `<div class="empty-state">Aucun utilisateur enregistré.</div>`;
         return;
       }
+
+      const options = [
+        `<option value="">— Sélectionner un utilisateur —</option>`,
+        patientList.length ? `<optgroup label="Patients">${patientList.map(p => makeOption(p, '')).join('')}</optgroup>` : '',
+        proList.length     ? `<optgroup label="Professionnels">${proList.map(p => makeOption(p, 'Pro')).join('')}</optgroup>` : '',
+        adminList.length   ? `<optgroup label="Admins">${adminList.map(p => makeOption(p, 'Admin')).join('')}</optgroup>` : '',
+      ].join('');
 
       const currentId = openPanelId || '';
       container.innerHTML = `
         <div style="margin-bottom:1.25rem">
           <select id="assignPatientSelect" class="field__input" style="max-width:340px">
-            <option value="">— Sélectionner un patient —</option>
-            ${patients.map(p => `<option value="${p.id}" ${p.id === currentId ? 'selected' : ''}>${esc(p.full_name || p.email)}</option>`).join('')}
+            ${options}
           </select>
         </div>
         <div id="assignPanelWrap"></div>
