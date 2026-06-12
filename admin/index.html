@@ -3189,7 +3189,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       populateSchedulePatients();
       const { data, error } = await sb
         .from('appointments')
-        .select('id, patient_id, appointment_at, note, profiles(full_name, email)')
+        .select('id, patient_id, appointment_at, note, profiles!appointments_patient_id_fkey(full_name, email)')
         .order('appointment_at', { ascending: true });
       if (error) {
         document.getElementById('appointmentsList').innerHTML =
