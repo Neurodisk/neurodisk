@@ -1,14 +1,19 @@
 // ============================================================
 // NEURODISK — Edge Function : set-patient-password
 // ============================================================
-// Permet à un administrateur de définir directement le
-// mot de passe d'un patient, sans que celui-ci reçoive
-// un courriel ou ait besoin d'action de sa part.
+// Deux modes selon les paramètres reçus :
+//
+// Mode 1 — Changer le mot de passe d'un utilisateur existant
+//   { patientId, password }
+//
+// Mode 2 — Créer un nouveau compte avec mot de passe
+//   { email, password, fullName, role }
+//   role: 'patient' (défaut) | 'professional'
 //
 // Sécurité :
 //   - Vérifie que l'appelant est connecté (JWT valide)
 //   - Vérifie que l'appelant est administrateur
-//   - Utilise la clé service_role pour modifier l'auth
+//   - Utilise la clé service_role pour modifier / créer l'auth
 // ============================================================
 
 import { serve }        from 'https://deno.land/std@0.168.0/http/server.ts'
@@ -48,22 +53,44 @@ serve(async (req: Request) => {
 
     if (!profile?.is_admin) return json({ error: 'Accès réservé aux administrateurs.' }, 403)
 
-    // ── 3. Lire les paramètres ───────────────────────────
-    const { patientId, password } = await req.json()
+    const body = await req.json()
+    const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE)
 
-    if (!patientId) return json({ error: 'patientId manquant.' }, 400)
-    if (!password)  return json({ error: 'Mot de passe manquant.' }, 400)
+    // ── Mode 1 : changer le mot de passe d'un user existant
+    if (body.patientId) {
+      const { patientId, password } = body
+      if (!password)        return json({ error: 'Mot de passe manquant.' }, 400)
+      if (password.length < 6) return json({ error: 'Le mot de passe doit contenir au moins 6 caractères.' }, 400)
+
+      const { error: updateError } = await adminClient.auth.admin.updateUserById(patientId, { password })
+      if (updateError) throw updateError
+
+      return json({ success: true })
+    }
+
+    // ── Mode 2 : créer un nouveau compte avec mot de passe
+    const { email, password, fullName, role = 'patient' } = body
+    if (!email)    return json({ error: 'Courriel manquant.' }, 400)
+    if (!password) return json({ error: 'Mot de passe manquant.' }, 400)
     if (password.length < 6) return json({ error: 'Le mot de passe doit contenir au moins 6 caractères.' }, 400)
 
-    // ── 4. Modifier le mot de passe (service role) ───────
-    const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE)
-    const { error: updateError } = await adminClient.auth.admin.updateUserById(
-      patientId,
-      { password }
-    )
-    if (updateError) throw updateError
+    const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: fullName || '' },
+    })
+    if (createError) throw createError
 
-    return json({ success: true })
+    const profileUpdate: Record<string, unknown> = { full_name: fullName || null }
+    if (role === 'professional') {
+      profileUpdate.is_professional = true
+      profileUpdate.is_admin        = true
+    }
+
+    await adminClient.from('profiles').update(profileUpdate).eq('id', newUser.user.id)
+
+    return json({ success: true, userId: newUser.user.id })
 
   } catch (err) {
     console.error('set-patient-password error:', err)

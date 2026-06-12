@@ -2465,7 +2465,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         if (password) {
           // ── Création directe avec mot de passe via Edge Function ──
           const { data: { session } } = await sb.auth.getSession();
-          const resp = await fetch(`${SUPABASE_URL}/functions/v1/create-professional`, {
+          const resp = await fetch(`${SUPABASE_URL}/functions/v1/set-patient-password`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -3117,7 +3117,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
       try {
         const { data: { session } } = await sb.auth.getSession();
-        const resp = await fetch(`${SUPABASE_URL}/functions/v1/create-professional`, {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/set-patient-password`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
