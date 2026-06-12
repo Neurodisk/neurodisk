@@ -613,10 +613,14 @@
                 <div class="access-checks" id="accessChecksInvite"></div>
               </div>
             </div>
-            <div style="margin-top:1rem">
-              <button type="submit" class="btn btn--primary" id="btnAddPatient">
-                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <div style="margin-top:1rem;display:flex;gap:.75rem;flex-wrap:wrap">
+              <button type="submit" class="btn btn--primary" id="btnAddPatient" data-mode="invite">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Inviter le patient
+              </button>
+              <button type="button" class="btn btn--primary" id="btnCreatePatient" style="display:none">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                Créer le patient
               </button>
             </div>
           </form>
@@ -2446,12 +2450,67 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
     // ── Toggle mot de passe patient ───────────────────────
     document.getElementById('btnTogglePassword').addEventListener('click', () => {
-      const wrap = document.getElementById('pPasswordWrap');
-      const btn  = document.getElementById('btnTogglePassword');
+      const wrap       = document.getElementById('pPasswordWrap');
+      const btn        = document.getElementById('btnTogglePassword');
+      const btnInvite  = document.getElementById('btnAddPatient');
+      const btnCreate  = document.getElementById('btnCreatePatient');
       const open = wrap.style.display === 'none';
-      wrap.style.display = open ? '' : 'none';
-      btn.textContent    = open ? '✕ Annuler le mot de passe' : '🔑 Définir un mot de passe maintenant';
+      wrap.style.display      = open ? '' : 'none';
+      btnInvite.style.display = open ? 'none' : '';
+      btnCreate.style.display = open ? '' : 'none';
+      btn.textContent = open ? '✕ Annuler' : '🔑 Définir un mot de passe maintenant';
       if (!open) document.getElementById('pPassword').value = '';
+    });
+
+    document.getElementById('btnCreatePatient').addEventListener('click', async () => {
+      const email    = document.getElementById('pEmail').value.trim().toLowerCase();
+      const fullName = document.getElementById('pName').value.trim();
+      const password = document.getElementById('pPassword').value;
+      const accès    = [...document.querySelectorAll('input[name="pAccess"]:checked')].map(c => c.value);
+      const alertEl  = document.getElementById('alertAddPatient');
+      const btn      = document.getElementById('btnCreatePatient');
+
+      setAlert(alertEl, '', '');
+      if (!email)    { setAlert(alertEl, 'Le courriel est obligatoire.', 'error'); return; }
+      if (!password) { setAlert(alertEl, 'Le mot de passe est obligatoire.', 'error'); return; }
+      if (password.length < 6) { setAlert(alertEl, 'Le mot de passe doit contenir au moins 6 caractères.', 'error'); return; }
+
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-inline"></span> Création…`;
+
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/set-patient-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({ email, password, fullName, role: 'patient' }),
+        });
+        const result = await resp.json();
+        if (!resp.ok) throw new Error(result.error || 'Erreur inconnue');
+
+        // Assigner les ressources cochées
+        if (accès.length > 0 && result.userId) {
+          const { data: { user: adminUser } } = await sb.auth.getUser();
+          const rows = allResources.filter(r => accès.includes(r.condition_tag)).map(r => ({
+            patient_id: result.userId, resource_id: r.id, assigned_by: adminUser.id,
+          }));
+          if (rows.length) await sb.from('patient_resources').upsert(rows, { onConflict: 'patient_id,resource_id', ignoreDuplicates: true });
+        }
+
+        setAlert(alertEl, `✓ Patient ${fullName || email} créé avec succès.`, 'success');
+        document.getElementById('formAddPatient').reset();
+        document.getElementById('pPasswordWrap').style.display = 'none';
+        document.getElementById('btnAddPatient').style.display = '';
+        document.getElementById('btnCreatePatient').style.display = 'none';
+        document.getElementById('btnTogglePassword').textContent = '🔑 Définir un mot de passe maintenant';
+        await loadPatients();
+
+      } catch (err) {
+        setAlert(alertEl, 'Erreur : ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> Créer le patient`;
+      }
     });
 
     // ── Formulaire ajout patient ───────────────────────────
