@@ -83,7 +83,28 @@
       if (isAdmin && !isPro) document.getElementById('btnAdmin').style.display = 'flex';
       if (isPro) document.getElementById('btnProfessionnel').style.display = 'flex';
 
-      await Promise.all([loadCategories(), loadResources(user.id, isAdmin), loadPatientForms(user.id, isAdmin)]);
+      await Promise.all([loadCategories(), loadResources(user.id, isAdmin), loadPatientForms(user.id, isAdmin), loadNextAppointment(user.id)]);
+    }
+
+    async function loadNextAppointment(userId) {
+      const now = new Date().toISOString();
+      const { data } = await supabase
+        .from('appointments')
+        .select('appointment_at')
+        .eq('patient_id', userId)
+        .gte('appointment_at', now)
+        .order('appointment_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      const banner = document.getElementById('appointmentBanner');
+      if (!data) { banner.style.display = 'none'; return; }
+
+      const dt = new Date(data.appointment_at);
+      const dateStr = dt.toLocaleDateString('fr-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const timeStr = dt.toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('appointmentText').textContent = `${dateStr} à ${timeStr}`;
+      banner.style.display = 'flex';
     }
 
     function setGreeting(user) {

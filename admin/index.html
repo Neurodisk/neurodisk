@@ -548,6 +548,10 @@
         <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
         Gérer les professionnels
       </a>
+      <a class="sidebar__link" data-section="schedule" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Céduler les rappels
+      </a>
       <div class="sidebar__section">Accès</div>
       <a class="sidebar__link" data-section="assignments" href="#">
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
@@ -775,6 +779,54 @@
       </section>
 
       <!-- ════════════════════════════════ ASSIGNATIONS ══ -->
+      <!-- ══════════════════════════════ CÉDULER LES RAPPELS ══ -->
+      <section id="sec-schedule" class="section" style="display:none">
+
+        <div class="section-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Céduler les rappels
+        </div>
+        <p style="color:var(--muted);font-size:.85rem;margin-bottom:1.5rem">
+          Définissez le prochain rendez-vous de chaque patient. La date s'affichera automatiquement sur leur page.
+        </p>
+
+        <!-- Formulaire ajout RDV -->
+        <div class="card" style="margin-bottom:1.5rem">
+          <div class="card__title">Ajouter / modifier un rendez-vous</div>
+          <div id="alertSchedule" class="alert"></div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="schedulePatientSelect">Patient *</label>
+              <select id="schedulePatientSelect">
+                <option value="">— Sélectionner un patient —</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="scheduleDate">Date et heure *</label>
+              <input type="datetime-local" id="scheduleDate">
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="scheduleNote">Note <span style="font-weight:400;color:var(--muted)">optionnel — visible uniquement par l'admin</span></label>
+              <input type="text" id="scheduleNote" placeholder="Ex. : Suivi post-traitement, salle B…">
+            </div>
+          </div>
+          <div style="margin-top:1rem">
+            <button class="btn btn--primary" id="btnSaveAppointment">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Enregistrer le rendez-vous
+            </button>
+          </div>
+        </div>
+
+        <!-- Liste des RDV à venir -->
+        <div class="section-title" style="margin-top:2rem">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Rendez-vous à venir
+        </div>
+        <div id="appointmentsList"><div class="empty-state">Chargement…</div></div>
+
+      </section>
+
       <section id="sec-assignments" class="section">
 
         <div class="section-title">
@@ -3115,6 +3167,125 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     document.querySelector('[data-section="professionals"]').addEventListener('click', () => {
       loadProfessionals2();
     });
+
+    document.querySelector('[data-section="schedule"]').addEventListener('click', () => {
+      loadAppointments();
+    });
+
+    // ══════════════════════════════════════════════════════
+    // CÉDULER LES RAPPELS
+    // ══════════════════════════════════════════════════════
+    let allAppointments = [];
+
+    function populateSchedulePatients() {
+      const sel = document.getElementById('schedulePatientSelect');
+      const patients = allPatients.filter(p => !p.is_admin);
+      sel.innerHTML = `<option value="">— Sélectionner un patient —</option>`
+        + patients.map(p => `<option value="${p.id}">${esc(p.full_name || p.email)}</option>`).join('');
+    }
+
+    async function loadAppointments() {
+      populateSchedulePatients();
+      const now = new Date().toISOString();
+      const { data } = await sb
+        .from('appointments')
+        .select('id, patient_id, appointment_at, note, profiles(full_name, email)')
+        .gte('appointment_at', now)
+        .order('appointment_at', { ascending: true });
+      allAppointments = data || [];
+      renderAppointments();
+    }
+
+    function renderAppointments() {
+      const wrap = document.getElementById('appointmentsList');
+      if (!allAppointments.length) {
+        wrap.innerHTML = `<div class="empty-state">Aucun rendez-vous à venir.</div>`;
+        return;
+      }
+      wrap.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Patient</th><th>Date et heure</th><th>Note</th><th>Actions</th>
+            </tr></thead>
+            <tbody>
+              ${allAppointments.map(a => {
+                const name = a.profiles?.full_name || a.profiles?.email || '—';
+                const dt   = new Date(a.appointment_at);
+                const dateStr = dt.toLocaleDateString('fr-CA', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+                const timeStr = dt.toLocaleTimeString('fr-CA', { hour:'2-digit', minute:'2-digit' });
+                return `<tr>
+                  <td><strong>${esc(name)}</strong></td>
+                  <td>${dateStr} à ${timeStr}</td>
+                  <td style="color:var(--muted);font-size:.82rem">${esc(a.note || '—')}</td>
+                  <td>
+                    <div class="td-actions">
+                      <button class="btn btn--ghost btn--sm" onclick="prefillAppointment('${a.patient_id}','${a.appointment_at}','${esc(a.note||'')}')">✏️ Modifier</button>
+                      <button class="btn btn--danger btn--sm" onclick="deleteAppointment('${a.id}', this)">Supprimer</button>
+                    </div>
+                  </td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    document.getElementById('btnSaveAppointment').addEventListener('click', async () => {
+      const patientId = document.getElementById('schedulePatientSelect').value;
+      const dateVal   = document.getElementById('scheduleDate').value;
+      const note      = document.getElementById('scheduleNote').value.trim();
+      const alertEl   = document.getElementById('alertSchedule');
+      const btn       = document.getElementById('btnSaveAppointment');
+
+      setAlert(alertEl, '', '');
+      if (!patientId) { setAlert(alertEl, 'Veuillez sélectionner un patient.', 'error'); return; }
+      if (!dateVal)   { setAlert(alertEl, 'Veuillez choisir une date.', 'error'); return; }
+
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-inline"></span> Enregistrement…`;
+
+      try {
+        const { data: { user } } = await sb.auth.getUser();
+        const { error } = await sb.from('appointments').insert({
+          patient_id:      patientId,
+          appointment_at:  new Date(dateVal).toISOString(),
+          note:            note || null,
+          created_by:      user.id,
+        });
+        if (error) throw error;
+
+        setAlert(alertEl, '✓ Rendez-vous enregistré.', 'success');
+        document.getElementById('schedulePatientSelect').value = '';
+        document.getElementById('scheduleDate').value          = '';
+        document.getElementById('scheduleNote').value          = '';
+        await loadAppointments();
+      } catch (err) {
+        setAlert(alertEl, 'Erreur : ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Enregistrer le rendez-vous`;
+      }
+    });
+
+    window.prefillAppointment = (patientId, appointmentAt, note) => {
+      document.getElementById('schedulePatientSelect').value = patientId;
+      const local = new Date(appointmentAt);
+      const pad = n => String(n).padStart(2, '0');
+      document.getElementById('scheduleDate').value =
+        `${local.getFullYear()}-${pad(local.getMonth()+1)}-${pad(local.getDate())}T${pad(local.getHours())}:${pad(local.getMinutes())}`;
+      document.getElementById('scheduleNote').value = note;
+      document.getElementById('scheduleDate').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+
+    window.deleteAppointment = async (id, btn) => {
+      if (!confirm('Supprimer ce rendez-vous ?')) return;
+      btn.disabled = true;
+      const { error } = await sb.from('appointments').delete().eq('id', id);
+      if (error) { toast('Erreur : ' + error.message, 'error'); btn.disabled = false; return; }
+      toast('Rendez-vous supprimé.', 'success');
+      await loadAppointments();
+    };
 
     // ══════════════════════════════════════════════════════
     // PROFESSIONNELS
