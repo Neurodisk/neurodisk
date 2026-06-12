@@ -3180,9 +3180,15 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
     function populateSchedulePatients() {
       const sel = document.getElementById('schedulePatientSelect');
-      const patients = allPatients.filter(p => !p.is_admin);
-      sel.innerHTML = `<option value="">— Sélectionner un patient —</option>`
-        + patients.map(p => `<option value="${p.id}">${esc(p.full_name || p.email)}</option>`).join('');
+      const patients = allPatients.filter(p => !p.is_admin && !p.is_professional);
+      const pros     = allPatients.filter(p =>  p.is_professional && !p.is_admin);
+      const admins   = allPatients.filter(p =>  p.is_admin);
+      const group = (label, list) =>
+        list.length ? `<optgroup label="${label}">${list.map(p => `<option value="${p.id}">${esc(p.full_name || p.email)}</option>`).join('')}</optgroup>` : '';
+      sel.innerHTML = `<option value="">— Sélectionner —</option>`
+        + group('Patients', patients)
+        + group('Professionnels', pros)
+        + group('Admins', admins);
     }
 
     async function loadAppointments() {
