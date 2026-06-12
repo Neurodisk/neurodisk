@@ -585,9 +585,6 @@
         </div>
 
         <div class="card">
-          <div class="info-note">
-            ⚠️ Si aucun mot de passe n'est fourni, un lien d'activation est envoyé par courriel. Avec un mot de passe, le compte est créé directement sans courriel.
-          </div>
           <div id="alertAddPatient" class="alert"></div>
           <form id="formAddPatient">
             <div class="form-grid">
@@ -599,9 +596,14 @@
                 <label for="pName">Nom complet</label>
                 <input type="text" id="pName" placeholder="Marie Tremblay">
               </div>
-              <div class="field">
-                <label for="pPassword">Mot de passe <span style="font-weight:400;color:var(--muted)">optionnel — min. 6 caractères</span></label>
-                <input type="password" id="pPassword" placeholder="Laisser vide pour envoyer un lien" autocomplete="new-password">
+              <div class="field" style="grid-column:1/-1">
+                <button type="button" id="btnTogglePassword" class="btn btn--ghost btn--sm">
+                  🔑 Définir un mot de passe maintenant
+                </button>
+              </div>
+              <div class="field" id="pPasswordWrap" style="grid-column:1/-1;display:none">
+                <label for="pPassword">Mot de passe <span style="font-weight:400;color:var(--muted)">min. 6 caractères — le compte est créé directement sans courriel</span></label>
+                <input type="password" id="pPassword" placeholder="••••••••" autocomplete="new-password" style="max-width:340px">
               </div>
               <div class="field" style="grid-column:1/-1">
                 <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.4rem">
@@ -2441,6 +2443,16 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       document.getElementById('sec-assignments').classList.add('is-active');
       openPanelForPatient(patientId);
     };
+
+    // ── Toggle mot de passe patient ───────────────────────
+    document.getElementById('btnTogglePassword').addEventListener('click', () => {
+      const wrap = document.getElementById('pPasswordWrap');
+      const btn  = document.getElementById('btnTogglePassword');
+      const open = wrap.style.display === 'none';
+      wrap.style.display = open ? '' : 'none';
+      btn.textContent    = open ? '✕ Annuler le mot de passe' : '🔑 Définir un mot de passe maintenant';
+      if (!open) document.getElementById('pPassword').value = '';
+    });
 
     // ── Formulaire ajout patient ───────────────────────────
     document.getElementById('formAddPatient').addEventListener('submit', async e => {
