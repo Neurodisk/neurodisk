@@ -3191,6 +3191,11 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         .from('appointments')
         .select('id, patient_id, appointment_at, note, profiles(full_name, email)')
         .order('appointment_at', { ascending: true });
+      if (error) {
+        document.getElementById('appointmentsList').innerHTML =
+          `<div class="empty-state" style="color:red">Erreur SQL : ${error.message} (code: ${error.code})</div>`;
+        return;
+      }
       allAppointments = data || [];
       renderAppointments();
     }
