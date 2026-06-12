@@ -586,7 +586,7 @@
 
         <div class="card">
           <div class="info-note">
-            ⚠️ L'invitation envoie un lien d'accès à l'adresse fournie. Assurez-vous que l'adresse est correcte avant d'envoyer. Le patient devra cliquer sur le lien pour activer son compte.
+            ⚠️ Si aucun mot de passe n'est fourni, un lien d'activation est envoyé par courriel. Avec un mot de passe, le compte est créé directement sans courriel.
           </div>
           <div id="alertAddPatient" class="alert"></div>
           <form id="formAddPatient">
@@ -598,6 +598,10 @@
               <div class="field">
                 <label for="pName">Nom complet</label>
                 <input type="text" id="pName" placeholder="Marie Tremblay">
+              </div>
+              <div class="field">
+                <label for="pPassword">Mot de passe <span style="font-weight:400;color:var(--muted)">optionnel — min. 6 caractères</span></label>
+                <input type="password" id="pPassword" placeholder="Laisser vide pour envoyer un lien" autocomplete="new-password">
               </div>
               <div class="field" style="grid-column:1/-1">
                 <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.4rem">
@@ -2443,54 +2447,75 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       e.preventDefault();
       const email    = document.getElementById('pEmail').value.trim().toLowerCase();
       const fullName = document.getElementById('pName').value.trim();
+      const password = document.getElementById('pPassword').value;
       const accès    = [...document.querySelectorAll('input[name="pAccess"]:checked')].map(c => c.value);
       const btn      = document.getElementById('btnAddPatient');
       const alertEl  = document.getElementById('alertAddPatient');
 
       setAlert(alertEl, '', '');
+      if (password && password.length < 6) {
+        setAlert(alertEl, 'Le mot de passe doit contenir au moins 6 caractères.', 'error'); return;
+      }
       btn.disabled = true;
-      btn.innerHTML = `<span class="spinner-inline"></span> Envoi…`;
+      btn.innerHTML = `<span class="spinner-inline"></span> Création…`;
 
       try {
-        // 1. Envoyer le lien d'invitation
-        const { error } = await sb.auth.signInWithOtp({
-          email,
-          options: {
-            shouldCreateUser: true,
-            emailRedirectTo: `${window.location.origin}/auth/callback.html`,
-            data: { full_name: fullName },
-          },
-        });
-        if (error) throw error;
+        let newProfileId = null;
 
-        // 2. Si des accès sont cochés, assigner les ressources si le profil existe déjà
-        let assignMsg = '';
-        if (accès.length > 0) {
-          const { data: existingProfile } = await sb
-            .from('profiles').select('id').eq('email', email).maybeSingle();
-
-          if (existingProfile) {
-            const { data: { user: adminUser } } = await sb.auth.getUser();
-            const resourcesToAssign = allResources.filter(r => accès.includes(r.condition_tag));
-            if (resourcesToAssign.length > 0) {
-              const rows = resourcesToAssign.map(r => ({
-                patient_id:  existingProfile.id,
-                resource_id: r.id,
-                assigned_by: adminUser.id,
-              }));
-              await sb.from('patient_resources').upsert(rows, {
-                onConflict: 'patient_id,resource_id',
-                ignoreDuplicates: true,
-              });
-              assignMsg = ` ${resourcesToAssign.length} ressource(s) assignée(s) automatiquement.`;
-            }
-          } else {
-            assignMsg = ' Allez dans Assignations après l\'activation du compte pour attribuer les ressources.';
-          }
+        if (password) {
+          // ── Création directe avec mot de passe via Edge Function ──
+          const { data: { session } } = await sb.auth.getSession();
+          const resp = await fetch(`${SUPABASE_URL}/functions/v1/create-professional`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ email, password, fullName, role: 'patient' }),
+          });
+          const result = await resp.json();
+          if (!resp.ok) throw new Error(result.error || 'Erreur inconnue');
+          newProfileId = result.userId;
+        } else {
+          // ── Lien d'invitation par courriel ──
+          const { error } = await sb.auth.signInWithOtp({
+            email,
+            options: {
+              shouldCreateUser: true,
+              emailRedirectTo: `${window.location.origin}/auth/callback.html`,
+              data: { full_name: fullName },
+            },
+          });
+          if (error) throw error;
+          // Récupérer le profil si déjà existant
+          const { data: existing } = await sb.from('profiles').select('id').eq('email', email).maybeSingle();
+          newProfileId = existing?.id || null;
         }
 
-        setAlert(alertEl, `✓ Invitation envoyée à ${email}.${assignMsg}`, 'success');
+        // ── Assigner les ressources cochées si on a l'ID ──
+        let assignMsg = '';
+        if (accès.length > 0 && newProfileId) {
+          const { data: { user: adminUser } } = await sb.auth.getUser();
+          const resourcesToAssign = allResources.filter(r => accès.includes(r.condition_tag));
+          if (resourcesToAssign.length > 0) {
+            const rows = resourcesToAssign.map(r => ({
+              patient_id:  newProfileId,
+              resource_id: r.id,
+              assigned_by: adminUser.id,
+            }));
+            await sb.from('patient_resources').upsert(rows, { onConflict: 'patient_id,resource_id', ignoreDuplicates: true });
+            assignMsg = ` ${resourcesToAssign.length} ressource(s) assignée(s).`;
+          }
+        } else if (accès.length > 0 && !newProfileId) {
+          assignMsg = ' Allez dans Assignations après l\'activation du compte pour attribuer les ressources.';
+        }
+
+        const msg = password
+          ? `✓ Compte créé pour ${email}.${assignMsg}`
+          : `✓ Invitation envoyée à ${email}.${assignMsg}`;
+        setAlert(alertEl, msg, 'success');
         e.target.reset();
+        document.getElementById('pPassword').value = '';
         await loadPatients();
 
       } catch (err) {

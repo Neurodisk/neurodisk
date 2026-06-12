@@ -1,9 +1,15 @@
 // ============================================================
 // NEURODISK — Edge Function : create-professional
 // ============================================================
-// Crée un compte professionnel (email + mot de passe + nom)
-// sans envoyer de courriel de confirmation et sans déconnecter
-// l'administrateur courant.
+// Crée un compte utilisateur (patient ou professionnel) avec
+// email + mot de passe, sans courriel de confirmation et sans
+// déconnecter l'administrateur courant.
+//
+// Paramètres JSON :
+//   email    : string (obligatoire)
+//   password : string (obligatoire, min 6 car.)
+//   fullName : string (optionnel)
+//   role     : 'professional' | 'patient' (défaut: 'professional')
 //
 // Sécurité :
 //   - Vérifie que l'appelant est connecté (JWT valide)
@@ -49,7 +55,7 @@ serve(async (req: Request) => {
     if (!profile?.is_admin) return json({ error: 'Accès réservé aux administrateurs.' }, 403)
 
     // ── 3. Lire les paramètres ───────────────────────────
-    const { email, password, fullName } = await req.json()
+    const { email, password, fullName, role = 'professional' } = await req.json()
 
     if (!email)    return json({ error: 'Courriel manquant.' }, 400)
     if (!password) return json({ error: 'Mot de passe manquant.' }, 400)
@@ -66,10 +72,16 @@ serve(async (req: Request) => {
     })
     if (createError) throw createError
 
-    // ── 5. Marquer comme professionnel dans profiles ─────
+    // ── 5. Mettre à jour le profil selon le rôle ─────────
+    const profileUpdate: Record<string, unknown> = { full_name: fullName || null }
+    if (role === 'professional') {
+      profileUpdate.is_professional = true
+      profileUpdate.is_admin        = true
+    }
+
     const { error: profileError } = await adminClient
       .from('profiles')
-      .update({ full_name: fullName || null, is_professional: true })
+      .update(profileUpdate)
       .eq('id', newUser.user.id)
 
     if (profileError) throw profileError
