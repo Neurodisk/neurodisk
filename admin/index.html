@@ -3187,11 +3187,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
     async function loadAppointments() {
       populateSchedulePatients();
-      const now = new Date().toISOString();
-      const { data } = await sb
+      const { data, error } = await sb
         .from('appointments')
         .select('id, patient_id, appointment_at, note, profiles(full_name, email)')
-        .gte('appointment_at', now)
         .order('appointment_at', { ascending: true });
       allAppointments = data || [];
       renderAppointments();
@@ -3200,24 +3198,27 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     function renderAppointments() {
       const wrap = document.getElementById('appointmentsList');
       if (!allAppointments.length) {
-        wrap.innerHTML = `<div class="empty-state">Aucun rendez-vous à venir.</div>`;
+        wrap.innerHTML = `<div class="empty-state">Aucun rendez-vous enregistré.</div>`;
         return;
       }
+      const now = new Date();
       wrap.innerHTML = `
         <div class="table-wrap">
           <table>
             <thead><tr>
-              <th>Patient</th><th>Date et heure</th><th>Note</th><th>Actions</th>
+              <th>Patient</th><th>Date et heure</th><th>Statut</th><th>Note</th><th>Actions</th>
             </tr></thead>
             <tbody>
               ${allAppointments.map(a => {
                 const name = a.profiles?.full_name || a.profiles?.email || '—';
                 const dt   = new Date(a.appointment_at);
+                const past = dt < now;
                 const dateStr = dt.toLocaleDateString('fr-CA', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
                 const timeStr = dt.toLocaleTimeString('fr-CA', { hour:'2-digit', minute:'2-digit' });
-                return `<tr>
+                return `<tr style="${past ? 'opacity:.5' : ''}">
                   <td><strong>${esc(name)}</strong></td>
                   <td>${dateStr} à ${timeStr}</td>
+                  <td><span style="font-size:.78rem;font-weight:600;color:${past ? 'var(--muted)' : 'var(--success)'}">${past ? 'Passé' : '● À venir'}</span></td>
                   <td style="color:var(--muted);font-size:.82rem">${esc(a.note || '—')}</td>
                   <td>
                     <div class="td-actions">
