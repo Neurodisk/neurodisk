@@ -2840,7 +2840,8 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
                            <button class="btn btn--ghost btn--sm" onclick="sendMagicLink('${esc(p.email)}', this)">✉️ Envoyer un lien</button>
                            <button class="btn btn--ghost btn--sm" onclick="openAssignSection('${p.id}')">Gérer les accès</button>
                            <button class="btn btn--ghost btn--sm" onclick="openPatientForms('${p.id}', '${esc(p.full_name || p.email)}')">📋 Formulaires</button>
-                           <button class="btn btn--ghost btn--sm" onclick="openPasswordModal('${p.id}', '${esc(p.full_name || p.email)}', '${esc(p.email)}')">🔑 Mot de passe</button>`
+                           <button class="btn btn--ghost btn--sm" onclick="openPasswordModal('${p.id}', '${esc(p.full_name || p.email)}', '${esc(p.email)}')">🔑 Mot de passe</button>
+                           ${!currentUserIsPro ? `<button class="btn btn--danger btn--sm" onclick="erasePatient('${p.id}', '${esc(p.email)}', this)">🗑 Effacer</button>` : ''}`
                       }
                     </div>
                   </td>
@@ -2932,6 +2933,24 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         btn.textContent = '✉️ Envoyer un lien';
         btn.disabled = false;
       }
+    };
+
+    // ── Effacement définitif d'un patient (Loi 25, droit à l'effacement) ──
+    window.erasePatient = async (patientId, email, btn) => {
+      const typed = prompt(
+        `⚠️ EFFACEMENT DÉFINITIF\n\nCeci supprime le compte « ${email} » et TOUTES ses données ` +
+        `(programmes, formulaires, exercices, messages…). Action IRRÉVERSIBLE.\n\n` +
+        `Pour confirmer, tapez l'adresse courriel du patient :`);
+      if (typed === null) return;
+      if (typed.trim().toLowerCase() !== email.toLowerCase()) {
+        toast('Courriel non conforme — effacement annulé.', 'error');
+        return;
+      }
+      btn.disabled = true;
+      const { error } = await sb.rpc('delete_patient', { p_id: patientId });
+      if (error) { toast('Erreur : ' + error.message, 'error'); btn.disabled = false; return; }
+      toast('Patient effacé définitivement.', 'success');
+      await loadPatients();
     };
 
     window.openAssignSection = (patientId) => {
