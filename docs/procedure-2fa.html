@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Procédure — Activer la double authentification (2FA)</title>
+<style>
+  @page { margin: 1.5cm; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #1f2937;
+         line-height: 1.55; max-width: 720px; margin: 0 auto; padding: 2rem; font-size: 14px; }
+  header { border-bottom: 3px solid #1B2B6B; padding-bottom: .8rem; margin-bottom: 1.2rem; }
+  h1 { color: #1B2B6B; font-size: 1.4rem; margin: 0 0 .2rem; }
+  .sub { color: #6b7280; font-size: .9rem; }
+  h2 { color: #1B2B6B; font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+  ol { margin: .4rem 0 .4rem 1.2rem; padding: 0; }
+  li { margin-bottom: .35rem; }
+  .box { background: #f3f5fb; border-left: 4px solid #1B2B6B; padding: .8rem 1rem; border-radius: 6px; margin: .8rem 0; }
+  .tip { background: #fff8e6; border-left-color: #d99e00; }
+  .apps { font-size: .9rem; color: #374151; }
+  code { background: #eef0f5; padding: .1rem .35rem; border-radius: 4px; font-size: .9em; }
+  footer { margin-top: 2rem; border-top: 1px solid #e5e7eb; padding-top: .6rem; font-size: .78rem; color: #9ca3af; }
+  .role { font-weight: 600; color: #1B2B6B; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>🔐 Activer la double authentification (2FA)</h1>
+    <div class="sub">Clinique Neurodisk — Sécurité des dossiers (Loi 25) · Obligatoire pour les administrateurs et professionnels</div>
+  </header>
+
+  <p><strong>Pourquoi ?</strong> La double authentification ajoute un code à usage unique en plus de votre
+  mot de passe. Même si quelqu'un découvrait votre mot de passe, il ne pourrait pas accéder aux dossiers
+  sans votre téléphone. C'est exigé pour protéger les renseignements de santé.</p>
+
+  <div class="box apps">
+    <strong>Étape 0 — Installez une application d'authentification</strong> sur votre téléphone (gratuit) :<br>
+    Google Authenticator · Microsoft Authenticator · Authy. Téléchargez-la depuis l'App Store ou Google Play.
+  </div>
+
+  <h2>1. Connectez-vous au site</h2>
+  <ol>
+    <li>Allez sur <code>https://neurodisk.gabrielgirard-kin.workers.dev</code></li>
+    <li>Entrez votre courriel et votre mot de passe habituels.</li>
+  </ol>
+
+  <h2>2. Ouvrez la section 2FA</h2>
+  <ol>
+    <li><span class="role">Administrateurs :</span> dans le panneau d'administration, cliquez sur le bouton
+      <strong>🔐 2FA</strong> en haut à droite.</li>
+    <li><span class="role">Professionnels :</span> dans votre bibliothèque, cliquez sur le bouton
+      <strong>🔐 2FA</strong> en haut à droite.</li>
+  </ol>
+
+  <h2>3. Scannez et activez</h2>
+  <ol>
+    <li>Un <strong>QR code</strong> s'affiche. Ouvrez votre application d'authentification et choisissez
+      « Scanner un code ».</li>
+    <li>Scannez le QR code à l'écran. Une entrée « Neurodisk » apparaît dans l'app avec un
+      <strong>code à 6 chiffres</strong> qui change toutes les 30 secondes.</li>
+    <li>Entrez ce code à 6 chiffres dans le champ, puis cliquez <strong>Activer le 2FA</strong>.</li>
+    <li>C'est fait ! ✅</li>
+  </ol>
+
+  <div class="box tip">
+    <strong>Important — gardez votre clé de secours.</strong> Sous le QR code se trouve une
+    « clé manuelle ». Notez-la et conservez-la en lieu sûr : elle permet de reconfigurer le 2FA
+    si vous changez ou perdez votre téléphone.
+  </div>
+
+  <h2>4. Aux prochaines connexions</h2>
+  <p>Après votre mot de passe, le site vous demandera le <strong>code à 6 chiffres</strong> affiché
+  dans votre application. Entrez-le pour accéder aux dossiers.</p>
+
+  <div class="box">
+    <strong>Téléphone perdu ou bloqué ?</strong> Contactez votre administrateur. Il peut réinitialiser
+    votre 2FA pour que vous puissiez vous reconnecter et le reconfigurer.
+  </div>
+
+  <footer>
+    Clinique Neurodisk — Procédure interne de sécurité · Conforme aux exigences de la Loi 25 sur la
+    protection des renseignements personnels.
+  </footer>
+</body>
+</html>
