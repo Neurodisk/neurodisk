@@ -1269,8 +1269,15 @@
       _chatUserName = userName;
       document.getElementById('libChatBtn').style.display = 'block';
       await _chatEnsureGeneral();
+      await _chatLoadProfiles();
       await _chatLoadConvs();
       _chatSubscribe();
+    }
+
+    async function _chatLoadProfiles() {
+      const { data, error } = await supabase.rpc('chat_staff_profiles');
+      if (error) { console.error('[chat] profiles:', error); return; }
+      _chatProfiles = data || [];
     }
 
     async function _chatEnsureGeneral() {
@@ -1288,11 +1295,7 @@
         supabase.from('chat_messages').select('conversation_id,content,created_at,sender_id,attachment_url').in('conversation_id',ids).order('created_at',{ascending:false}),
         supabase.from('chat_messages').select('conversation_id,read_by').in('conversation_id',ids).not('read_by','cs',`{${_chatUserId}}`),
       ]);
-      const pIds=[...new Set((allP||[]).map(p=>p.user_id))];
-      if (pIds.length) {
-        const {data:pr}=await supabase.from('profiles').select('id,full_name,email').in('id',pIds);
-        _chatProfiles=pr||[];
-      }
+      if (!_chatProfiles.length) await _chatLoadProfiles();
       const lastMap={}, unreadMap={}, partMap={};
       (lastM||[]).forEach(m=>{ if(!lastMap[m.conversation_id]) lastMap[m.conversation_id]=m; });
       (unreadM||[]).forEach(m=>{ unreadMap[m.conversation_id]=(unreadMap[m.conversation_id]||0)+1; });
@@ -1340,6 +1343,8 @@
       _chatRenderList();
       const c=_chatConvs.find(x=>x.id===convId);
       document.getElementById('libChatConvName').textContent=c?.type==='group'?'#'+c.displayName:c?.displayName||'';
+      const rn=document.getElementById('libChatRenameBtn');
+      if(rn) rn.style.display=(c?.type==='group'&&c?.name!=='général')?'flex':'none';
       document.getElementById('libChatMsgsPane').style.display='flex';
       document.getElementById('libChatNoConv').style.display='none';
       document.getElementById('libChatMsgsList').innerHTML='<div class="lc-empty">Chargement…</div>';
@@ -1389,10 +1394,7 @@
       _chatChannel=supabase.channel('lib-chat')
         .on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_messages'},async p=>{
           const m=p.new;
-          if(!_chatProfiles.find(x=>x.id===m.sender_id)){
-            const {data}=await supabase.from('profiles').select('id,full_name,email').eq('id',m.sender_id).single();
-            if(data) _chatProfiles.push(data);
-          }
+          if(!_chatProfiles.find(x=>x.id===m.sender_id)) await _chatLoadProfiles();
           if(_chatConvId===m.conversation_id){
             await _chatRenderMsgs(m.conversation_id);
             await _chatMarkRead(m.conversation_id);
@@ -1424,10 +1426,10 @@
     }
 
     window._chatOpenNewConv = async () => {
-      const {data:pros}=await supabase.from('profiles').select('id,full_name,email,is_admin,is_professional').or('is_admin.eq.true,is_professional.eq.true').neq('id',_chatUserId);
-      _chatProfiles=[..._chatProfiles,...(pros||[]).filter(p=>!_chatProfiles.find(x=>x.id===p.id))];
+      if (!_chatProfiles.length) await _chatLoadProfiles();
+      const pros=_chatProfiles.filter(p=>p.id!==_chatUserId);
       const ul=document.getElementById('libChatUserList');
-      ul.innerHTML=(pros||[]).map(p=>{
+      ul.innerHTML=pros.map(p=>{
         const role=p.is_admin&&!p.is_professional?'Admin':'Professionnel';
         return `<div class="lc-user-item" onclick="_chatStartDirect('${p.id}')">
           <div class="lc-av" style="${_chatAvStyle(p.full_name||p.email)}">${_chatInit(p.full_name||p.email)}</div>
@@ -1436,6 +1438,47 @@
       }).join('');
       document.getElementById('libChatUserSearch').value='';
       document.getElementById('libModalNewConv').classList.add('is-open');
+    };
+
+    window._chatOpenNewGroup = async () => {
+      if (!_chatProfiles.length) await _chatLoadProfiles();
+      const pros=_chatProfiles.filter(p=>p.id!==_chatUserId);
+      const ul=document.getElementById('libChatGroupList');
+      ul.innerHTML=pros.map(p=>`<label class="lc-user-item" style="cursor:pointer">
+        <input type="checkbox" value="${p.id}" style="margin-right:.4rem;width:16px;height:16px;accent-color:#185FA5">
+        <div class="lc-av" style="${_chatAvStyle(p.full_name||p.email)}">${_chatInit(p.full_name||p.email)}</div>
+        <div><div class="lc-user-name">${_esc(p.full_name||p.email)}</div></div>
+      </label>`).join('');
+      document.getElementById('libGroupName').value='';
+      document.getElementById('libModalNewGroup').classList.add('is-open');
+    };
+
+    window._chatCreateGroup = async () => {
+      const name=document.getElementById('libGroupName').value.trim();
+      if(!name){ alert('Donnez un nom au groupe.'); return; }
+      const ids=[...document.querySelectorAll('#libChatGroupList input:checked')].map(c=>c.value);
+      if(!ids.length){ alert('Sélectionnez au moins un membre.'); return; }
+      document.getElementById('libModalNewGroup').classList.remove('is-open');
+      document.getElementById('libChatPanel').classList.add('is-open');
+      try {
+        const { data: convId, error } = await supabase.rpc('create_group_conversation', { group_name: name, member_ids: ids });
+        if (error) throw error;
+        await _chatLoadConvs();
+        await window._chatOpen(convId);
+      } catch(err){ console.error('[chat] createGroup:', err); }
+    };
+
+    window._chatRenameGroup = async () => {
+      const c=_chatConvs.find(x=>x.id===_chatConvId);
+      if(!c||c.type!=='group') return;
+      const newName=prompt('Nouveau nom du groupe :', c.displayName);
+      if(!newName||!newName.trim()) return;
+      try {
+        const { error } = await supabase.rpc('rename_conversation', { conv_id: _chatConvId, new_name: newName.trim() });
+        if (error) throw error;
+        await _chatLoadConvs();
+        document.getElementById('libChatConvName').textContent='#'+newName.trim();
+      } catch(err){ console.error('[chat] rename:', err); }
     };
 
     window._chatStartDirect = async (otherId) => {
@@ -1469,5 +1512,6 @@
         document.querySelectorAll('#libChatUserList .lc-user-item').forEach(el=>{el.style.display=el.textContent.toLowerCase().includes(q)?'':'none';});
       });
       document.getElementById('libModalNewConv').addEventListener('click',e=>{if(e.target===document.getElementById('libModalNewConv'))document.getElementById('libModalNewConv').classList.remove('is-open');});
+      document.getElementById('libModalNewGroup').addEventListener('click',e=>{if(e.target===document.getElementById('libModalNewGroup'))document.getElementById('libModalNewGroup').classList.remove('is-open');});
     }
 

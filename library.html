@@ -271,8 +271,8 @@
     .lc-send-btn{width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:#185FA5;border-radius:6px;border:none;cursor:pointer;flex-shrink:0}
     .lc-send-btn svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round}
     .lc-no-conv{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.5rem;color:#8a9cb0;font-size:.82rem}
-    #libModalNewConv{position:fixed;inset:0;background:rgba(10,20,50,.5);z-index:900;display:none;align-items:center;justify-content:center;padding:1rem}
-    #libModalNewConv.is-open{display:flex}
+    #libModalNewConv,#libModalNewGroup{position:fixed;inset:0;background:rgba(10,20,50,.5);z-index:900;display:none;align-items:center;justify-content:center;padding:1rem}
+    #libModalNewConv.is-open,#libModalNewGroup.is-open{display:flex}
     #libModalNewConvBox{background:#fff;border-radius:12px;width:100%;max-width:380px;padding:1.25rem}
     #libModalNewConvBox h3{font-size:.95rem;font-weight:700;margin-bottom:.75rem}
     #libChatUserSearch{width:100%;border:1px solid #ccdaeb;border-radius:8px;padding:.45rem .7rem;font-size:.84rem;margin-bottom:.65rem;outline:none}
@@ -304,9 +304,13 @@
         <div class="lc-convs-hd">Conversations</div>
         <div id="libChatConvList"></div>
         <button class="lc-new-btn" onclick="_chatOpenNewConv()">+ Nouveau message</button>
+        <button class="lc-new-btn" onclick="_chatOpenNewGroup()" style="margin-top:0">+ Nouveau groupe</button>
       </div>
       <div id="libChatMsgsPane" style="display:none;flex:1;flex-direction:column;overflow:hidden" class="lc-msgs-pane">
-        <div class="lc-msgs-hd"><h4 id="libChatConvName"></h4></div>
+        <div class="lc-msgs-hd" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem">
+          <h4 id="libChatConvName"></h4>
+          <button id="libChatRenameBtn" onclick="_chatRenameGroup()" style="display:none;align-items:center;gap:.3rem;background:none;border:1px solid #ccdaeb;border-radius:6px;padding:.2rem .5rem;font-size:.72rem;color:#5a7085;cursor:pointer">✏️ Renommer</button>
+        </div>
         <div class="lc-msgs-list" id="libChatMsgsList"></div>
         <div class="lc-input-bar">
           <button class="lc-attach-btn" id="libChatAttachBtn" aria-label="Joindre un fichier">
@@ -337,6 +341,20 @@
     </div>
   </div>
 
-  <script type="module" src="/js/library.js?v=19"></script>
+  <!-- Modale nouveau groupe -->
+  <div id="libModalNewGroup" role="dialog" aria-modal="true" aria-label="Nouveau groupe">
+    <div id="libModalNewConvBox">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+        <h3>Nouveau groupe</h3>
+        <button onclick="document.getElementById('libModalNewGroup').classList.remove('is-open')" style="background:none;border:none;cursor:pointer;font-size:1rem;color:#5a7085">✕</button>
+      </div>
+      <input type="text" id="libGroupName" placeholder="Nom du groupe…" aria-label="Nom du groupe" style="width:100%;border:1px solid #ccdaeb;border-radius:8px;padding:.45rem .7rem;font-size:.84rem;margin-bottom:.65rem;outline:none">
+      <div style="font-size:.78rem;color:#5a7085;margin-bottom:.4rem">Sélectionnez les membres :</div>
+      <div id="libChatGroupList" style="max-height:220px;overflow-y:auto;border:1px solid #e8eef5;border-radius:8px;margin-bottom:.75rem"></div>
+      <button onclick="_chatCreateGroup()" style="width:100%;background:#185FA5;color:#fff;border:none;border-radius:8px;padding:.55rem;font-size:.85rem;font-weight:600;cursor:pointer">Créer le groupe</button>
+    </div>
+  </div>
+
+  <script type="module" src="/js/library.js?v=20"></script>
 </body>
 </html>

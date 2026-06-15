@@ -572,8 +572,8 @@
     /* Aucune conv sélectionnée */
     .chat-no-conv { flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.5rem;color:#8a9cb0;font-size:.82rem }
     /* Modal nouveau message */
-    #modalNewConv { position:fixed;inset:0;background:rgba(10,20,50,.5);z-index:900;display:none;align-items:center;justify-content:center;padding:1rem }
-    #modalNewConv.is-open { display:flex }
+    #modalNewConv,#modalNewGroup { position:fixed;inset:0;background:rgba(10,20,50,.5);z-index:900;display:none;align-items:center;justify-content:center;padding:1rem }
+    #modalNewConv.is-open,#modalNewGroup.is-open { display:flex }
     #modalNewConvBox { background:#fff;border-radius:12px;width:100%;max-width:380px;padding:1.25rem }
     #modalNewConvBox h3 { font-size:.95rem;font-weight:700;margin-bottom:.75rem }
     #chatUserSearch { width:100%;border:1px solid #ccdaeb;border-radius:8px;padding:.45rem .7rem;font-size:.84rem;margin-bottom:.65rem;outline:none }
@@ -5829,8 +5829,15 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       chatCurrentUserName = userName;
       document.getElementById('chatFloatBtn').style.display = 'block';
       await ensureGeneralGroup();
+      await loadChatProfiles();
       await loadChatConversations();
       subscribeChatRealtime();
+    }
+
+    async function loadChatProfiles() {
+      const { data, error } = await sb.rpc('chat_staff_profiles');
+      if (error) { console.error('[chat] profiles:', error); return; }
+      chatAllProfiles = data || [];
     }
 
     async function ensureGeneralGroup() {
@@ -5854,11 +5861,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
           .not('read_by', 'cs', `{${chatCurrentUserId}}`),
       ]);
 
-      const profileIds = [...new Set((allParts||[]).map(p => p.user_id))];
-      if (profileIds.length) {
-        const { data: profiles } = await sb.from('profiles').select('id, full_name, email').in('id', profileIds);
-        chatAllProfiles = profiles || [];
-      }
+      if (!chatAllProfiles.length) await loadChatProfiles();
 
       const lastMsgMap = {};
       (lastMsgs||[]).forEach(m => { if (!lastMsgMap[m.conversation_id]) lastMsgMap[m.conversation_id] = m; });
@@ -5923,6 +5926,8 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         ? (await sb.from('chat_participants').select('id', {count:'exact'}).eq('conversation_id',convId)).count
         : null;
       document.getElementById('chatConvSub').textContent = conv?.type === 'group' ? `${partCount||''} membres` : 'Conversation privée';
+      const rn = document.getElementById('chatRenameBtn');
+      if (rn) rn.style.display = (conv?.type === 'group' && conv?.name !== 'général') ? 'flex' : 'none';
       document.getElementById('chatMsgsPaneWrap').style.display = 'flex';
       document.getElementById('chatNoConv').style.display = 'none';
       document.getElementById('chatMsgsList').innerHTML = `<div class="chat-empty">Chargement…</div>`;
@@ -5988,10 +5993,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         .on('postgres_changes', { event:'INSERT', schema:'public', table:'chat_messages' }, async payload => {
           const msg = payload.new;
           if (chatCurrentConvId === msg.conversation_id) {
-            if (!chatAllProfiles.find(p => p.id === msg.sender_id)) {
-              const { data } = await sb.from('profiles').select('id, full_name, email').eq('id', msg.sender_id).single();
-              if (data) chatAllProfiles.push(data);
-            }
+            if (!chatAllProfiles.find(p => p.id === msg.sender_id)) await loadChatProfiles();
             await renderChatMessages(msg.conversation_id);
             await markChatRead(msg.conversation_id);
           } else {
@@ -6041,13 +6043,10 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     }
 
     window.openNewConvModal = async () => {
-      const { data: pros } = await sb.from('profiles')
-        .select('id, full_name, email, is_admin, is_professional')
-        .or('is_admin.eq.true,is_professional.eq.true')
-        .neq('id', chatCurrentUserId);
-      chatAllProfiles = [...chatAllProfiles, ...(pros||[]).filter(p => !chatAllProfiles.find(x => x.id===p.id))];
+      if (!chatAllProfiles.length) await loadChatProfiles();
+      const pros = chatAllProfiles.filter(p => p.id !== chatCurrentUserId);
       const list = document.getElementById('chatUserList');
-      list.innerHTML = (pros||[]).map(p => {
+      list.innerHTML = pros.map(p => {
         const role = p.is_admin && !p.is_professional ? 'Admin' : 'Professionnel';
         return `<div class="chat-user-item" onclick="startDirectConv('${p.id}')">
           <div class="chat-conv-avatar" style="${chatAvatarStyle(p.full_name||p.email)};width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;border-radius:50%">
@@ -6061,6 +6060,47 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       }).join('');
       document.getElementById('chatUserSearch').value = '';
       document.getElementById('modalNewConv').classList.add('is-open');
+    };
+
+    window.openNewGroupModal = async () => {
+      if (!chatAllProfiles.length) await loadChatProfiles();
+      const pros = chatAllProfiles.filter(p => p.id !== chatCurrentUserId);
+      const list = document.getElementById('chatGroupList');
+      list.innerHTML = pros.map(p => `<label class="chat-user-item" style="cursor:pointer">
+        <input type="checkbox" value="${p.id}" style="margin-right:.4rem;width:16px;height:16px;accent-color:#185FA5">
+        <div class="chat-conv-avatar" style="${chatAvatarStyle(p.full_name||p.email)};width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;border-radius:50%">${chatInitials(p.full_name||p.email)}</div>
+        <div><div class="chat-user-item-name">${esc(p.full_name||p.email)}</div></div>
+      </label>`).join('');
+      document.getElementById('chatGroupName').value = '';
+      document.getElementById('modalNewGroup').classList.add('is-open');
+    };
+
+    window.createGroupConv = async () => {
+      const name = document.getElementById('chatGroupName').value.trim();
+      if (!name) { toast('Donnez un nom au groupe.', 'error'); return; }
+      const ids = [...document.querySelectorAll('#chatGroupList input:checked')].map(c => c.value);
+      if (!ids.length) { toast('Sélectionnez au moins un membre.', 'error'); return; }
+      document.getElementById('modalNewGroup').classList.remove('is-open');
+      document.getElementById('chatPanel').classList.add('is-open');
+      try {
+        const { data: convId, error } = await sb.rpc('create_group_conversation', { group_name: name, member_ids: ids });
+        if (error) throw error;
+        await loadChatConversations();
+        await window.openChatConv(convId);
+      } catch(err) { console.error('[chat] createGroup:', err); toast('Erreur : ' + err.message, 'error'); }
+    };
+
+    window.renameGroupConv = async () => {
+      const conv = chatConversations.find(c => c.id === chatCurrentConvId);
+      if (!conv || conv.type !== 'group') return;
+      const newName = prompt('Nouveau nom du groupe :', conv.displayName);
+      if (!newName || !newName.trim()) return;
+      try {
+        const { error } = await sb.rpc('rename_conversation', { conv_id: chatCurrentConvId, new_name: newName.trim() });
+        if (error) throw error;
+        await loadChatConversations();
+        document.getElementById('chatConvName').textContent = '#' + newName.trim();
+      } catch(err) { console.error('[chat] rename:', err); toast('Erreur : ' + err.message, 'error'); }
     };
 
     window.startDirectConv = async (otherUserId) => {
@@ -6109,6 +6149,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     });
     document.getElementById('modalNewConv').addEventListener('click', e => {
       if (e.target === document.getElementById('modalNewConv')) document.getElementById('modalNewConv').classList.remove('is-open');
+    });
+    document.getElementById('modalNewGroup').addEventListener('click', e => {
+      if (e.target === document.getElementById('modalNewGroup')) document.getElementById('modalNewGroup').classList.remove('is-open');
     });
 
     document.getElementById('btnPwdSet').addEventListener('click', async () => {
@@ -6202,6 +6245,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         <div class="chat-convs-header"><h3>Conversations</h3></div>
         <div id="chatConvList"></div>
         <button class="chat-new-btn" onclick="openNewConvModal()">+ Nouveau message</button>
+        <button class="chat-new-btn" onclick="openNewGroupModal()" style="margin-top:0">+ Nouveau groupe</button>
       </div>
       <!-- Zone messages -->
       <div id="chatMsgsPaneWrap" style="display:none;flex:1;flex-direction:column;overflow:hidden" class="chat-msgs-pane">
@@ -6210,6 +6254,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
             <h4 id="chatConvName"></h4>
             <p id="chatConvSub"></p>
           </div>
+          <button id="chatRenameBtn" onclick="renameGroupConv()" style="display:none;align-items:center;gap:.3rem;background:none;border:1px solid #ccdaeb;border-radius:6px;padding:.2rem .5rem;font-size:.72rem;color:#5a7085;cursor:pointer">✏️ Renommer</button>
         </div>
         <div class="chat-msgs-list" id="chatMsgsList"></div>
         <div class="chat-input-bar">
@@ -6239,6 +6284,20 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       </div>
       <input type="text" id="chatUserSearch" placeholder="Rechercher un professionnel…" aria-label="Rechercher">
       <div id="chatUserList"></div>
+    </div>
+  </div>
+
+  <!-- ── Modale nouveau groupe ──────────────────────────── -->
+  <div id="modalNewGroup" role="dialog" aria-label="Nouveau groupe" aria-modal="true">
+    <div id="modalNewConvBox">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+        <h3>Nouveau groupe</h3>
+        <button onclick="document.getElementById('modalNewGroup').classList.remove('is-open')" style="background:none;border:none;cursor:pointer;font-size:1rem;color:#5a7085">✕</button>
+      </div>
+      <input type="text" id="chatGroupName" placeholder="Nom du groupe…" aria-label="Nom du groupe" style="width:100%;border:1px solid #ccdaeb;border-radius:8px;padding:.45rem .7rem;font-size:.84rem;margin-bottom:.65rem;outline:none">
+      <div style="font-size:.78rem;color:#5a7085;margin-bottom:.4rem">Sélectionnez les membres :</div>
+      <div id="chatGroupList" style="max-height:220px;overflow-y:auto;border:1px solid #e8eef5;border-radius:8px;margin-bottom:.75rem"></div>
+      <button onclick="createGroupConv()" style="width:100%;background:#185FA5;color:#fff;border:none;border-radius:8px;padding:.55rem;font-size:.85rem;font-weight:600;cursor:pointer">Créer le groupe</button>
     </div>
   </div>
 
