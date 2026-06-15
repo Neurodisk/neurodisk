@@ -675,7 +675,7 @@
 
         <div style="margin-bottom:1rem;max-width:320px;position:relative">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="patientSearch" placeholder="Rechercher par nom…" style="width:100%;padding:.5rem .75rem .5rem 2.1rem;border:1.5px solid var(--border);border-radius:8px;font-size:.875rem;background:#fff" oninput="renderPatientsTable()">
+          <input type="text" id="patientSearch" placeholder="Rechercher par nom…" style="width:100%;padding:.5rem .75rem .5rem 2.1rem;border:1.5px solid var(--border);border-radius:8px;font-size:.875rem;background:#fff">
         </div>
 
         <div id="patientsTableWrap">
@@ -2504,6 +2504,8 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         patientProgress[p.id] = { done, total };
       });
     }
+
+    document.getElementById('patientSearch').addEventListener('input', () => renderPatientsTable());
 
     function renderPatientsTable() {
       const wrap = document.getElementById('patientsTableWrap');
