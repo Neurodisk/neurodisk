@@ -254,11 +254,12 @@ const sst = buildDoc('Grille d’évaluation des sous-traitants',
 
   H1('2. Fournisseurs actuels'),
   table([
-    ['Fournisseur', 'Rôle', 'Localisation des données', 'À vérifier'],
-    ['Supabase', 'Base de données, authentification, stockage', 'Canada (ca-central-1)', 'DPA signé, certifications (SOC 2)'],
-    ['Cloudflare', 'Diffusion du site, sécurité réseau', 'Mondial (CDN); contenu statique', 'DPA, engagements de sécurité'],
-    ['Bunny.net', 'Diffusion des vidéos d’exercices (contenu générique, sans données patient)', 'Europe / É.-U.', 'Confirmer absence de données personnelles'],
+    ['Fournisseur', 'Rôle', 'Localisation des données', 'Statut Loi 25'],
+    ['Supabase', 'Base de données, authentification, stockage des dossiers', 'Canada (ca-central-1)', 'DANS LA PORTÉE — DPA et certifications (SOC 2) à confirmer'],
+    ['Cloudflare', 'Diffusion du site, sécurité réseau', 'Mondial (CDN); contenu statique', 'Portée limitée — DPA et engagements de sécurité à confirmer'],
+    ['Bunny.net', 'Diffusion des vidéos de démonstration d’exercices (contenu générique)', 'Europe / É.-U.', 'HORS PORTÉE — aucun renseignement personnel*'],
   ], [1700, 2700, 2360, 2600]),
+  SMALL('* Bunny ne traite aucun renseignement personnel : seules des vidéos génériques d’exercices y sont stockées. Les obligations sous-traitant de la Loi 25 (entente écrite, évaluation de transfert hors Québec) ne s’y appliquent donc pas — À CONDITION qu’aucune vidéo identifiant un patient n’y soit jamais déposée. Si un tel besoin survenait, ces vidéos devraient être stockées dans Supabase (Canada) et Bunny passerait alors « dans la portée ».'),
 
   H1('3. Points à confirmer pour chaque fournisseur'),
   BULLET('Une entente de traitement des données (DPA) est signée.'),
@@ -276,7 +277,7 @@ const sst = buildDoc('Grille d’évaluation des sous-traitants',
     ['Fournisseur', 'DPA signé (date)', 'Évaluation faite (date)', 'Prochaine révision'],
     ['Supabase', '', '', ''],
     ['Cloudflare', '', '', ''],
-    ['Bunny.net', '', '', ''],
+    ['Bunny.net', 'S.O. — hors portée', 'S.O.', 'À revoir si ajout de vidéos patient'],
   ], [2400, 2320, 2320, 2320]),
 ]);
 
