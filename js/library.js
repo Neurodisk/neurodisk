@@ -25,12 +25,17 @@
     let allResources = [];
     let allCategories = [];
     let allPatientForms = [];
+    let currentView = 'patient'; // 'patient' | 'professional'
+    let _userId = null;
+    let _isAdmin = false;
     const loader = document.getElementById('pageLoader');
 
     async function loadCategories() {
+      const audience = currentView === 'professional' ? 'professional' : 'patient';
       const { data } = await supabase
         .from('resource_categories')
         .select('*')
+        .eq('audience', audience)
         .order('sort_order');
       allCategories = data || [];
       renderTiles();
@@ -79,9 +84,20 @@
 
       const { data: profile } = await supabase.from('profiles').select('is_admin, is_professional').eq('id', user.id).single();
       const isAdmin = profile?.is_admin === true;
-      const isPro = profile?.is_professional === true;
+      const isPro   = profile?.is_professional === true;
+      _userId  = user.id;
+      _isAdmin = isAdmin;
+
       if (isAdmin && !isPro) document.getElementById('btnAdmin').style.display = 'flex';
-      if (isPro) document.getElementById('btnProfessionnel').style.display = 'flex';
+      if (isPro) {
+        document.getElementById('btnProfessionnel').style.display = 'flex';
+        // Afficher le toggle de vue
+        const toggle = document.getElementById('viewToggle');
+        if (toggle) toggle.style.display = 'flex';
+        document.getElementById('btnViewPatient').addEventListener('click', () => switchView('patient'));
+        document.getElementById('btnViewPro').addEventListener('click',     () => switchView('professional'));
+        updateToggleUI();
+      }
 
       await Promise.all([loadCategories(), loadResources(user.id, isAdmin), loadPatientForms(user.id, isAdmin), loadNextAppointment(user.id)]);
     }
@@ -114,17 +130,35 @@
       document.getElementById('greeting').innerHTML = `${s}, <strong>${esc(name.split(' ')[0])}</strong>`;
     }
 
+    function updateToggleUI() {
+      const btnP = document.getElementById('btnViewPatient');
+      const btnR = document.getElementById('btnViewPro');
+      if (!btnP || !btnR) return;
+      btnP.className = currentView === 'patient'       ? 'nav-btn nav-btn--primary' : 'nav-btn nav-btn--ghost';
+      btnR.className = currentView === 'professional'  ? 'nav-btn nav-btn--primary' : 'nav-btn nav-btn--ghost';
+    }
+
+    async function switchView(view) {
+      if (currentView === view) return;
+      currentView = view;
+      updateToggleUI();
+      await Promise.all([loadCategories(), loadResources(_userId, _isAdmin)]);
+    }
+
     async function loadResources(userId, isAdmin = false) {
+      const audience = currentView === 'professional' ? 'professional' : 'patient';
       try {
         let resources;
         if (isAdmin) {
-          const { data, error } = await supabase.from('resources').select('*').order('condition_tag').order('sort_order');
+          const { data, error } = await supabase.from('resources').select('*')
+            .eq('audience', audience).order('condition_tag').order('sort_order');
           if (error) throw error;
           resources = data;
         } else {
-          const { data, error } = await supabase.from('patient_resources').select(`assigned_at, resource:resources (id,title,description,type,condition_tag,category,bunny_video_id,pdf_url,thumbnail_url,duration_sec,sort_order)`).order('assigned_at', { ascending: false });
+          const { data, error } = await supabase.from('patient_resources').select(`assigned_at, resource:resources (id,title,description,type,condition_tag,category,bunny_video_id,pdf_url,thumbnail_url,duration_sec,sort_order,audience)`).order('assigned_at', { ascending: false });
           if (error) throw error;
-          resources = data.map(r => ({ ...r.resource, assigned_at: r.assigned_at })).filter(r => r?.id);
+          resources = data.map(r => ({ ...r.resource, assigned_at: r.assigned_at }))
+            .filter(r => r?.id && (r.audience || 'patient') === audience);
         }
         allResources = resources.sort((a, b) => a.sort_order - b.sort_order);
         renderCategories();

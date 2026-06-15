@@ -2323,9 +2323,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         const { data: profile } = await sb
           .from('profiles').select('is_admin, is_professional, email, full_name, allowed_sections').eq('id', session.user.id).single();
 
-        if (!profile?.is_admin) { redirect('/library.html'); return; }
+        if (!profile?.is_admin && !profile?.is_professional) { redirect('/library.html'); return; }
 
-        currentUserIsPro = profile.is_professional === true && !profile.is_admin;
+        currentUserIsPro = profile.is_professional === true;
 
         // Adapter l'interface selon le rôle
         if (currentUserIsPro) {
