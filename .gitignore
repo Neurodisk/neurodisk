@@ -29,3 +29,6 @@ build/
 
 # Supabase CLI
 supabase/.temp/
+
+# Documents Loi 25 internes (ne pas publier)
+docs/loi25/
