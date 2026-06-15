@@ -722,6 +722,16 @@
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
         Formulaires
       </a>
+
+      <!-- ── Groupe Sécurité ── -->
+      <div class="sidebar__group">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Sécurité
+      </div>
+      <a class="sidebar__link sidebar__sub admin-only" data-section="audit" href="#">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Journal d'audit
+      </a>
     </aside>
 
     <!-- Contenu -->
@@ -1443,6 +1453,37 @@
         </div>
         <div id="formsListWrap"><div class="empty-state">Chargement…</div></div>
 
+      </section>
+
+      <!-- ════════════════════════════════════ JOURNAL D'AUDIT ══ -->
+      <section id="sec-audit" class="section">
+        <div class="section-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Journal d'audit (Loi 25)
+        </div>
+        <div class="card">
+          <p style="font-size:.83rem;color:var(--muted);margin-bottom:1rem;line-height:1.6">
+            Traçabilité des accès et modifications aux renseignements de santé. Seuls les admins peuvent consulter ce journal.
+          </p>
+          <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:1rem">
+            <div class="field" style="margin:0">
+              <label for="auditFilterUser" style="font-size:.78rem">Utilisateur</label>
+              <input type="text" id="auditFilterUser" placeholder="courriel…" style="padding:.45rem .6rem">
+            </div>
+            <div class="field" style="margin:0">
+              <label for="auditFilterAction" style="font-size:.78rem">Action</label>
+              <select id="auditFilterAction" style="padding:.45rem .6rem">
+                <option value="">Toutes</option>
+                <option value="VIEW">Consultation</option>
+                <option value="INSERT">Création</option>
+                <option value="UPDATE">Modification</option>
+                <option value="DELETE">Suppression</option>
+              </select>
+            </div>
+            <button class="btn btn--ghost btn--sm" id="btnAuditRefresh">🔄 Rafraîchir</button>
+          </div>
+          <div id="auditTableWrap" style="overflow-x:auto"><div class="empty-state">Chargement…</div></div>
+        </div>
       </section>
 
     </main>
@@ -2570,6 +2611,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         } else if (sec === 'pro-assignments') {
           document.getElementById('sec-pro-assignments').classList.add('is-active');
           renderProAssignments();
+        } else if (sec === 'audit') {
+          document.getElementById('sec-audit').classList.add('is-active');
+          loadAuditLog();
         } else {
           document.getElementById('sec-' + sec).classList.add('is-active');
         }
@@ -2644,6 +2688,44 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       toast('2FA désactivé.', 'success');
       closeMfaModal();
     });
+
+    // ── Journal d'audit (Loi 25) ──────────────────────────
+    const AUDIT_ACTION_LABEL = { VIEW: '👁 Consultation', INSERT: '➕ Création', UPDATE: '✏️ Modification', DELETE: '🗑 Suppression' };
+    async function loadAuditLog() {
+      const wrap = document.getElementById('auditTableWrap');
+      wrap.innerHTML = `<div class="empty-state">Chargement…</div>`;
+      const fUser   = document.getElementById('auditFilterUser').value.trim();
+      const fAction = document.getElementById('auditFilterAction').value;
+      let q = sb.from('audit_log')
+        .select('occurred_at, user_email, action, table_name, record_id')
+        .order('occurred_at', { ascending: false })
+        .limit(300);
+      if (fUser)   q = q.ilike('user_email', `%${fUser}%`);
+      if (fAction) q = q.eq('action', fAction);
+      const { data, error } = await q;
+      if (error) { wrap.innerHTML = `<div class="empty-state">Erreur : ${esc(error.message)}</div>`; return; }
+      if (!data?.length) { wrap.innerHTML = `<div class="empty-state">Aucune entrée.</div>`; return; }
+      const rows = data.map(r => {
+        const d = new Date(r.occurred_at).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'short' });
+        return `<tr>
+          <td style="white-space:nowrap">${d}</td>
+          <td>${esc(r.user_email || '—')}</td>
+          <td style="white-space:nowrap">${AUDIT_ACTION_LABEL[r.action] || esc(r.action)}</td>
+          <td>${esc(r.table_name || '—')}</td>
+          <td style="font-family:monospace;font-size:.78rem;color:var(--muted)">${esc(r.record_id || '—')}</td>
+        </tr>`;
+      }).join('');
+      wrap.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.84rem">
+        <thead><tr style="text-align:left;border-bottom:2px solid var(--border)">
+          <th style="padding:.5rem">Date</th><th style="padding:.5rem">Utilisateur</th>
+          <th style="padding:.5rem">Action</th><th style="padding:.5rem">Table</th><th style="padding:.5rem">Dossier</th>
+        </tr></thead>
+        <tbody>${rows}</tbody></table>
+        <p style="font-size:.75rem;color:var(--muted);margin-top:.6rem">${data.length} entrée(s) — 300 plus récentes.</p>`;
+    }
+    document.getElementById('btnAuditRefresh').addEventListener('click', loadAuditLog);
+    document.getElementById('auditFilterAction').addEventListener('change', loadAuditLog);
+    document.getElementById('auditFilterUser').addEventListener('keyup', e => { if (e.key === 'Enter') loadAuditLog(); });
 
     // ══════════════════════════════════════════════════════
     // PATIENTS
