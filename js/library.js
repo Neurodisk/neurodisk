@@ -1293,7 +1293,7 @@
         supabase.from('chat_messages').select('conversation_id,read_by').in('conversation_id',ids).not('read_by','cs',`{${_chatUserId}}`),
       ]);
       const pIds=[...new Set((allP||[]).map(p=>p.user_id))];
-      if (!_chatProfiles.length && pIds.length) {
+      if (pIds.length) {
         const {data:pr}=await supabase.from('profiles').select('id,full_name,email').in('id',pIds);
         _chatProfiles=pr||[];
       }
@@ -1316,6 +1316,7 @@
 
     function _chatRenderList() {
       const el=document.getElementById('libChatConvList');
+      if (!el) return;
       el.innerHTML=_chatConvs.map(c=>{
         const isG=c.type==='group';
         const ini=isG?'#':_chatInit(c.displayName);
@@ -1443,26 +1444,33 @@
 
     window._chatStartDirect = async (otherId) => {
       document.getElementById('libModalNewConv').classList.remove('is-open');
-      const {data:myP}=await supabase.from('chat_participants').select('conversation_id').eq('user_id',_chatUserId);
-      const myIds=(myP||[]).map(p=>p.conversation_id);
-      if(myIds.length){
-        const {data:oP}=await supabase.from('chat_participants').select('conversation_id').eq('user_id',otherId).in('conversation_id',myIds);
-        for(const p of oP||[]){
-          const {data:c}=await supabase.from('chat_conversations').select('id,type').eq('id',p.conversation_id).single();
-          if(c?.type==='direct'){await window._chatOpen(c.id);await _chatLoadConvs();return;}
+      document.getElementById('libChatPanel').classList.add('is-open');
+      try {
+        const {data:myP}=await supabase.from('chat_participants').select('conversation_id').eq('user_id',_chatUserId);
+        const myIds=(myP||[]).map(p=>p.conversation_id);
+        if(myIds.length){
+          const {data:oP}=await supabase.from('chat_participants').select('conversation_id').eq('user_id',otherId).in('conversation_id',myIds);
+          for(const p of oP||[]){
+            const {data:c}=await supabase.from('chat_conversations').select('id,type').eq('id',p.conversation_id).single();
+            if(c?.type==='direct'){await _chatLoadConvs();await window._chatOpen(c.id);return;}
+          }
         }
+        const {data:conv,error}=await supabase.from('chat_conversations').insert({type:'direct'}).select().single();
+        if(error) throw error;
+        if(!conv) throw new Error('Conversation non créée');
+        const {error:e2}=await supabase.from('chat_participants').insert([{conversation_id:conv.id,user_id:_chatUserId},{conversation_id:conv.id,user_id:otherId}]);
+        if(e2) throw e2;
+        await _chatLoadConvs();
+        await window._chatOpen(conv.id);
+      } catch(err) {
+        console.error('[chat] startDirect:', err);
       }
-      const {data:conv}=await supabase.from('chat_conversations').insert({type:'direct'}).select().single();
-      if(!conv) return;
-      await supabase.from('chat_participants').insert([{conversation_id:conv.id,user_id:_chatUserId},{conversation_id:conv.id,user_id:otherId}]);
-      await _chatLoadConvs();
-      await window._chatOpen(conv.id);
     };
 
     function _chatBindEvents() {
       document.getElementById('libChatBtn').addEventListener('click',()=>{
         document.getElementById('libChatPanel').classList.toggle('is-open');
-        if(!_chatConvId&&_chatConvs.length) _chatOpen(_chatConvs[0].id);
+        if(!_chatConvId&&_chatConvs.length) window._chatOpen(_chatConvs[0].id);
       });
       document.getElementById('libChatClose').addEventListener('click',()=>document.getElementById('libChatPanel').classList.remove('is-open'));
       document.getElementById('libChatSendBtn').addEventListener('click',_chatSend);
