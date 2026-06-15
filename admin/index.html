@@ -2331,12 +2331,37 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         if (currentUserIsPro) {
           document.querySelector('.nav__brand span').textContent = 'Panel professionnel';
           const allowed = profile.allowed_sections || {};
-          // Masquer tous les items de la sidebar ayant data-perm, puis afficher seulement les autorisés
+
+          // 1. Cacher les admin-only qui n'ont PAS de data-perm (ex: "Gérer les professionnels")
+          document.querySelectorAll('.admin-only:not([data-perm])').forEach(el => el.style.display = 'none');
+
+          // 2. Filtrer par permissions — data-perm prime sur admin-only
           document.querySelectorAll('.sidebar__link[data-perm]').forEach(el => {
             el.style.display = allowed[el.dataset.perm] ? '' : 'none';
           });
-          // Masquer les admin-only et les groupes vides
-          document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+
+          // 3. Naviguer vers la première section autorisée
+          const firstAllowed = document.querySelector('.sidebar__link[data-perm]:not([style*="none"])');
+          if (firstAllowed) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('is-active'));
+            document.querySelectorAll('.sidebar__link').forEach(l => l.classList.remove('is-active'));
+            firstAllowed.classList.add('is-active');
+            const sec = firstAllowed.dataset.section;
+            const aud = firstAllowed.dataset.audience;
+            if (sec === 'resources' && aud) {
+              setAudienceUI('resource', aud); loadResources(); loadCategories();
+            } else if (sec === 'categories' && aud) {
+              setAudienceUI('category', aud); loadCategories();
+            } else {
+              const secEl = document.getElementById('sec-' + sec);
+              if (secEl) secEl.classList.add('is-active');
+            }
+          } else {
+            // Aucune permission → message
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('is-active'));
+            document.querySelector('.content').innerHTML =
+              `<div style="padding:3rem;text-align:center;color:var(--muted)">Aucune section n'a été activée pour votre compte. Contactez votre administrateur.</div>`;
+          }
         }
 
         adminEmail.textContent = profile.email;
