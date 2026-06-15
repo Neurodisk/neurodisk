@@ -2877,7 +2877,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
       try {
         const { data: { session } } = await sb.auth.getSession();
-        const resp = await fetch(`${SUPABASE_URL}/functions/v1/Set-patient-password`, {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/set-patient-password`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
           body: JSON.stringify({ email, password, fullName, role: 'patient' }),
@@ -2933,7 +2933,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         if (password) {
           // ── Création directe avec mot de passe via Edge Function ──
           const { data: { session } } = await sb.auth.getSession();
-          const resp = await fetch(`${SUPABASE_URL}/functions/v1/Set-patient-password`, {
+          const resp = await fetch(`${SUPABASE_URL}/functions/v1/set-patient-password`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -3788,7 +3788,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
       try {
         const { data: { session } } = await sb.auth.getSession();
-        const resp = await fetch(`${SUPABASE_URL}/functions/v1/Set-patient-password`, {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/set-patient-password`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -4395,7 +4395,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     // ══════════════════════════════════════════════════════
     // UPLOAD VIDÉO — Drag & Drop → Bunny.net
     // ══════════════════════════════════════════════════════
-    const EDGE_URL = 'https://jqxykxkikvrgwnajhhbi.supabase.co/functions/v1/clever-handler';
+    const EDGE_URL = 'https://jqxykxkikvrgwnajhhbi.supabase.co/functions/v1/create-bunny-video';
 
     const dropZone      = document.getElementById('dropZone');
     const fileInput     = document.getElementById('fileInput');
@@ -5428,7 +5428,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     // ══════════════════════════════════════════════════════
     // MODAL ÉDITION RESSOURCE
     // ══════════════════════════════════════════════════════
-    const EDGE_URL_EDIT = 'https://jqxykxkikvrgwnajhhbi.supabase.co/functions/v1/clever-handler';
+    const EDGE_URL_EDIT = 'https://jqxykxkikvrgwnajhhbi.supabase.co/functions/v1/create-bunny-video';
 
     const modalEdit      = document.getElementById('modalEdit');
     const formEditRes    = document.getElementById('formEditResource');
@@ -5675,7 +5675,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     let pwdTargetId = null;
 
     let pwdTargetEmail = null;
-    const SET_PWD_URL = 'https://jqxykxkikvrgwnajhhbi.supabase.co/functions/v1/Set-patient-password';
+    const SET_PWD_URL = 'https://jqxykxkikvrgwnajhhbi.supabase.co/functions/v1/set-patient-password';
 
     // ── Modal progression patient ─────────────────────────
     document.getElementById('modalProgClose').addEventListener('click', () => {
