@@ -6083,7 +6083,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
           .select('conversation_id').eq('user_id', otherUserId).in('conversation_id', myConvIds);
         for (const p of (otherParts||[])) {
           const { data: conv } = await sb.from('chat_conversations').select('id,type').eq('id', p.conversation_id).single();
-          if (conv?.type === 'direct') { await openChatConv(conv.id); await loadChatConversations(); return; }
+          if (conv?.type === 'direct') { await window.openChatConv(conv.id); await loadChatConversations(); return; }
         }
       }
       const { data: conv } = await sb.from('chat_conversations').insert({ type:'direct' }).select().single();
@@ -6093,7 +6093,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         { conversation_id: conv.id, user_id: otherUserId },
       ]);
       await loadChatConversations();
-      await openChatConv(conv.id);
+      await window.openChatConv(conv.id);
     };
 
     document.getElementById('chatUserSearch').addEventListener('input', function() {

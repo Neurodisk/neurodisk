@@ -1449,14 +1449,14 @@
         const {data:oP}=await supabase.from('chat_participants').select('conversation_id').eq('user_id',otherId).in('conversation_id',myIds);
         for(const p of oP||[]){
           const {data:c}=await supabase.from('chat_conversations').select('id,type').eq('id',p.conversation_id).single();
-          if(c?.type==='direct'){await _chatOpen(c.id);await _chatLoadConvs();return;}
+          if(c?.type==='direct'){await window._chatOpen(c.id);await _chatLoadConvs();return;}
         }
       }
       const {data:conv}=await supabase.from('chat_conversations').insert({type:'direct'}).select().single();
       if(!conv) return;
       await supabase.from('chat_participants').insert([{conversation_id:conv.id,user_id:_chatUserId},{conversation_id:conv.id,user_id:otherId}]);
       await _chatLoadConvs();
-      await _chatOpen(conv.id);
+      await window._chatOpen(conv.id);
     };
 
     function _chatBindEvents() {
