@@ -1274,8 +1274,16 @@
 
         <!-- Ajouter un formulaire -->
         <div class="card">
-          <div class="card__title">Ajouter un formulaire PDF</div>
+          <div class="card__title">Ajouter un formulaire</div>
           <div id="alertAddForm" class="alert"></div>
+
+          <!-- Sélecteur de type -->
+          <div style="display:flex;gap:.5rem;margin-bottom:1.25rem">
+            <button type="button" id="btnFormTypePdf" class="btn btn--primary btn--sm" style="border-radius:100px">📎 PDF</button>
+            <button type="button" id="btnFormTypeManuel" class="btn btn--ghost btn--sm" style="border-radius:100px">✏️ Questionnaire manuel</button>
+          </div>
+          <p id="formTypeHint" style="font-size:.8rem;color:var(--muted);margin:-0.75rem 0 1rem">Importez un PDF existant (consentement, questionnaire scanné, etc.)</p>
+
           <div class="form-grid">
             <div class="field">
               <label for="formTitle">Titre *</label>
@@ -1285,7 +1293,7 @@
               <label for="formDesc">Description <span style="font-weight:400;color:var(--muted)">optionnel</span></label>
               <textarea id="formDesc" placeholder="Brève description du formulaire…"></textarea>
             </div>
-            <div class="field" style="grid-column:1/-1">
+            <div class="field" style="grid-column:1/-1" id="pdfUploadField">
               <label>PDF *</label>
               <div class="drop-zone" id="dropZoneForm" tabindex="0" role="button" aria-label="Zone d'upload formulaire PDF">
                 <div class="drop-zone__icon">📋</div>
@@ -1302,6 +1310,11 @@
                 <p class="upload-progress__status" id="uploadStatusForm">Upload en cours…</p>
               </div>
               <input type="url" id="formPdfUrl" style="display:none" aria-hidden="true" tabindex="-1">
+            </div>
+            <div class="field" style="grid-column:1/-1;display:none" id="manuelHintField">
+              <div style="background:#f0f6ff;border:1px solid #c7d9f8;border-radius:8px;padding:.85rem 1rem;font-size:.84rem;color:#1a3a6b">
+                ✏️ <strong>Mode questionnaire manuel</strong> — Créez le formulaire, puis ajoutez vos questions (texte, cases à cocher, choix multiples…) directement dans l'éditeur de champs.
+              </div>
             </div>
           </div>
           <div style="margin-top:1rem">
@@ -3244,10 +3257,10 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
             <div style="font-size:.78rem;color:var(--muted);margin-top:.1rem">${fmtDate(f.created_at)}</div>
           </div>
           <div class="td-actions" style="flex-wrap:wrap">
-            <a href="${esc(f.pdf_url)}" target="_blank" rel="noopener" class="btn btn--ghost btn--sm">
+            ${f.pdf_url ? `<a href="${esc(f.pdf_url)}" target="_blank" rel="noopener" class="btn btn--ghost btn--sm">
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
               Voir PDF
-            </a>
+            </a>` : ''}
             <button class="btn btn--ghost btn--sm" onclick="openFormBuilder('${esc(f.id)}')">
               ⚙️ Champs
             </button>
@@ -3261,6 +3274,27 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
           </div>
         </div>`).join('');
     }
+
+    // ── Sélecteur de type formulaire ──────────────────────
+    let formTypeMode = 'pdf'; // 'pdf' | 'manuel'
+
+    function setFormType(mode) {
+      formTypeMode = mode;
+      const isPdf = mode === 'pdf';
+      document.getElementById('btnFormTypePdf').className    = `btn btn--sm ${isPdf ? 'btn--primary' : 'btn--ghost'}`;
+      document.getElementById('btnFormTypePdf').style.borderRadius = '100px';
+      document.getElementById('btnFormTypeManuel').className = `btn btn--sm ${!isPdf ? 'btn--primary' : 'btn--ghost'}`;
+      document.getElementById('btnFormTypeManuel').style.borderRadius = '100px';
+      document.getElementById('pdfUploadField').style.display   = isPdf ? '' : 'none';
+      document.getElementById('manuelHintField').style.display  = isPdf ? 'none' : '';
+      document.getElementById('formTypeHint').textContent = isPdf
+        ? 'Importez un PDF existant (consentement, questionnaire scanné, etc.)'
+        : 'Créez vos propres questions (texte, cases à cocher, choix multiples…) sans PDF.';
+    }
+
+    document.getElementById('btnFormTypePdf').addEventListener('click',    () => setFormType('pdf'));
+    document.getElementById('btnFormTypeManuel').addEventListener('click', () => setFormType('manuel'));
+    setFormType('pdf');
 
     // ── Upload PDF formulaire ──────────────────────────────
     const dropZoneForm       = document.getElementById('dropZoneForm');
@@ -3322,13 +3356,15 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       const btn     = document.getElementById('btnAddForm');
 
       setAlert(alertEl, '', '');
-      if (!title)  { setAlert(alertEl, 'Le titre est obligatoire.', 'error'); return; }
-      if (!pdfUrl) { setAlert(alertEl, 'Veuillez d\'abord uploader un PDF.', 'error'); return; }
+      if (!title) { setAlert(alertEl, 'Le titre est obligatoire.', 'error'); return; }
+      if (formTypeMode === 'pdf' && !pdfUrl) { setAlert(alertEl, 'Veuillez d\'abord uploader un PDF.', 'error'); return; }
 
       btn.disabled = true;
       btn.innerHTML = `<span class="spinner-inline"></span> Ajout…`;
 
-      const { error } = await sb.from('forms').insert({ title, description: desc || null, pdf_url: pdfUrl });
+      const { data: newForm, error } = await sb.from('forms')
+        .insert({ title, description: desc || null, pdf_url: pdfUrl || null })
+        .select().single();
 
       btn.disabled = false;
       btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Ajouter le formulaire`;
@@ -3346,6 +3382,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       uploadStatusForm.className         = 'upload-progress__status';
       fileInputForm.value                = '';
       await loadForms();
+      if (formTypeMode === 'manuel' && newForm?.id) {
+        openFormBuilder(newForm.id);
+      }
     });
 
     window.deleteForm = async (id, btn) => {
