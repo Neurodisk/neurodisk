@@ -359,6 +359,28 @@
           </div>
         </div>
 
+        <!-- ── Vue : Vérification 2FA (TOTP) ── -->
+        <div id="viewMfa" style="display:none">
+          <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;">
+            Authentification à deux facteurs. Entrez le code à 6 chiffres affiché dans votre application d'authentification.
+          </p>
+          <div class="form" style="gap:.75rem">
+            <div class="field">
+              <label for="mfaCode">Code de vérification</label>
+              <input type="text" id="mfaCode" inputmode="numeric" autocomplete="one-time-code"
+                maxlength="6" placeholder="123 456" style="letter-spacing:.3em;text-align:center;font-size:1.1rem">
+            </div>
+            <div class="alert alert--error" id="mfaError" role="alert" aria-live="polite" style="display:none">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span id="mfaErrorText"></span>
+            </div>
+            <button type="button" class="btn-primary" id="btnVerifyMfa">
+              <span class="btn-label">Vérifier</span>
+              <span class="spinner" aria-hidden="true"></span>
+            </button>
+          </div>
+        </div>
+
         <div class="sep"><span>Connexion sécurisée</span></div>
         <p class="form-note">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -414,7 +436,7 @@
       try {
         const { data: { session } } = await supabase.auth.getSession();
         console.log('[auth] session existante:', !!session);
-        if (session) { window.location.replace('/library.html'); return; }
+        if (session) { await gateAfterAuth(); return; }
       } catch (err) {
         console.error('[auth] checkSession error:', err);
       } finally {
@@ -450,8 +472,8 @@
           }
           return;
         }
-        console.log('[auth] connexion réussie, redirection vers /library.html', data.session?.user?.email);
-        window.location.replace('/library.html');
+        console.log('[auth] connexion réussie', data.session?.user?.email);
+        await gateAfterAuth();
       } catch (err) {
         console.error('[auth] exception inattendue:', err);
         showError('Impossible de joindre le serveur. Vérifiez votre connexion.');
@@ -513,6 +535,70 @@
       } finally {
         btn.disabled = false;
         btn.classList.remove('is-loading');
+      }
+    });
+
+    // ── Authentification à deux facteurs (TOTP) ──────────
+    let mfaFactorId = null, mfaChallengeId = null;
+
+    // Décide, après une auth réussie, s'il faut un 2ᵉ facteur avant d'entrer.
+    async function gateAfterAuth() {
+      try {
+        const { data: aal, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (!error && aal && aal.nextLevel === 'aal2' && aal.currentLevel !== 'aal2') {
+          await startMfaChallenge();
+          return; // on attend le code, pas de redirection
+        }
+      } catch (e) { console.error('[mfa] aal:', e); }
+      window.location.replace('/library.html');
+    }
+
+    async function startMfaChallenge() {
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const totp = (factors?.totp || []).find(f => f.status === 'verified') || (factors?.totp || [])[0];
+      if (!totp) { window.location.replace('/library.html'); return; } // sécurité : pas de facteur → on n'enferme personne
+      mfaFactorId = totp.id;
+      const { data: ch, error } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
+      if (error) { showError('Impossible de démarrer la vérification 2FA : ' + error.message); return; }
+      mfaChallengeId = ch.id;
+      // Affiche la vue 2FA
+      if (loader) { loader.classList.add('is-hidden'); }
+      viewForm.style.display   = 'none';
+      viewForgot.style.display = 'none';
+      document.getElementById('viewMfa').style.display = '';
+      document.getElementById('mfaCode').focus();
+    }
+
+    function mfaShowError(msg) {
+      const el = document.getElementById('mfaError');
+      document.getElementById('mfaErrorText').textContent = msg;
+      el.style.display = 'flex';
+    }
+
+    document.getElementById('btnVerifyMfa').addEventListener('click', async () => {
+      const btn  = document.getElementById('btnVerifyMfa');
+      const code = document.getElementById('mfaCode').value.trim();
+      document.getElementById('mfaError').style.display = 'none';
+      if (!/^\d{6}$/.test(code)) { mfaShowError('Entrez le code à 6 chiffres.'); return; }
+      btn.disabled = true; btn.classList.add('is-loading');
+      try {
+        const { error } = await supabase.auth.mfa.verify({
+          factorId: mfaFactorId, challengeId: mfaChallengeId, code,
+        });
+        if (error) {
+          mfaShowError('Code invalide ou expiré. Réessayez.');
+          // le défi est consommé : on en régénère un pour la prochaine tentative
+          const { data: ch } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
+          mfaChallengeId = ch?.id || mfaChallengeId;
+          document.getElementById('mfaCode').value = '';
+          document.getElementById('mfaCode').focus();
+          return;
+        }
+        window.location.replace('/library.html');
+      } catch (e) {
+        mfaShowError('Erreur : ' + e.message);
+      } finally {
+        btn.disabled = false; btn.classList.remove('is-loading');
       }
     });
 

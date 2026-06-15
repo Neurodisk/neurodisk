@@ -614,8 +614,48 @@
     <a href="/library.html" class="nav__signout" style="margin-right:.4rem">
       👁 Vue patient
     </a>
+    <button class="nav__signout" id="btnMfa" style="margin-right:.4rem">🔐 2FA</button>
     <button class="nav__signout" id="btnSignout">Déconnexion</button>
   </nav>
+
+  <!-- ── Modal Sécurité 2FA ───────────────────────────── -->
+  <div class="modal-edit" id="modalMfa" aria-hidden="true">
+    <div class="modal-edit__overlay" data-close-mfa></div>
+    <div class="modal-edit__box" style="max-width:440px">
+      <div class="topbar"></div>
+      <div style="padding:1.5rem">
+        <h2 class="modal-edit__title">🔐 Authentification à deux facteurs</h2>
+        <p id="mfaStatus" style="font-size:.85rem;color:var(--muted);margin:.5rem 0 1rem">Chargement…</p>
+
+        <!-- Étape enrôlement (QR) -->
+        <div id="mfaEnrollBox" style="display:none">
+          <p style="font-size:.83rem;line-height:1.6;margin-bottom:.8rem">
+            Scannez ce QR code avec votre application d'authentification
+            (Google Authenticator, Authy, Microsoft Authenticator…).
+          </p>
+          <div id="mfaQr" style="text-align:center;margin:.5rem 0;min-height:170px"></div>
+          <p style="font-size:.75rem;color:var(--muted);word-break:break-all;margin-bottom:1rem">
+            Clé manuelle : <code id="mfaSecret"></code>
+          </p>
+          <div class="field">
+            <label for="mfaEnrollCode">Code à 6 chiffres affiché dans l'app</label>
+            <input type="text" id="mfaEnrollCode" inputmode="numeric" maxlength="6"
+              placeholder="123 456" style="letter-spacing:.3em;text-align:center;font-size:1.1rem">
+          </div>
+          <p id="mfaEnrollMsg" style="font-size:.8rem;color:var(--danger);min-height:1.2em"></p>
+          <button class="btn btn--primary" id="btnMfaConfirm" style="width:100%">Activer le 2FA</button>
+        </div>
+
+        <!-- Étape déjà activé -->
+        <div id="mfaActiveBox" style="display:none">
+          <p style="font-size:.85rem;color:var(--success);margin-bottom:1rem">✅ Le 2FA est activé sur votre compte.</p>
+          <button class="btn btn--ghost" id="btnMfaDisable" style="width:100%">Désactiver le 2FA</button>
+        </div>
+
+        <button class="btn btn--ghost" data-close-mfa style="width:100%;margin-top:1rem">Fermer</button>
+      </div>
+    </div>
+  </div>
 
   <div class="layout">
 
@@ -2540,6 +2580,69 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     document.getElementById('btnSignout').addEventListener('click', async () => {
       await sb.auth.signOut();
       redirect('/');
+    });
+
+    // ── Sécurité : 2FA (TOTP) ─────────────────────────────
+    let enrollFactorId = null;
+    const modalMfa = document.getElementById('modalMfa');
+
+    function closeMfaModal() {
+      modalMfa.classList.remove('is-open');
+      modalMfa.setAttribute('aria-hidden', 'true');
+    }
+    modalMfa.querySelectorAll('[data-close-mfa]').forEach(el => el.addEventListener('click', closeMfaModal));
+
+    document.getElementById('btnMfa').addEventListener('click', async () => {
+      modalMfa.classList.add('is-open');
+      modalMfa.setAttribute('aria-hidden', 'false');
+      document.getElementById('mfaEnrollBox').style.display = 'none';
+      document.getElementById('mfaActiveBox').style.display = 'none';
+      document.getElementById('mfaStatus').textContent = 'Chargement…';
+      enrollFactorId = null;
+
+      const { data: factors, error } = await sb.auth.mfa.listFactors();
+      if (error) { document.getElementById('mfaStatus').textContent = 'Erreur : ' + error.message; return; }
+      const verified = (factors?.totp || []).find(f => f.status === 'verified');
+
+      if (verified) {
+        enrollFactorId = verified.id;
+        document.getElementById('mfaStatus').textContent = 'État : activé.';
+        document.getElementById('mfaActiveBox').style.display = '';
+      } else {
+        // Nettoie d'éventuels facteurs non vérifiés en attente, puis enrôle
+        for (const f of (factors?.totp || [])) { try { await sb.auth.mfa.unenroll({ factorId: f.id }); } catch (_) {} }
+        document.getElementById('mfaStatus').textContent = 'État : désactivé. Configurez-le ci-dessous.';
+        const { data, error: enErr } = await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Authenticator ' + Date.now() });
+        if (enErr) { document.getElementById('mfaStatus').textContent = 'Erreur : ' + enErr.message; return; }
+        enrollFactorId = data.id;
+        document.getElementById('mfaQr').innerHTML = `<img src="${data.totp.qr_code}" alt="QR 2FA" style="max-width:180px">`;
+        document.getElementById('mfaSecret').textContent = data.totp.secret;
+        document.getElementById('mfaEnrollMsg').textContent = '';
+        document.getElementById('mfaEnrollCode').value = '';
+        document.getElementById('mfaEnrollBox').style.display = '';
+      }
+    });
+
+    document.getElementById('btnMfaConfirm').addEventListener('click', async () => {
+      const code = document.getElementById('mfaEnrollCode').value.trim();
+      const msg  = document.getElementById('mfaEnrollMsg');
+      msg.textContent = '';
+      if (!/^\d{6}$/.test(code)) { msg.textContent = 'Entrez le code à 6 chiffres.'; return; }
+      const { data: ch, error: cErr } = await sb.auth.mfa.challenge({ factorId: enrollFactorId });
+      if (cErr) { msg.textContent = 'Erreur : ' + cErr.message; return; }
+      const { error: vErr } = await sb.auth.mfa.verify({ factorId: enrollFactorId, challengeId: ch.id, code });
+      if (vErr) { msg.textContent = 'Code invalide. Réessayez.'; return; }
+      toast('2FA activé avec succès ✅', 'success');
+      closeMfaModal();
+    });
+
+    document.getElementById('btnMfaDisable').addEventListener('click', async () => {
+      if (!enrollFactorId) return;
+      if (!confirm('Désactiver le 2FA sur votre compte ?')) return;
+      const { error } = await sb.auth.mfa.unenroll({ factorId: enrollFactorId });
+      if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+      toast('2FA désactivé.', 'success');
+      closeMfaModal();
     });
 
     // ══════════════════════════════════════════════════════
