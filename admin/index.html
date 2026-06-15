@@ -1790,6 +1790,21 @@
     </div>
   </div>
 
+  <!-- ── Modal Formulaires du patient ─────────────────── -->
+  <div class="modal-edit" id="modalPatientForms" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-edit__box" style="max-width:660px">
+      <div class="modal-edit__header">
+        <h2 class="modal-edit__title">📋 Formulaires</h2>
+        <button class="modal-edit__close" id="modalPatientFormsClose" aria-label="Fermer">✕</button>
+      </div>
+      <p id="modalPatientFormsName" style="font-size:.82rem;color:var(--muted);margin-bottom:1rem"></p>
+      <div id="patientFormsListWrap"><div class="empty-state">Chargement…</div></div>
+      <div style="margin-top:1.25rem">
+        <button class="btn btn--ghost" id="btnClosePatientForms">Fermer</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Modal Soumissions ─────────────────────────────── -->
   <div class="modal-edit" id="modalFormSubmissions" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modal-edit__box" style="max-width:660px">
@@ -2563,6 +2578,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
                         : `<button class="btn btn--ghost btn--sm" onclick="openEditPatient('${p.id}')">✏️ Modifier</button>
                            <button class="btn btn--ghost btn--sm" onclick="sendMagicLink('${esc(p.email)}', this)">✉️ Envoyer un lien</button>
                            <button class="btn btn--ghost btn--sm" onclick="openAssignSection('${p.id}')">Gérer les accès</button>
+                           <button class="btn btn--ghost btn--sm" onclick="openPatientForms('${p.id}', '${esc(p.full_name || p.email)}')">📋 Formulaires</button>
                            <button class="btn btn--ghost btn--sm" onclick="openPasswordModal('${p.id}', '${esc(p.full_name || p.email)}', '${esc(p.email)}')">🔑 Mot de passe</button>`
                       }
                     </div>
@@ -4023,6 +4039,63 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     document.getElementById('btnCloseFormSubmissions').addEventListener('click', closeFormSubmissions);
     document.getElementById('modalFormSubmissions').addEventListener('click', e => {
       if (e.target === document.getElementById('modalFormSubmissions')) closeFormSubmissions();
+    });
+
+    // ── Formulaires d'un patient ──────────────────────────
+    window.openPatientForms = async (patientId, patientName) => {
+      const wrap = document.getElementById('patientFormsListWrap');
+      document.getElementById('modalPatientFormsName').textContent = patientName;
+      wrap.innerHTML = `<div class="empty-state">Chargement…</div>`;
+      document.getElementById('modalPatientForms').classList.add('is-open');
+      document.getElementById('modalPatientForms').setAttribute('aria-hidden', 'false');
+
+      const [{ data: assigned }, { data: subs }] = await Promise.all([
+        sb.from('patient_forms').select('form_id, category, forms(id, title, pdf_url, has_fields)').eq('patient_id', patientId),
+        sb.from('form_submissions').select('form_id, submitted_at').eq('patient_id', patientId).order('submitted_at', { ascending: false }),
+      ]);
+
+      if (!assigned?.length) {
+        wrap.innerHTML = `<div class="empty-state">Aucun formulaire assigné à ce patient.</div>`;
+        return;
+      }
+
+      const submittedMap = {};
+      (subs || []).forEach(s => { if (!submittedMap[s.form_id]) submittedMap[s.form_id] = s.submitted_at; });
+
+      wrap.innerHTML = assigned.map(row => {
+        const f = row.forms;
+        if (!f) return '';
+        const submittedAt = submittedMap[f.id];
+        const statusBadge = submittedAt
+          ? `<span style="font-size:.72rem;font-weight:700;background:#e6f5ed;color:var(--success);padding:.15rem .45rem;border-radius:100px">✓ Rempli le ${new Date(submittedAt).toLocaleDateString('fr-CA',{day:'numeric',month:'long',year:'numeric'})}</span>`
+          : `<span style="font-size:.72rem;font-weight:700;background:#fff3cd;color:#856404;padding:.15rem .45rem;border-radius:100px">En attente</span>`;
+        const typeBadge = f.has_fields
+          ? `<span style="font-size:.68rem;color:var(--blue);background:var(--blue-light);padding:.1rem .4rem;border-radius:100px;font-weight:700">Questionnaire</span>`
+          : `<span style="font-size:.68rem;color:var(--muted);background:#f0f2f5;padding:.1rem .4rem;border-radius:100px;font-weight:700">PDF</span>`;
+        return `<div class="prog-list-item" style="flex-wrap:wrap;gap:.5rem;align-items:center">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:.45rem;flex-wrap:wrap">
+              <strong style="font-size:.9rem">${esc(f.title)}</strong>
+              ${typeBadge}
+            </div>
+            <div style="margin-top:.3rem">${statusBadge}</div>
+          </div>
+          <div class="td-actions">
+            ${f.pdf_url ? `<a href="${esc(f.pdf_url)}" target="_blank" rel="noopener" class="btn btn--ghost btn--sm">Voir PDF</a>` : ''}
+            ${submittedAt ? `<button class="btn btn--ghost btn--sm" onclick="openFormSubmissions('${esc(f.id)}', '${esc(f.title)}')">📊 Réponses</button>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+    };
+
+    const closePatientForms = () => {
+      document.getElementById('modalPatientForms').classList.remove('is-open');
+      document.getElementById('modalPatientForms').setAttribute('aria-hidden', 'true');
+    };
+    document.getElementById('modalPatientFormsClose').addEventListener('click', closePatientForms);
+    document.getElementById('btnClosePatientForms').addEventListener('click', closePatientForms);
+    document.getElementById('modalPatientForms').addEventListener('click', e => {
+      if (e.target === document.getElementById('modalPatientForms')) closePatientForms();
     });
 
     // ══════════════════════════════════════════════════════
