@@ -99,6 +99,21 @@
     .sidebar__link.is-active { color: var(--blue); background: var(--blue-light); border-left-color: var(--blue); font-weight: 600; }
     .sidebar__link svg { flex-shrink: 0; width: 16px; height: 16px; stroke: currentColor; fill: none;
       stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .sidebar__group {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .5rem 1rem .2rem;
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--muted); margin-top: .75rem;
+    }
+    .sidebar__group:first-child { margin-top: 0; }
+    .sidebar__sub {
+      padding-left: 1.75rem;
+    }
+    .audience-badge {
+      display: inline-block; padding: .15rem .5rem; border-radius: 20px;
+      font-size: .72rem; font-weight: 700; margin-left: .5rem;
+      background: var(--blue-light); color: var(--blue);
+    }
 
     /* ── Contenu ── */
     .content { padding: 1.75rem; overflow-y: auto; }
@@ -536,41 +551,63 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar__section">Gestion</div>
-      <a class="sidebar__link is-active" data-section="patients" href="#">
-        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+
+      <!-- ── Groupe Patients ── -->
+      <div class="sidebar__group">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
         Patients
+      </div>
+      <a class="sidebar__link sidebar__sub is-active" data-section="patients" href="#">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Patients enregistrés
       </a>
-      <a class="sidebar__link admin-only" data-section="resources" href="#">
+      <a class="sidebar__link sidebar__sub admin-only" data-section="resources" data-audience="patient" href="#">
         <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
         Ressources
       </a>
-      <a class="sidebar__link admin-only" data-section="professionals" href="#">
-        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-        Gérer les professionnels
+      <a class="sidebar__link sidebar__sub" data-section="schedule" href="#">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Rappels
       </a>
-      <a class="sidebar__link" data-section="schedule" href="#">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        Céduler les rappels
-      </a>
-      <div class="sidebar__section">Accès</div>
-      <a class="sidebar__link" data-section="assignments" href="#">
+      <a class="sidebar__link sidebar__sub" data-section="assignments" href="#">
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        Assignations
+        Assignation
       </a>
-      <a class="sidebar__link" data-section="programme" href="#">
+      <a class="sidebar__link sidebar__sub" data-section="programme" href="#">
         <svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
-        Programmes
+        Programme
       </a>
-      <a class="sidebar__link" data-section="categories" href="#">
+      <a class="sidebar__link sidebar__sub" data-section="categories" data-audience="patient" href="#">
         <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-        Catégories
+        Catégorie
       </a>
-      <div class="sidebar__section">Documents</div>
-      <a class="sidebar__link" data-section="referral" href="#">
+
+      <!-- ── Groupe Professionnel ── -->
+      <div class="sidebar__group">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Professionnel
+      </div>
+      <a class="sidebar__link sidebar__sub admin-only" data-section="professionals" href="#">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+        Professionnels
+      </a>
+      <a class="sidebar__link sidebar__sub admin-only" data-section="resources" data-audience="professional" href="#">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Ressources
+      </a>
+      <a class="sidebar__link sidebar__sub" data-section="pro-assignments" href="#">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Assignation
+      </a>
+      <a class="sidebar__link sidebar__sub" data-section="categories" data-audience="professional" href="#">
+        <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        Catégorie
+      </a>
+      <a class="sidebar__link sidebar__sub" data-section="referral" href="#">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
         Lettre de référence
       </a>
-      <a class="sidebar__link" data-section="forms" href="#">
+      <a class="sidebar__link sidebar__sub" data-section="forms" href="#">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
         Formulaires
       </a>
@@ -648,6 +685,7 @@
         <div class="section-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Ajouter une ressource
+          <span id="resAudienceBadge" class="audience-badge">Patients</span>
         </div>
 
         <div class="card">
@@ -849,8 +887,9 @@
         <div class="section-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
           Gérer les catégories
+          <span id="catAudienceBadge" class="audience-badge">Patients</span>
         </div>
-        <p style="color:var(--muted);font-size:.85rem;margin-bottom:1.25rem">
+        <p id="catAudienceDesc" style="color:var(--muted);font-size:.85rem;margin-bottom:1.25rem">
           Les catégories correspondent aux tuiles affichées sur la page d'accueil des patients. Vous pouvez les renommer, changer leur icône ou en créer de nouvelles.
         </p>
 
@@ -1071,6 +1110,20 @@
         </div>
 
 
+      </section>
+
+      <!-- ══════════════════════════════ ASSIGNATIONS PRO ══ -->
+      <section id="sec-pro-assignments" class="section">
+        <div class="section-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Assignation — Professionnels
+        </div>
+        <p style="color:var(--muted);font-size:.85rem;margin-bottom:1.25rem">
+          Sélectionnez un professionnel pour voir et modifier ses ressources professionnelles assignées.
+        </p>
+        <div id="proAssignmentsList">
+          <div class="empty-state">Chargement…</div>
+        </div>
       </section>
 
       <!-- ══════════════════════════════ LETTRE DE RÉFÉRENCE ══ -->
@@ -1755,7 +1808,10 @@
     // ── State ─────────────────────────────────────────────
     let allPatients   = [];
     let allResources  = [];
+    let allProResources = [];
     let allConditions = [];
+    let currentResourceAudience = 'patient';
+    let currentCategoryAudience = 'patient';
 
     // ── Conditions (accès) ────────────────────────────────
     async function loadConditions() {
@@ -2272,14 +2328,48 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     function redirect(url) { window.location.replace(url); }
 
     // ── Navigation sidebar ─────────────────────────────────
+    function setAudienceUI(type, audience) {
+      if (type === 'resource') {
+        currentResourceAudience = audience;
+        currentCategoryAudience = audience; // sync pour le select catégorie du formulaire
+        const badge = document.getElementById('resAudienceBadge');
+        if (badge) badge.textContent = audience === 'professional' ? 'Professionnels' : 'Patients';
+      } else {
+        currentCategoryAudience = audience;
+        const badge = document.getElementById('catAudienceBadge');
+        const desc  = document.getElementById('catAudienceDesc');
+        if (badge) badge.textContent = audience === 'professional' ? 'Professionnels' : 'Patients';
+        if (desc)  desc.textContent  = audience === 'professional'
+          ? 'Les catégories professionnelles sont visibles uniquement par les professionnels assignés.'
+          : 'Les catégories correspondent aux tuiles affichées sur la page d\'accueil des patients. Vous pouvez les renommer, changer leur icône ou en créer de nouvelles.';
+      }
+    }
+
     document.querySelectorAll('.sidebar__link[data-section]').forEach(link => {
       link.addEventListener('click', e => {
         e.preventDefault();
-        const sec = link.dataset.section;
+        const sec      = link.dataset.section;
+        const audience = link.dataset.audience || null;
+
         document.querySelectorAll('.sidebar__link').forEach(l => l.classList.remove('is-active'));
         document.querySelectorAll('.section').forEach(s => s.classList.remove('is-active'));
         link.classList.add('is-active');
-        document.getElementById('sec-' + sec).classList.add('is-active');
+
+        if (sec === 'resources' && audience) {
+          setAudienceUI('resource', audience);
+          document.getElementById('sec-resources').classList.add('is-active');
+          loadResources();
+          loadCategories(); // pour peupler le select catégorie du formulaire
+        } else if (sec === 'categories' && audience) {
+          setAudienceUI('category', audience);
+          document.getElementById('sec-categories').classList.add('is-active');
+          loadCategories();
+        } else if (sec === 'pro-assignments') {
+          document.getElementById('sec-pro-assignments').classList.add('is-active');
+          renderProAssignments();
+        } else {
+          document.getElementById('sec-' + sec).classList.add('is-active');
+        }
       });
     });
 
@@ -2493,13 +2583,102 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     };
 
     window.openAssignSection = (patientId) => {
-      // Aller à la section Assignations et ouvrir ce patient
       document.querySelectorAll('.sidebar__link').forEach(l => l.classList.remove('is-active'));
       document.querySelectorAll('.section').forEach(s => s.classList.remove('is-active'));
       document.querySelector('[data-section="assignments"]').classList.add('is-active');
       document.getElementById('sec-assignments').classList.add('is-active');
       openPanelForPatient(patientId);
     };
+
+    // ── Assignations professionnels ───────────────────────
+    let openProPanelId = null;
+
+    function renderProAssignments() {
+      const container = document.getElementById('proAssignmentsList');
+      const pros   = allPatients.filter(p => p.is_professional && !p.is_admin);
+      const admins = allPatients.filter(p => p.is_admin);
+
+      if (!pros.length && !admins.length) {
+        container.innerHTML = `<div class="empty-state">Aucun professionnel enregistré.</div>`;
+        return;
+      }
+
+      const makeOpt = (p, label) =>
+        `<option value="${p.id}" ${p.id === (openProPanelId || '') ? 'selected' : ''}>${esc(p.full_name || p.email)}${label ? ' — ' + label : ''}</option>`;
+
+      const options = [
+        `<option value="">— Sélectionner un professionnel —</option>`,
+        pros.length   ? `<optgroup label="Professionnels">${pros.map(p => makeOpt(p, '')).join('')}</optgroup>`   : '',
+        admins.length ? `<optgroup label="Admins">${admins.map(p => makeOpt(p, 'Admin')).join('')}</optgroup>` : '',
+      ].join('');
+
+      container.innerHTML = `
+        <div style="margin-bottom:1.25rem">
+          <select id="assignProSelect" class="field__input" style="max-width:340px">${options}</select>
+        </div>
+        <div id="assignProPanelWrap"></div>
+      `;
+
+      document.getElementById('assignProSelect').addEventListener('change', async e => {
+        const pid = e.target.value;
+        openProPanelId = pid || null;
+        if (pid) await openPanelForPro(pid);
+        else document.getElementById('assignProPanelWrap').innerHTML = '';
+      });
+
+      if (openProPanelId) openPanelForPro(openProPanelId);
+    }
+
+    async function openPanelForPro(proId) {
+      const panel = document.getElementById('assignProPanelWrap');
+      if (!panel) return;
+      panel.innerHTML = `<div style="padding:1rem;color:var(--muted)">Chargement…</div>`;
+
+      // Charger les ressources pro si pas encore fait
+      if (!allProResources.length) {
+        const { data } = await sb.from('resources').select('*').eq('audience', 'professional').order('condition_tag').order('sort_order');
+        allProResources = data || [];
+      }
+
+      if (!allProResources.length) {
+        panel.innerHTML = `<div class="empty-state">Aucune ressource professionnelle disponible. Ajoutez-en via Professionnel → Ressources.</div>`;
+        return;
+      }
+
+      const { data: assignments } = await sb
+        .from('patient_resources')
+        .select('resource_id')
+        .eq('patient_id', proId);
+      const assignedIds = new Set((assignments || []).map(a => a.resource_id));
+
+      const COND = Object.fromEntries(allConditions.map(c => [c.id, c.label]));
+      const grouped = {};
+      allProResources.forEach(r => {
+        if (!grouped[r.condition_tag]) grouped[r.condition_tag] = [];
+        grouped[r.condition_tag].push(r);
+      });
+
+      const pro = allPatients.find(p => p.id === proId);
+      panel.innerHTML = `
+        <div class="access-panel__header">Ressources de ${esc(pro?.full_name || pro?.email || 'ce professionnel')}</div>
+        <div class="access-panel__body">
+          ${Object.entries(grouped).map(([tag, resources]) => `
+            <div class="resource-group">
+              <div class="resource-group__title">${COND[tag] || tag}</div>
+              <div class="resource-check-list">
+                ${resources.map(r => `
+                  <label class="resource-check">
+                    <input type="checkbox" data-patient="${proId}" data-resource="${r.id}"
+                      ${assignedIds.has(r.id) ? 'checked' : ''} onchange="toggleAssignment(this)">
+                    <span class="resource-check__label">${esc(r.title)}</span>
+                    <span class="resource-check__type">${r.type === 'video' ? '📹' : '📄'} ${r.duration_sec ? fmtDur(r.duration_sec) : ''}</span>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+    }
 
     // ── Toggle mot de passe patient ───────────────────────
     document.getElementById('btnTogglePassword').addEventListener('click', () => {
@@ -2655,21 +2834,35 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     // ══════════════════════════════════════════════════════
 
     async function loadResources() {
+      const audience = currentResourceAudience;
       const { data, error } = await sb
         .from('resources')
         .select('*')
+        .eq('audience', audience)
         .order('condition_tag')
         .order('sort_order');
 
       if (error) { toast('Erreur chargement ressources : ' + error.message, 'error'); return; }
-      allResources = data;
+      if (audience === 'professional') {
+        allProResources = data || [];
+      } else {
+        allResources = data || [];
+      }
       renderResourcesTable();
+    }
+
+    async function loadAllResourceAudiences() {
+      const { data } = await sb.from('resources').select('*').order('condition_tag').order('sort_order');
+      if (!data) return;
+      allResources    = data.filter(r => (r.audience || 'patient') === 'patient');
+      allProResources = data.filter(r => r.audience === 'professional');
     }
 
     function renderResourcesTable() {
       const wrap = document.getElementById('resourcesTableWrap');
-      if (!allResources.length) {
-        wrap.innerHTML = `<div class="empty-state">Aucune ressource ajoutée pour l'instant.</div>`;
+      const resources = currentResourceAudience === 'professional' ? allProResources : allResources;
+      if (!resources.length) {
+        wrap.innerHTML = `<div class="empty-state">Aucune ressource ${currentResourceAudience === 'professional' ? 'professionnelle' : ''} ajoutée pour l'instant.</div>`;
         return;
       }
       const COND = Object.fromEntries(allConditions.map(c => [c.id, c.label]));
@@ -2682,12 +2875,12 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
           <table>
             <thead><tr><th>Titre</th><th>Type</th><th>Condition</th><th>Catégorie</th><th>Durée</th><th>Actions</th></tr></thead>
             <tbody>
-              ${allResources.map(r => `
+              ${resources.map(r => `
                 <tr>
                   <td><strong>${esc(r.title)}</strong>${r.description ? `<br><small style="color:var(--muted)">${esc(r.description.substring(0,80))}${r.description.length>80?'…':''}</small>` : ''}</td>
                   <td><span class="badge badge--${r.type}">${r.type === 'video' ? '📹 Vidéo' : '📄 PDF'}</span></td>
                   <td><span class="badge badge--${r.condition_tag}">${COND[r.condition_tag]||r.condition_tag}</span></td>
-                  <td style="color:var(--muted)">${CAT[r.category]||'Bibliothèque'}</td>
+                  <td style="color:var(--muted)">${CAT[r.category]||r.category||'—'}</td>
                   <td style="color:var(--muted)">${r.duration_sec ? fmtDur(r.duration_sec) : '—'}</td>
                   <td>
                     <div class="td-actions">
@@ -2755,6 +2948,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         pdf_url:        type === 'pdf'   ? pdfUrl  : null,
         duration_sec: duration, sort_order: order,
         thumbnail_url: thumbnailUrl,
+        audience: currentResourceAudience,
       };
 
       const { error } = await sb.from('resources').insert(payload);
@@ -3721,6 +3915,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       const { data, error } = await sb
         .from('resource_categories')
         .select('*')
+        .eq('audience', currentCategoryAudience)
         .order('sort_order');
       if (error) { toast('Erreur catégories : ' + error.message, 'error'); return; }
       allCategories = data || [];
@@ -3818,6 +4013,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
       const { error } = await sb.from('resource_categories').insert({
         id: slug, label, icon, sort_order: allCategories.length,
+        audience: currentCategoryAudience,
       });
 
       btn.disabled = false;
@@ -3926,10 +4122,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       await loadCategories();
     };
 
-    // ── Charger les catégories quand on navigue vers la section ──
-    document.querySelector('[data-section="categories"]').addEventListener('click', () => {
-      loadCategories();
-    });
+    // Les catégories se chargent via le gestionnaire de navigation principal (setAudienceUI)
 
 
     // ══════════════════════════════════════════════════════
@@ -5001,7 +5194,8 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     modalEdit.addEventListener('click', e => { if (e.target === modalEdit) closeEditModal(); });
 
     window.openEditResource = (id) => {
-      const r = allResources.find(r => r.id === id);
+      const pool = currentResourceAudience === 'professional' ? allProResources : allResources;
+      const r = pool.find(r => r.id === id);
       if (!r) return;
 
       const COND = Object.fromEntries(allConditions.map(c => [c.id, c.label]));
