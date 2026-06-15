@@ -4123,6 +4123,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       document.getElementById('modalPatientForms').classList.add('is-open');
       document.getElementById('modalPatientForms').setAttribute('aria-hidden', 'false');
 
+      // Loi 25 — journalise la consultation du dossier patient (non bloquant)
+      sb.rpc('log_access', { p_table: 'patient_forms', p_record: patientId, p_details: { name: patientName, via: 'modal_formulaires' } });
+
       const [{ data: assigned }, { data: subs }] = await Promise.all([
         sb.from('patient_forms').select('form_id, category, forms(id, title, pdf_url, has_fields)').eq('patient_id', patientId),
         sb.from('form_submissions').select('form_id, submitted_at').eq('patient_id', patientId).order('submitted_at', { ascending: false }),
