@@ -44,6 +44,9 @@
             <span>Professionnel</span>
           </button>
         </div>
+        <button class="nav-btn nav-btn--ghost" id="btnMfaLib" style="display:none">
+          <span>🔐 2FA</span>
+        </button>
         <button class="nav-btn nav-btn--primary" id="btnSignout">
           <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           <span>Déconnexion</span>
@@ -355,6 +358,36 @@
     </div>
   </div>
 
-  <script type="module" src="/js/library.js?v=21"></script>
+  <!-- ── Modal Sécurité 2FA ───────────────────────────── -->
+  <div id="modalMfaLib" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,.45)">
+    <div style="background:#fff;border-radius:16px;max-width:440px;width:92%;padding:1.5rem;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <h2 style="margin:0 0 .3rem;font-size:1.15rem;color:#1B2B6B">🔐 Authentification à deux facteurs</h2>
+      <p id="mfaLibStatus" style="font-size:.85rem;color:#666;margin:.3rem 0 1rem">Chargement…</p>
+
+      <div id="mfaLibEnrollBox" style="display:none">
+        <p style="font-size:.83rem;line-height:1.6;margin-bottom:.8rem">
+          Scannez ce QR code avec votre application d'authentification (Google Authenticator, Authy…).
+        </p>
+        <div id="mfaLibQr" style="text-align:center;margin:.5rem 0;min-height:170px"></div>
+        <p style="font-size:.72rem;color:#888;word-break:break-all;margin-bottom:1rem">
+          Clé manuelle : <code id="mfaLibSecret"></code>
+        </p>
+        <label for="mfaLibCode" style="font-size:.8rem;font-weight:600">Code à 6 chiffres</label>
+        <input type="text" id="mfaLibCode" inputmode="numeric" maxlength="6" placeholder="123 456"
+          style="width:100%;padding:.6rem;margin:.3rem 0 .5rem;border:1px solid #ccc;border-radius:8px;letter-spacing:.3em;text-align:center;font-size:1.1rem">
+        <p id="mfaLibMsg" style="font-size:.8rem;color:#c0392b;min-height:1.2em;margin:.2rem 0"></p>
+        <button id="btnMfaLibConfirm" style="width:100%;padding:.7rem;background:#1B2B6B;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">Activer le 2FA</button>
+      </div>
+
+      <div id="mfaLibActiveBox" style="display:none">
+        <p style="font-size:.85rem;color:#1e8a4c;margin-bottom:1rem">✅ Le 2FA est activé sur votre compte.</p>
+        <button id="btnMfaLibDisable" style="width:100%;padding:.7rem;background:#fff;color:#c0392b;border:1px solid #c0392b;border-radius:8px;font-weight:600;cursor:pointer">Désactiver le 2FA</button>
+      </div>
+
+      <button id="btnMfaLibClose" style="width:100%;padding:.6rem;margin-top:.8rem;background:#f0f0f0;border:none;border-radius:8px;cursor:pointer">Fermer</button>
+    </div>
+  </div>
+
+  <script type="module" src="/js/library.js?v=22"></script>
 </body>
 </html>

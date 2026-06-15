@@ -88,6 +88,7 @@
       _userId  = user.id;
       _isAdmin = isAdmin;
 
+      if (isAdmin || isPro) { const b = document.getElementById('btnMfaLib'); if (b) { b.style.display = 'flex'; setupLibMfa(); } }
       if (isAdmin && !isPro) document.getElementById('btnAdmin').style.display = 'flex';
       if (isPro) {
         document.getElementById('btnProfessionnel').style.display = 'flex';
@@ -296,6 +297,66 @@
     document.getElementById('btnSignout').addEventListener('click', async () => {
       await supabase.auth.signOut(); window.location.replace('/');
     });
+
+    // ── Sécurité : 2FA (TOTP) pour admins/pros ─────────────
+    function setupLibMfa() {
+      if (window._libMfaInit) return; window._libMfaInit = true;
+      let libFactorId = null;
+      const modal = document.getElementById('modalMfaLib');
+      const $ = id => document.getElementById(id);
+      const close = () => { modal.style.display = 'none'; };
+      $('btnMfaLibClose').addEventListener('click', close);
+      modal.addEventListener('click', e => { if (e.target === modal) close(); });
+
+      $('btnMfaLib').addEventListener('click', async () => {
+        modal.style.display = 'flex';
+        $('mfaLibEnrollBox').style.display = 'none';
+        $('mfaLibActiveBox').style.display = 'none';
+        $('mfaLibStatus').textContent = 'Chargement…';
+        libFactorId = null;
+        const { data: factors, error } = await supabase.auth.mfa.listFactors();
+        if (error) { $('mfaLibStatus').textContent = 'Erreur : ' + error.message; return; }
+        const verified = (factors?.totp || []).find(f => f.status === 'verified');
+        if (verified) {
+          libFactorId = verified.id;
+          $('mfaLibStatus').textContent = 'État : activé.';
+          $('mfaLibActiveBox').style.display = '';
+        } else {
+          for (const f of (factors?.totp || [])) { try { await supabase.auth.mfa.unenroll({ factorId: f.id }); } catch (_) {} }
+          $('mfaLibStatus').textContent = 'État : désactivé. Configurez-le ci-dessous.';
+          const { data, error: enErr } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Authenticator ' + Date.now() });
+          if (enErr) { $('mfaLibStatus').textContent = 'Erreur : ' + enErr.message; return; }
+          libFactorId = data.id;
+          $('mfaLibQr').innerHTML = `<img src="${data.totp.qr_code}" alt="QR 2FA" style="max-width:180px">`;
+          $('mfaLibSecret').textContent = data.totp.secret;
+          $('mfaLibMsg').textContent = '';
+          $('mfaLibCode').value = '';
+          $('mfaLibEnrollBox').style.display = '';
+        }
+      });
+
+      $('btnMfaLibConfirm').addEventListener('click', async () => {
+        const code = $('mfaLibCode').value.trim();
+        $('mfaLibMsg').textContent = '';
+        if (!/^\d{6}$/.test(code)) { $('mfaLibMsg').textContent = 'Entrez le code à 6 chiffres.'; return; }
+        const { data: ch, error: cErr } = await supabase.auth.mfa.challenge({ factorId: libFactorId });
+        if (cErr) { $('mfaLibMsg').textContent = 'Erreur : ' + cErr.message; return; }
+        const { error: vErr } = await supabase.auth.mfa.verify({ factorId: libFactorId, challengeId: ch.id, code });
+        if (vErr) { $('mfaLibMsg').textContent = 'Code invalide. Réessayez.'; return; }
+        alert('2FA activé avec succès ✅');
+        close();
+      });
+
+      $('btnMfaLibDisable').addEventListener('click', async () => {
+        if (!libFactorId) return;
+        if (!confirm('Désactiver le 2FA sur votre compte ?')) return;
+        const { error } = await supabase.auth.mfa.unenroll({ factorId: libFactorId });
+        if (error) { alert('Erreur : ' + error.message); return; }
+        alert('2FA désactivé.');
+        close();
+      });
+    }
+    window.setupLibMfa = setupLibMfa;
 
     function renderError() {
       document.getElementById('viewCategories').style.display = '';
