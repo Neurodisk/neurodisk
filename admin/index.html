@@ -2474,6 +2474,8 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     window.redownloadLetter = async (id) => {
       const { data, error } = await sb.from('referral_letters').select('*').eq('id', id).single();
       if (error || !data) { toast('Lettre introuvable.', 'error'); return; }
+      // Loi 25 — journalise la consultation/re-téléchargement de la lettre de référence
+      sb.rpc('log_access', { p_table: 'referral_letters', p_record: id, p_details: { patient: data.patient_name, via: 're-telechargement' } });
       const today = new Date(data.created_at).toLocaleDateString('fr-CA', { year:'numeric', month:'long', day:'numeric' });
       const prof  = data.recipient_name ? { name: data.recipient_name, title: '' } : null;
       const staff = data.staff_name     ? { name: data.staff_name,     title: data.staff_title || '' } : null;
@@ -3391,6 +3393,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     async function openPanelForPatient(patientId) {
       const panel = document.getElementById('assignPanelWrap');
       if (!panel) return;
+
+      // Loi 25 — journalise la consultation des assignations du patient
+      sb.rpc('log_access', { p_table: 'patient_resources', p_record: patientId, p_details: { via: 'assignations' } });
 
       panel.innerHTML = `<div style="padding:1rem;color:var(--muted)">Chargement…</div>`;
 
@@ -5883,6 +5888,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       body.innerHTML = `<div style="text-align:center;padding:2rem"><div class="spinner"></div></div>`;
       modal.classList.add('is-open');
       modal.setAttribute('aria-hidden', 'false');
+
+      // Loi 25 — journalise la consultation du programme du patient
+      sb.rpc('log_access', { p_table: 'programmes', p_record: patientId, p_details: { name: patientName, via: 'programme' } });
 
       try {
         const weekAgo = new Date();
