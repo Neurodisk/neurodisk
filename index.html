@@ -561,9 +561,9 @@
       const { data: ch, error } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
       if (error) { showError('Impossible de démarrer la vérification 2FA : ' + error.message); return; }
       mfaChallengeId = ch.id;
-      // Affiche la vue 2FA
+      // Affiche la vue 2FA (on cache seulement le formulaire, pas le conteneur parent)
       if (loader) { loader.classList.add('is-hidden'); }
-      viewForm.style.display   = 'none';
+      document.getElementById('loginForm').style.display = 'none';
       viewForgot.style.display = 'none';
       document.getElementById('viewMfa').style.display = '';
       document.getElementById('mfaCode').focus();
