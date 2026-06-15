@@ -226,6 +226,117 @@
 
   <div class="toast-wrap" id="toasts"></div>
 
-  <script type="module" src="/js/library.js?v=17"></script>
+  <style>
+    #libChatBtn{position:fixed;bottom:1.5rem;right:1.5rem;z-index:800;display:none}
+    #libChatBtn button{width:52px;height:52px;border-radius:50%;background:#185FA5;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(24,95,165,.4)}
+    #libChatBtn button svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    #libChatBadge{position:absolute;top:-4px;right:-4px;background:#e24b4a;color:#fff;border-radius:100px;font-size:.68rem;font-weight:700;min-width:18px;height:18px;align-items:center;justify-content:center;padding:0 4px;border:2px solid #fff;display:none}
+    #libChatPanel{position:fixed;right:0;top:0;bottom:0;width:400px;background:#fff;border-left:1px solid #ccdaeb;z-index:850;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease;box-shadow:-4px 0 24px rgba(0,0,0,.1)}
+    #libChatPanel.is-open{transform:translateX(0)}
+    .lc-pane{display:flex;flex:1;overflow:hidden}
+    .lc-convs{width:155px;border-right:1px solid #e8eef5;display:flex;flex-direction:column;flex-shrink:0;background:#f7f9fc}
+    .lc-convs-hd{padding:.75rem .75rem .5rem;border-bottom:1px solid #e8eef5;font-size:.75rem;font-weight:700;color:#1a2b3c;text-transform:uppercase;letter-spacing:.04em}
+    .lc-conv-item{display:flex;align-items:center;gap:.45rem;padding:.55rem .7rem;cursor:pointer;border-bottom:1px solid #e8eef5;position:relative}
+    .lc-conv-item:hover{background:#eef4ff}
+    .lc-conv-item.is-active{background:#dbeafe}
+    .lc-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;flex-shrink:0}
+    .lc-av.sm{width:22px;height:22px;font-size:.6rem}
+    .lc-conv-meta{flex:1;min-width:0}
+    .lc-conv-name{font-size:.75rem;font-weight:600;color:#1a2b3c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .lc-conv-prev{font-size:.68rem;color:#5a7085;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+    .lc-badge{background:#e24b4a;color:#fff;border-radius:100px;font-size:.62rem;font-weight:700;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px;flex-shrink:0}
+    .lc-new-btn{margin:.5rem;border:1px dashed #ccdaeb;border-radius:6px;padding:.4rem .5rem;font-size:.72rem;color:#5a7085;background:none;cursor:pointer;text-align:center}
+    .lc-new-btn:hover{background:#eef4ff;border-color:#185FA5;color:#185FA5}
+    .lc-msgs-pane{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    .lc-msgs-hd{padding:.65rem .9rem;border-bottom:1px solid #e8eef5}
+    .lc-msgs-hd h4{font-size:.83rem;font-weight:700;color:#1a2b3c;margin:0}
+    .lc-msgs-list{flex:1;overflow-y:auto;padding:.75rem .9rem;display:flex;flex-direction:column;gap:.6rem}
+    .lc-empty{text-align:center;color:#5a7085;font-size:.8rem;margin:auto}
+    .lc-date-sep{text-align:center;font-size:.68rem;color:#8a9cb0;padding:.2rem 0}
+    .lc-msg{display:flex;gap:.45rem;align-items:flex-end}
+    .lc-msg.me{flex-direction:row-reverse}
+    .lc-msg-col{display:flex;flex-direction:column;max-width:75%}
+    .lc-sender{font-size:.65rem;color:#5a7085;margin-bottom:2px}
+    .lc-msg.me .lc-sender{text-align:right}
+    .lc-bubble{padding:.45rem .65rem;border-radius:10px;font-size:.8rem;line-height:1.45;color:#1a2b3c;background:#f0f4f8;border:1px solid #e0e8f0;word-break:break-word}
+    .lc-bubble.me{background:#185FA5;color:#fff;border-color:#185FA5}
+    .lc-attach{display:flex;align-items:center;gap:.4rem;padding:.35rem .6rem;border-radius:8px;background:#f0f4f8;border:1px solid #e0e8f0;font-size:.75rem;color:#185FA5;text-decoration:none;margin-top:3px}
+    .lc-attach:hover{background:#e4ecf6}
+    .lc-time{font-size:.62rem;color:#8a9cb0;margin-top:2px}
+    .lc-msg.me .lc-time{text-align:right}
+    .lc-input-bar{padding:.55rem .7rem;border-top:1px solid #e8eef5;display:flex;align-items:center;gap:.4rem;background:#fff}
+    .lc-input-bar textarea{flex:1;border:1px solid #ccdaeb;border-radius:8px;padding:.4rem .6rem;font-size:.8rem;resize:none;height:36px;font-family:inherit;color:#1a2b3c;background:#fff;outline:none;line-height:1.4;overflow:hidden}
+    .lc-input-bar textarea:focus{border-color:#185FA5}
+    .lc-attach-btn{width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:1px solid #ccdaeb;border-radius:6px;background:#fff;cursor:pointer;color:#5a7085;flex-shrink:0}
+    .lc-send-btn{width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:#185FA5;border-radius:6px;border:none;cursor:pointer;flex-shrink:0}
+    .lc-send-btn svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round}
+    .lc-no-conv{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.5rem;color:#8a9cb0;font-size:.82rem}
+    #libModalNewConv{position:fixed;inset:0;background:rgba(10,20,50,.5);z-index:900;display:none;align-items:center;justify-content:center;padding:1rem}
+    #libModalNewConv.is-open{display:flex}
+    #libModalNewConvBox{background:#fff;border-radius:12px;width:100%;max-width:380px;padding:1.25rem}
+    #libModalNewConvBox h3{font-size:.95rem;font-weight:700;margin-bottom:.75rem}
+    #libChatUserSearch{width:100%;border:1px solid #ccdaeb;border-radius:8px;padding:.45rem .7rem;font-size:.84rem;margin-bottom:.65rem;outline:none}
+    #libChatUserSearch:focus{border-color:#185FA5}
+    #libChatUserList{max-height:240px;overflow-y:auto;border:1px solid #e8eef5;border-radius:8px}
+    .lc-user-item{display:flex;align-items:center;gap:.6rem;padding:.55rem .75rem;cursor:pointer;border-bottom:1px solid #e8eef5}
+    .lc-user-item:last-child{border-bottom:none}
+    .lc-user-item:hover{background:#eef4ff}
+    .lc-user-name{font-size:.83rem;font-weight:600;color:#1a2b3c}
+    .lc-user-role{font-size:.72rem;color:#5a7085}
+  </style>
+
+  <!-- Bulle chat -->
+  <div id="libChatBtn">
+    <button aria-label="Ouvrir le chat">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    </button>
+    <div id="libChatBadge">0</div>
+  </div>
+
+  <!-- Panneau chat -->
+  <div id="libChatPanel" role="dialog" aria-label="Chat professionnel">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.7rem 1rem;border-bottom:1px solid #e8eef5;flex-shrink:0">
+      <span style="font-size:.85rem;font-weight:700;color:#1a2b3c">Messages</span>
+      <button id="libChatClose" style="background:none;border:none;cursor:pointer;color:#5a7085;font-size:1.1rem;line-height:1" aria-label="Fermer">✕</button>
+    </div>
+    <div class="lc-pane">
+      <div class="lc-convs">
+        <div class="lc-convs-hd">Conversations</div>
+        <div id="libChatConvList"></div>
+        <button class="lc-new-btn" onclick="_chatOpenNewConv()">+ Nouveau message</button>
+      </div>
+      <div id="libChatMsgsPane" style="display:none;flex:1;flex-direction:column;overflow:hidden" class="lc-msgs-pane">
+        <div class="lc-msgs-hd"><h4 id="libChatConvName"></h4></div>
+        <div class="lc-msgs-list" id="libChatMsgsList"></div>
+        <div class="lc-input-bar">
+          <button class="lc-attach-btn" id="libChatAttachBtn" aria-label="Joindre un fichier">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          </button>
+          <textarea id="libChatTextarea" placeholder="Écrire un message… (Entrée pour envoyer)" rows="1" aria-label="Message"></textarea>
+          <button class="lc-send-btn" id="libChatSendBtn" aria-label="Envoyer">
+            <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="libChatNoConv" class="lc-no-conv">
+        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#ccdaeb" stroke-width="1.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Sélectionnez une conversation</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale nouveau message -->
+  <div id="libModalNewConv" role="dialog" aria-modal="true" aria-label="Nouveau message">
+    <div id="libModalNewConvBox">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+        <h3>Nouveau message</h3>
+        <button onclick="document.getElementById('libModalNewConv').classList.remove('is-open')" style="background:none;border:none;cursor:pointer;font-size:1rem;color:#5a7085">✕</button>
+      </div>
+      <input type="text" id="libChatUserSearch" placeholder="Rechercher…" aria-label="Rechercher">
+      <div id="libChatUserList"></div>
+    </div>
+  </div>
+
+  <script type="module" src="/js/library.js?v=18"></script>
 </body>
 </html>

@@ -82,7 +82,7 @@
       setGreeting(user);
       initTour();
 
-      const { data: profile } = await supabase.from('profiles').select('is_admin, is_professional').eq('id', user.id).single();
+      const { data: profile } = await supabase.from('profiles').select('is_admin, is_professional, full_name').eq('id', user.id).single();
       const isAdmin = profile?.is_admin === true;
       const isPro   = profile?.is_professional === true;
       _userId  = user.id;
@@ -100,6 +100,11 @@
       }
 
       await Promise.all([loadCategories(), loadResources(user.id, isAdmin), loadPatientForms(user.id, isAdmin), loadNextAppointment(user.id)]);
+
+      if (isAdmin || isPro) {
+        _chatBindEvents();
+        initLibraryChat(user.id, profile.full_name || user.email);
+      }
     }
 
     async function loadNextAppointment(userId) {
@@ -1223,5 +1228,254 @@
       } catch(e) {
         console.error('[calendar]', e);
       }
+    }
+
+    // ══════════════════════════════════════════════════════
+    // CHAT PROFESSIONNEL (admins + pros uniquement)
+    // ══════════════════════════════════════════════════════
+    let _chatUserId   = null;
+    let _chatUserName = null;
+    let _chatConvId   = null;
+    let _chatConvs    = [];
+    let _chatProfiles = [];
+    let _chatChannel  = null;
+    let _chatFileEl   = null;
+
+    const _AV_COLORS = [
+      { bg:'#dbeafe', fg:'#1e40af' }, { bg:'#d1fae5', fg:'#065f46' },
+      { bg:'#ede9fe', fg:'#4c1d95' }, { bg:'#fef3c7', fg:'#78350f' },
+      { bg:'#fce7f3', fg:'#831843' }, { bg:'#fee2e2', fg:'#7f1d1d' },
+    ];
+    function _chatAvStyle(name) {
+      const i = (name||'U').charCodeAt(0) % _AV_COLORS.length;
+      return `background:${_AV_COLORS[i].bg};color:${_AV_COLORS[i].fg}`;
+    }
+    function _chatInit(name) {
+      if (!name) return '?';
+      const p = name.trim().split(/\s+/);
+      return (p[0][0]+(p[1]?.[0]||'')).toUpperCase();
+    }
+    function _chatFmt(ts) {
+      if (!ts) return '';
+      const d = new Date(ts), now = new Date();
+      if (d.toDateString()===now.toDateString()) return d.toLocaleTimeString('fr-CA',{hour:'2-digit',minute:'2-digit'});
+      if ((now-d)/86400000<7) return d.toLocaleDateString('fr-CA',{weekday:'short'});
+      return d.toLocaleDateString('fr-CA',{month:'short',day:'numeric'});
+    }
+    function _esc(s) { const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
+
+    async function initLibraryChat(userId, userName) {
+      _chatUserId   = userId;
+      _chatUserName = userName;
+      document.getElementById('libChatBtn').style.display = 'block';
+      await _chatEnsureGeneral();
+      await _chatLoadConvs();
+      _chatSubscribe();
+    }
+
+    async function _chatEnsureGeneral() {
+      const { data } = await supabase.from('chat_conversations').select('id').eq('type','group').eq('name','général').maybeSingle();
+      if (data) return;
+      const { data: conv } = await supabase.from('chat_conversations').insert({type:'group',name:'général'}).select().single();
+      if (!conv) return;
+      const { data: pros } = await supabase.from('profiles').select('id').or('is_admin.eq.true,is_professional.eq.true');
+      if (pros?.length) await supabase.from('chat_participants').insert(pros.map(p=>({conversation_id:conv.id,user_id:p.id})));
+    }
+
+    async function _chatLoadConvs() {
+      const { data: parts } = await supabase.from('chat_participants').select('conversation_id').eq('user_id',_chatUserId);
+      if (!parts?.length) { _chatConvs=[]; _chatRenderList(); return; }
+      const ids = parts.map(p=>p.conversation_id);
+      const [{ data:convs },{ data:allP },{ data:lastM },{ data:unreadM }] = await Promise.all([
+        supabase.from('chat_conversations').select('*').in('id',ids),
+        supabase.from('chat_participants').select('conversation_id,user_id').in('conversation_id',ids),
+        supabase.from('chat_messages').select('conversation_id,content,created_at,sender_id,attachment_url').in('conversation_id',ids).order('created_at',{ascending:false}),
+        supabase.from('chat_messages').select('conversation_id,read_by').in('conversation_id',ids).not('read_by','cs',`{${_chatUserId}}`),
+      ]);
+      const pIds=[...new Set((allP||[]).map(p=>p.user_id))];
+      if (!_chatProfiles.length && pIds.length) {
+        const {data:pr}=await supabase.from('profiles').select('id,full_name,email').in('id',pIds);
+        _chatProfiles=pr||[];
+      }
+      const lastMap={}, unreadMap={}, partMap={};
+      (lastM||[]).forEach(m=>{ if(!lastMap[m.conversation_id]) lastMap[m.conversation_id]=m; });
+      (unreadM||[]).forEach(m=>{ unreadMap[m.conversation_id]=(unreadMap[m.conversation_id]||0)+1; });
+      (allP||[]).forEach(p=>{ (partMap[p.conversation_id]||=[]).push(p.user_id); });
+      _chatConvs=(convs||[]).map(c=>{
+        let name=c.name||'général';
+        if(c.type==='direct'){
+          const oid=(partMap[c.id]||[]).find(id=>id!==_chatUserId);
+          const o=_chatProfiles.find(p=>p.id===oid);
+          name=o?.full_name||o?.email||'Conversation';
+        }
+        return{...c,displayName:name,lastMsg:lastMap[c.id]||null,unread:unreadMap[c.id]||0};
+      }).sort((a,b)=>new Date(b.lastMsg?.created_at||b.created_at)-new Date(a.lastMsg?.created_at||a.created_at));
+      _chatRenderList();
+      _chatUpdateBadge();
+    }
+
+    function _chatRenderList() {
+      const el=document.getElementById('libChatConvList');
+      el.innerHTML=_chatConvs.map(c=>{
+        const isG=c.type==='group';
+        const ini=isG?'#':_chatInit(c.displayName);
+        const sty=isG?'background:#dbeafe;color:#1e40af':_chatAvStyle(c.displayName);
+        const prev=c.lastMsg?(c.lastMsg.attachment_url?'📎 Pièce jointe':(c.lastMsg.content||'').slice(0,28)):'Aucun message';
+        return `<div class="lc-conv-item${_chatConvId===c.id?' is-active':''}" onclick="_chatOpen('${c.id}')">
+          <div class="lc-av" style="${sty}">${ini}</div>
+          <div class="lc-conv-meta">
+            <div class="lc-conv-name">${_esc(c.displayName)}</div>
+            <div class="lc-conv-prev">${_esc(prev)}</div>
+          </div>
+          ${c.unread?`<div class="lc-badge">${c.unread}</div>`:''}
+        </div>`;
+      }).join('');
+    }
+
+    function _chatUpdateBadge() {
+      const n=_chatConvs.reduce((s,c)=>s+c.unread,0);
+      const b=document.getElementById('libChatBadge');
+      b.textContent=n; b.style.display=n?'flex':'none';
+    }
+
+    window._chatOpen = async (convId) => {
+      _chatConvId=convId;
+      _chatRenderList();
+      const c=_chatConvs.find(x=>x.id===convId);
+      document.getElementById('libChatConvName').textContent=c?.type==='group'?'#'+c.displayName:c?.displayName||'';
+      document.getElementById('libChatMsgsPane').style.display='flex';
+      document.getElementById('libChatNoConv').style.display='none';
+      document.getElementById('libChatMsgsList').innerHTML='<div class="lc-empty">Chargement…</div>';
+      await _chatMarkRead(convId);
+      await _chatRenderMsgs(convId);
+      if(c){c.unread=0;_chatUpdateBadge();_chatRenderList();}
+    };
+
+    async function _chatRenderMsgs(convId) {
+      const {data:msgs}=await supabase.from('chat_messages').select('*').eq('conversation_id',convId).order('created_at',{ascending:true});
+      const list=document.getElementById('libChatMsgsList');
+      if(!msgs?.length){list.innerHTML='<div class="lc-empty">Aucun message — soyez le premier à écrire !</div>';return;}
+      let lastDate='';
+      list.innerHTML=msgs.map(m=>{
+        const isMe=m.sender_id===_chatUserId;
+        const s=_chatProfiles.find(p=>p.id===m.sender_id);
+        const sName=s?.full_name||s?.email||'Inconnu';
+        const d=new Date(m.created_at);
+        const dl=d.toLocaleDateString('fr-CA',{weekday:'long',day:'numeric',month:'long'});
+        const sep=dl!==lastDate?`<div class="lc-date-sep">${dl}</div>`:'';
+        lastDate=dl;
+        const t=d.toLocaleTimeString('fr-CA',{hour:'2-digit',minute:'2-digit'});
+        const body=m.attachment_url
+          ?`${m.content?`<div class="lc-bubble${isMe?' me':''}">${_esc(m.content)}</div>`:''}
+            <a class="lc-attach" href="${_esc(m.attachment_url)}" target="_blank" rel="noopener">📎 ${_esc(m.attachment_url.split('/').pop().slice(0,38))}</a>`
+          :`<div class="lc-bubble${isMe?' me':''}">${_esc(m.content||'')}</div>`;
+        return `${sep}<div class="lc-msg${isMe?' me':''}">
+          <div class="lc-av sm" style="${_chatAvStyle(sName)}">${_chatInit(sName)}</div>
+          <div class="lc-msg-col">
+            ${!isMe?`<div class="lc-sender">${_esc(sName)}</div>`:''}
+            ${body}
+            <div class="lc-time">${t}</div>
+          </div>
+        </div>`;
+      }).join('');
+      list.scrollTop=list.scrollHeight;
+    }
+
+    async function _chatMarkRead(convId) {
+      const {data}=await supabase.from('chat_messages').select('id,read_by').eq('conversation_id',convId).not('read_by','cs',`{${_chatUserId}}`);
+      for(const m of data||[]){
+        await supabase.from('chat_messages').update({read_by:[...(m.read_by||[]),_chatUserId]}).eq('id',m.id);
+      }
+    }
+
+    function _chatSubscribe() {
+      _chatChannel=supabase.channel('lib-chat')
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_messages'},async p=>{
+          const m=p.new;
+          if(!_chatProfiles.find(x=>x.id===m.sender_id)){
+            const {data}=await supabase.from('profiles').select('id,full_name,email').eq('id',m.sender_id).single();
+            if(data) _chatProfiles.push(data);
+          }
+          if(_chatConvId===m.conversation_id){
+            await _chatRenderMsgs(m.conversation_id);
+            await _chatMarkRead(m.conversation_id);
+          } else {
+            const c=_chatConvs.find(x=>x.id===m.conversation_id);
+            if(c){c.unread++;c.lastMsg=m;_chatRenderList();_chatUpdateBadge();}
+            else await _chatLoadConvs();
+          }
+        }).subscribe();
+    }
+
+    async function _chatSend() {
+      if(!_chatConvId) return;
+      const ta=document.getElementById('libChatTextarea');
+      const txt=ta.value.trim(); if(!txt) return;
+      ta.value=''; ta.style.height='36px';
+      await supabase.from('chat_messages').insert({conversation_id:_chatConvId,sender_id:_chatUserId,content:txt,read_by:[_chatUserId]});
+    }
+
+    async function _chatSendFile(file) {
+      if(!_chatConvId||!file) return;
+      try {
+        const safe=file.name.replace(/[^a-zA-Z0-9.\-_]/g,'_');
+        const {data,error}=await supabase.storage.from('PDFS formation').upload(`chat/${Date.now()}-${safe}`,file,{upsert:false});
+        if(error) throw error;
+        const {data:{publicUrl}}=supabase.storage.from('PDFS formation').getPublicUrl(data.path);
+        await supabase.from('chat_messages').insert({conversation_id:_chatConvId,sender_id:_chatUserId,content:null,attachment_url:publicUrl,read_by:[_chatUserId]});
+      } catch(e) { console.error('[chat attach]',e); }
+    }
+
+    window._chatOpenNewConv = async () => {
+      const {data:pros}=await supabase.from('profiles').select('id,full_name,email,is_admin,is_professional').or('is_admin.eq.true,is_professional.eq.true').neq('id',_chatUserId);
+      _chatProfiles=[..._chatProfiles,...(pros||[]).filter(p=>!_chatProfiles.find(x=>x.id===p.id))];
+      const ul=document.getElementById('libChatUserList');
+      ul.innerHTML=(pros||[]).map(p=>{
+        const role=p.is_admin&&!p.is_professional?'Admin':'Professionnel';
+        return `<div class="lc-user-item" onclick="_chatStartDirect('${p.id}')">
+          <div class="lc-av" style="${_chatAvStyle(p.full_name||p.email)}">${_chatInit(p.full_name||p.email)}</div>
+          <div><div class="lc-user-name">${_esc(p.full_name||p.email)}</div><div class="lc-user-role">${role}</div></div>
+        </div>`;
+      }).join('');
+      document.getElementById('libChatUserSearch').value='';
+      document.getElementById('libModalNewConv').classList.add('is-open');
+    };
+
+    window._chatStartDirect = async (otherId) => {
+      document.getElementById('libModalNewConv').classList.remove('is-open');
+      const {data:myP}=await supabase.from('chat_participants').select('conversation_id').eq('user_id',_chatUserId);
+      const myIds=(myP||[]).map(p=>p.conversation_id);
+      if(myIds.length){
+        const {data:oP}=await supabase.from('chat_participants').select('conversation_id').eq('user_id',otherId).in('conversation_id',myIds);
+        for(const p of oP||[]){
+          const {data:c}=await supabase.from('chat_conversations').select('id,type').eq('id',p.conversation_id).single();
+          if(c?.type==='direct'){await _chatOpen(c.id);await _chatLoadConvs();return;}
+        }
+      }
+      const {data:conv}=await supabase.from('chat_conversations').insert({type:'direct'}).select().single();
+      if(!conv) return;
+      await supabase.from('chat_participants').insert([{conversation_id:conv.id,user_id:_chatUserId},{conversation_id:conv.id,user_id:otherId}]);
+      await _chatLoadConvs();
+      await _chatOpen(conv.id);
+    };
+
+    function _chatBindEvents() {
+      document.getElementById('libChatBtn').addEventListener('click',()=>{
+        document.getElementById('libChatPanel').classList.toggle('is-open');
+        if(!_chatConvId&&_chatConvs.length) _chatOpen(_chatConvs[0].id);
+      });
+      document.getElementById('libChatClose').addEventListener('click',()=>document.getElementById('libChatPanel').classList.remove('is-open'));
+      document.getElementById('libChatSendBtn').addEventListener('click',_chatSend);
+      document.getElementById('libChatTextarea').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();_chatSend();}});
+      document.getElementById('libChatTextarea').addEventListener('input',function(){this.style.height='36px';this.style.height=Math.min(this.scrollHeight,100)+'px';});
+      document.getElementById('libChatAttachBtn').addEventListener('click',()=>{
+        if(!_chatFileEl){_chatFileEl=document.createElement('input');_chatFileEl.type='file';_chatFileEl.accept='image/*,.pdf,.doc,.docx';_chatFileEl.addEventListener('change',()=>{if(_chatFileEl.files?.[0])_chatSendFile(_chatFileEl.files[0]);});}
+        _chatFileEl.click();
+      });
+      document.getElementById('libChatUserSearch').addEventListener('input',function(){
+        const q=this.value.toLowerCase();
+        document.querySelectorAll('#libChatUserList .lc-user-item').forEach(el=>{el.style.display=el.textContent.toLowerCase().includes(q)?'':'none';});
+      });
+      document.getElementById('libModalNewConv').addEventListener('click',e=>{if(e.target===document.getElementById('libModalNewConv'))document.getElementById('libModalNewConv').classList.remove('is-open');});
     }
 
