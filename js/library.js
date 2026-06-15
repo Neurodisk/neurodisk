@@ -1,7 +1,7 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-    const SUPABASE_URL      = 'https://xyczzekvgahkzlntsils.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_yRetJVmDBuU6XNY08FbXfQ_C9glVlqi';
+    const SUPABASE_URL      = 'https://jqxykxkikvrgwnajhhbi.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_t1EUH4wn9vtNBC7pUNbKOA_OhFfWsEi';
     const BUNNY_LIBRARY_ID  = '676634';
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
