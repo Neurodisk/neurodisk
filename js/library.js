@@ -1274,12 +1274,8 @@
     }
 
     async function _chatEnsureGeneral() {
-      const { data } = await supabase.from('chat_conversations').select('id').eq('type','group').eq('name','général').maybeSingle();
-      if (data) return;
-      const { data: conv } = await supabase.from('chat_conversations').insert({type:'group',name:'général'}).select().single();
-      if (!conv) return;
-      const { data: pros } = await supabase.from('profiles').select('id').or('is_admin.eq.true,is_professional.eq.true');
-      if (pros?.length) await supabase.from('chat_participants').insert(pros.map(p=>({conversation_id:conv.id,user_id:p.id})));
+      const { error } = await supabase.rpc('ensure_general_conversation');
+      if (error) console.error('[chat] ensureGeneral:', error);
     }
 
     async function _chatLoadConvs() {
@@ -1446,22 +1442,10 @@
       document.getElementById('libModalNewConv').classList.remove('is-open');
       document.getElementById('libChatPanel').classList.add('is-open');
       try {
-        const {data:myP}=await supabase.from('chat_participants').select('conversation_id').eq('user_id',_chatUserId);
-        const myIds=(myP||[]).map(p=>p.conversation_id);
-        if(myIds.length){
-          const {data:oP}=await supabase.from('chat_participants').select('conversation_id').eq('user_id',otherId).in('conversation_id',myIds);
-          for(const p of oP||[]){
-            const {data:c}=await supabase.from('chat_conversations').select('id,type').eq('id',p.conversation_id).single();
-            if(c?.type==='direct'){await _chatLoadConvs();await window._chatOpen(c.id);return;}
-          }
-        }
-        const {data:conv,error}=await supabase.from('chat_conversations').insert({type:'direct'}).select().single();
-        if(error) throw error;
-        if(!conv) throw new Error('Conversation non créée');
-        const {error:e2}=await supabase.from('chat_participants').insert([{conversation_id:conv.id,user_id:_chatUserId},{conversation_id:conv.id,user_id:otherId}]);
-        if(e2) throw e2;
+        const { data: convId, error } = await supabase.rpc('start_direct_conversation', { other_user_id: otherId });
+        if (error) throw error;
         await _chatLoadConvs();
-        await window._chatOpen(conv.id);
+        await window._chatOpen(convId);
       } catch(err) {
         console.error('[chat] startDirect:', err);
       }
