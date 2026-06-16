@@ -362,7 +362,7 @@
         <!-- ── Vue : Vérification 2FA (TOTP) ── -->
         <div id="viewMfa" style="display:none">
           <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;">
-            Authentification à deux facteurs. Entrez le code à 6 chiffres affiché dans votre application d'authentification.
+            Sécurité du compte. Entrez le code à 6 chiffres affiché dans votre application d'authentification.
           </p>
           <div class="form" style="gap:.75rem">
             <div class="field">
@@ -559,7 +559,7 @@
       if (!totp) { window.location.replace('/library.html'); return; } // sécurité : pas de facteur → on n'enferme personne
       mfaFactorId = totp.id;
       const { data: ch, error } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
-      if (error) { showError('Impossible de démarrer la vérification 2FA : ' + error.message); return; }
+      if (error) { showError('Impossible de démarrer la vérification de sécurité : ' + error.message); return; }
       mfaChallengeId = ch.id;
       // Affiche la vue 2FA (on cache seulement le formulaire, pas le conteneur parent)
       if (loader) { loader.classList.add('is-hidden'); }

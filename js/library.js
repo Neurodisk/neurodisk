@@ -469,7 +469,7 @@
           const { data, error: enErr } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Authenticator ' + Date.now() });
           if (enErr) { $('mfaLibStatus').textContent = 'Erreur : ' + enErr.message; return; }
           libFactorId = data.id;
-          $('mfaLibQr').innerHTML = `<img src="${data.totp.qr_code}" alt="QR 2FA" style="max-width:180px">`;
+          $('mfaLibQr').innerHTML = `<img src="${data.totp.qr_code}" alt="QR Sécurité" style="max-width:180px">`;
           $('mfaLibSecret').textContent = data.totp.secret;
           $('mfaLibMsg').textContent = '';
           $('mfaLibCode').value = '';
@@ -485,16 +485,16 @@
         if (cErr) { $('mfaLibMsg').textContent = 'Erreur : ' + cErr.message; return; }
         const { error: vErr } = await supabase.auth.mfa.verify({ factorId: libFactorId, challengeId: ch.id, code });
         if (vErr) { $('mfaLibMsg').textContent = 'Code invalide. Réessayez.'; return; }
-        alert('2FA activé avec succès ✅');
+        alert('Sécurité activée avec succès ✅');
         close();
       });
 
       $('btnMfaLibDisable').addEventListener('click', async () => {
         if (!libFactorId) return;
-        if (!confirm('Désactiver le 2FA sur votre compte ?')) return;
+        if (!confirm('Désactiver la sécurité sur votre compte ?')) return;
         const { error } = await supabase.auth.mfa.unenroll({ factorId: libFactorId });
         if (error) { alert('Erreur : ' + error.message); return; }
-        alert('2FA désactivé.');
+        alert('Sécurité désactivée.');
         close();
       });
     }
