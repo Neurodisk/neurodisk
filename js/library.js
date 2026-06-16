@@ -97,6 +97,7 @@
         document.getElementById('btnViewPatient').addEventListener('click', () => switchView('patient'));
         document.getElementById('btnViewPro').addEventListener('click',     () => switchView('professional'));
         updateToggleUI();
+        loadProSurveys(user.id);
       }
 
       await Promise.all([loadCategories(), loadResources(user.id, isAdmin), loadPatientForms(user.id, isAdmin), loadNextAppointment(user.id)]);
@@ -149,6 +150,83 @@
       updateToggleUI();
       await Promise.all([loadCategories(), loadResources(_userId, _isAdmin)]);
     }
+
+    // ── SONDAGES (professionnel) ──────────────────────────
+    let _proSurveyState = null;
+
+    async function loadProSurveys(userId) {
+      const wrap = document.getElementById('proSurveysWrap');
+      if (!wrap) return;
+      const { data: assigns } = await supabase.from('survey_assignments')
+        .select('survey_id, survey:surveys(id,title,description)')
+        .eq('professional_id', userId);
+      if (!assigns || !assigns.length) { wrap.style.display = 'none'; return; }
+      const surveyIds = assigns.map(a => a.survey_id);
+      const { data: resps } = await supabase.from('survey_responses')
+        .select('survey_id').eq('professional_id', userId).in('survey_id', surveyIds);
+      const done = new Set((resps || []).map(r => r.survey_id));
+
+      const items = assigns.filter(a => a.survey).map(a => {
+        const s = a.survey;
+        const answered = done.has(s.id);
+        return `<div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;background:#fff;border:1px solid #dbe4f0;border-radius:12px;padding:.85rem 1rem;margin-bottom:.5rem">
+          <div><strong>📋 ${esc(s.title)}</strong>${s.description?`<br><small style="color:#667">${esc(s.description)}</small>`:''}</div>
+          ${answered
+            ? `<span style="color:#1e8a4c;font-weight:600;font-size:.85rem;white-space:nowrap">✓ Répondu</span>`
+            : `<button class="nav-btn nav-btn--primary" style="white-space:nowrap" onclick="openSurvey('${s.id}')">Répondre</button>`}
+        </div>`;
+      }).join('');
+      wrap.innerHTML = `<div style="font-weight:700;color:#1B2B6B;margin-bottom:.5rem">Sondages à remplir</div>${items}`;
+      wrap.style.display = 'block';
+    }
+
+    window.openSurvey = async (surveyId) => {
+      const { data: survey } = await supabase.from('surveys').select('title,description').eq('id', surveyId).single();
+      const { data: questions } = await supabase.from('survey_questions').select('*').eq('survey_id', surveyId).order('sort_order');
+      _proSurveyState = { surveyId, questions: questions || [] };
+      document.getElementById('surveyModalTitle').textContent = survey?.title || 'Sondage';
+      document.getElementById('surveyModalDesc').textContent  = survey?.description || '';
+      document.getElementById('surveyModalMsg').textContent   = '';
+      document.getElementById('surveyModalQuestions').innerHTML = (questions || []).map(q => {
+        const base = `<div style="margin-bottom:1rem"><label style="display:block;font-weight:600;font-size:.9rem;margin-bottom:.4rem">${esc(q.label)}</label>`;
+        if (q.qtype === 'scale') {
+          return base + `<div style="display:flex;gap:.4rem">${[1,2,3,4,5].map(n=>`<label style="flex:1;text-align:center;border:1px solid #ccc;border-radius:8px;padding:.5rem;cursor:pointer"><input type="radio" name="sq_${q.id}" value="${n}" style="display:block;margin:0 auto .2rem">${n}</label>`).join('')}</div></div>`;
+        } else if (q.qtype === 'choice') {
+          const opts = Array.isArray(q.options) ? q.options : [];
+          return base + opts.map(o=>`<label style="display:flex;align-items:center;gap:.5rem;margin:.25rem 0;font-size:.88rem"><input type="radio" name="sq_${q.id}" value="${esc(o)}">${esc(o)}</label>`).join('') + `</div>`;
+        }
+        return base + `<textarea name="sq_${q.id}" rows="2" style="width:100%;padding:.5rem;border:1px solid #ccc;border-radius:8px"></textarea></div>`;
+      }).join('');
+      document.getElementById('surveyModal').style.display = 'flex';
+    };
+
+    document.getElementById('btnSurveyCancel')?.addEventListener('click', () => {
+      document.getElementById('surveyModal').style.display = 'none';
+    });
+
+    document.getElementById('btnSurveySubmit')?.addEventListener('click', async () => {
+      if (!_proSurveyState) return;
+      const { surveyId, questions } = _proSurveyState;
+      const answers = {};
+      for (const q of questions) {
+        if (q.qtype === 'text') {
+          answers[q.id] = (document.querySelector(`textarea[name="sq_${q.id}"]`)?.value || '').trim();
+        } else {
+          const checked = document.querySelector(`input[name="sq_${q.id}"]:checked`);
+          answers[q.id] = checked ? checked.value : '';
+        }
+      }
+      const btn = document.getElementById('btnSurveySubmit');
+      btn.disabled = true; btn.textContent = 'Envoi…';
+      const { data:{ user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from('survey_responses')
+        .insert({ survey_id: surveyId, professional_id: user.id, answers });
+      btn.disabled = false; btn.textContent = 'Envoyer mes réponses';
+      if (error) { document.getElementById('surveyModalMsg').textContent = 'Erreur : ' + error.message; return; }
+      document.getElementById('surveyModal').style.display = 'none';
+      toast('Merci, vos réponses ont été envoyées.', 'success');
+      loadProSurveys(user.id);
+    });
 
     async function loadResources(userId, isAdmin = false) {
       const audience = currentView === 'professional' ? 'professional' : 'patient';

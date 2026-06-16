@@ -65,6 +65,23 @@
     <span>📅 <strong>Prochain rendez-vous :</strong> <span id="appointmentText"></span></span>
   </div>
 
+  <!-- Sondages assignés (professionnels) -->
+  <div id="proSurveysWrap" style="display:none;padding:1rem 1.5rem 0"></div>
+
+  <!-- Modal sondage (professionnel) -->
+  <div id="surveyModal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,.45);padding:1rem">
+    <div style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:90vh;overflow:auto;padding:1.5rem;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <h2 id="surveyModalTitle" style="margin:0 0 .3rem;font-size:1.15rem;color:#1B2B6B"></h2>
+      <p id="surveyModalDesc" style="font-size:.85rem;color:#666;margin:.2rem 0 1rem"></p>
+      <div id="surveyModalQuestions"></div>
+      <p id="surveyModalMsg" style="font-size:.83rem;color:#c0392b;min-height:1.1em;margin:.3rem 0"></p>
+      <div style="display:flex;gap:.6rem;margin-top:.5rem">
+        <button id="btnSurveySubmit" style="flex:1;padding:.7rem;background:#1B2B6B;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">Envoyer mes réponses</button>
+        <button id="btnSurveyCancel" style="padding:.7rem 1rem;background:#f0f0f0;border:none;border-radius:8px;cursor:pointer">Annuler</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Contenu -->
   <main class="main">
 
@@ -355,6 +372,6 @@
     </div>
   </div>
 
-  <script type="module" src="/js/library.js?v=25"></script>
+  <script type="module" src="/js/library.js?v=26"></script>
 </body>
 </html>

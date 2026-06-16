@@ -724,6 +724,10 @@
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
         Formulaires
       </a>
+      <a class="sidebar__link sidebar__sub" data-section="surveys" data-perm="surveys" href="#">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/><line x1="9" y1="9" x2="6" y2="9"/></svg>
+        Sondage
+      </a>
 
       <!-- ── Groupe Sécurité ── -->
       <div class="sidebar__group">
@@ -1482,6 +1486,65 @@
 
       </section>
 
+      <!-- ════════════════════════════════════ SONDAGE ══ -->
+      <section id="sec-surveys" class="section">
+
+        <div class="section-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Sondage
+        </div>
+
+        <p style="color:var(--muted);font-size:.85rem;margin-bottom:1.25rem">
+          Créez un sondage, ajoutez vos questions, choisissez les professionnels destinataires. Une fois rempli, retrouvez ici les réponses de chacun.
+        </p>
+
+        <!-- Créer un sondage -->
+        <div class="card">
+          <div class="card__title">Nouveau sondage</div>
+          <div id="alertAddSurvey" class="alert"></div>
+
+          <div class="form-grid">
+            <div class="field" style="grid-column:1/-1">
+              <label for="surveyTitle">Titre *</label>
+              <input type="text" id="surveyTitle" placeholder="Ex. : Satisfaction au travail — T3">
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="surveyDesc">Description <span style="font-weight:400;color:var(--muted)">optionnel</span></label>
+              <textarea id="surveyDesc" placeholder="Brève consigne pour les professionnels…"></textarea>
+            </div>
+          </div>
+
+          <!-- Builder de questions -->
+          <div class="section-title" style="font-size:.95rem;margin-top:1rem">Questions</div>
+          <div id="surveyQuestions"></div>
+          <button type="button" class="btn btn--ghost btn--sm" id="btnAddSurveyQuestion" style="margin-top:.5rem">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Ajouter une question
+          </button>
+
+          <!-- Destinataires -->
+          <div class="section-title" style="font-size:.95rem;margin-top:1.5rem">Professionnels destinataires</div>
+          <div id="surveyProsWrap" style="display:flex;flex-direction:column;gap:.35rem;max-height:220px;overflow:auto;border:1px solid var(--border,#dbe4f0);border-radius:8px;padding:.75rem">
+            <div class="empty-state">Chargement…</div>
+          </div>
+
+          <div style="margin-top:1.25rem">
+            <button class="btn btn--primary" id="btnCreateSurvey">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Créer le sondage
+            </button>
+          </div>
+        </div>
+
+        <!-- Liste des sondages -->
+        <div class="section-title" style="margin-top:2rem">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Sondages créés
+        </div>
+        <div id="surveysListWrap"><div class="empty-state">Chargement…</div></div>
+
+      </section>
+
       <!-- ════════════════════════════════════ JOURNAL D'AUDIT ══ -->
       <section id="sec-audit" class="section">
         <div class="section-title">
@@ -1901,6 +1964,7 @@
           <label style="display:flex;align-items:center;gap:.4rem;font-size:.84rem;cursor:pointer"><input type="checkbox" data-perm="categories_pro"> Catégorie</label>
           <label style="display:flex;align-items:center;gap:.4rem;font-size:.84rem;cursor:pointer"><input type="checkbox" data-perm="referral"> Lettre de référence</label>
           <label style="display:flex;align-items:center;gap:.4rem;font-size:.84rem;cursor:pointer"><input type="checkbox" data-perm="forms"> Formulaires</label>
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.84rem;cursor:pointer"><input type="checkbox" data-perm="surveys"> Sondage</label>
         </div>
       </div>
 
@@ -2569,6 +2633,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
             } else {
               const secEl = document.getElementById('sec-' + sec);
               if (secEl) secEl.classList.add('is-active');
+              if (sec === 'surveys') initSurveysSection();
             }
           } else {
             // Aucune permission → message
@@ -2643,6 +2708,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         } else if (sec === 'audit') {
           document.getElementById('sec-audit').classList.add('is-active');
           loadAuditLog();
+        } else if (sec === 'surveys') {
+          document.getElementById('sec-surveys').classList.add('is-active');
+          initSurveysSection();
         } else {
           document.getElementById('sec-' + sec).classList.add('is-active');
         }
@@ -6560,6 +6628,180 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         btn.innerHTML = '✉️ Envoyer le lien de réinitialisation';
       }
     });
+
+    // ══════════════════════════════════════════════════════
+    // SONDAGE (Professionnel)
+    // ══════════════════════════════════════════════════════
+    let surveyQuestionsState = [];   // [{label, qtype, options:[]}]
+    let surveyStaff          = [];
+
+    async function initSurveysSection() {
+      await Promise.all([loadSurveyStaff(), loadSurveys()]);
+      if (!surveyQuestionsState.length) addSurveyQuestion();
+      else renderSurveyQuestions();
+    }
+
+    async function loadSurveyStaff() {
+      const wrap = document.getElementById('surveyProsWrap');
+      const { data, error } = await sb.rpc('chat_staff_profiles');
+      if (error) { wrap.innerHTML = `<div class="empty-state">Erreur : ${esc(error.message)}</div>`; return; }
+      surveyStaff = (data || []).filter(p => p.is_professional || p.is_admin);
+      if (!surveyStaff.length) { wrap.innerHTML = `<div class="empty-state">Aucun professionnel enregistré.</div>`; return; }
+      wrap.innerHTML = surveyStaff.map(p => `
+        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.86rem">
+          <input type="checkbox" class="survey-pro" value="${esc(p.id)}">
+          ${esc(p.full_name || p.email)} ${p.is_admin ? '<span style="color:var(--muted);font-size:.75rem">(admin)</span>' : ''}
+        </label>`).join('');
+    }
+
+    function addSurveyQuestion() {
+      surveyQuestionsState.push({ label:'', qtype:'text', options:[''] });
+      renderSurveyQuestions();
+    }
+
+    function renderSurveyQuestions() {
+      const wrap = document.getElementById('surveyQuestions');
+      wrap.innerHTML = surveyQuestionsState.map((q, i) => `
+        <div class="card" style="padding:.85rem;margin-bottom:.6rem;background:#f8fafc">
+          <div style="display:flex;gap:.5rem;align-items:flex-start">
+            <input type="text" class="sq-label" data-i="${i}" placeholder="Intitulé de la question ${i+1}" value="${esc(q.label)}" style="flex:1">
+            <select class="sq-type" data-i="${i}">
+              <option value="text"   ${q.qtype==='text'?'selected':''}>Réponse libre</option>
+              <option value="scale"  ${q.qtype==='scale'?'selected':''}>Échelle 1-5</option>
+              <option value="choice" ${q.qtype==='choice'?'selected':''}>Choix multiple</option>
+            </select>
+            <button type="button" class="btn btn--danger btn--sm sq-del" data-i="${i}" title="Supprimer">✕</button>
+          </div>
+          ${q.qtype==='choice' ? `
+            <div style="margin-top:.5rem">
+              ${q.options.map((o,oi)=>`<div style="display:flex;gap:.4rem;margin-bottom:.3rem"><input type="text" class="sq-opt" data-i="${i}" data-oi="${oi}" placeholder="Option ${oi+1}" value="${esc(o)}" style="flex:1"><button type="button" class="btn btn--ghost btn--sm sq-opt-del" data-i="${i}" data-oi="${oi}">✕</button></div>`).join('')}
+              <button type="button" class="btn btn--ghost btn--sm sq-opt-add" data-i="${i}">+ Option</button>
+            </div>` : ''}
+        </div>`).join('');
+
+      wrap.querySelectorAll('.sq-label').forEach(el => el.addEventListener('input', e => { surveyQuestionsState[+e.target.dataset.i].label = e.target.value; }));
+      wrap.querySelectorAll('.sq-type').forEach(el => el.addEventListener('change', e => { const q = surveyQuestionsState[+e.target.dataset.i]; q.qtype = e.target.value; if (q.qtype==='choice' && (!q.options || !q.options.length)) q.options=['']; renderSurveyQuestions(); }));
+      wrap.querySelectorAll('.sq-del').forEach(el => el.addEventListener('click', e => { surveyQuestionsState.splice(+e.currentTarget.dataset.i,1); if (!surveyQuestionsState.length) addSurveyQuestion(); else renderSurveyQuestions(); }));
+      wrap.querySelectorAll('.sq-opt').forEach(el => el.addEventListener('input', e => { surveyQuestionsState[+e.target.dataset.i].options[+e.target.dataset.oi] = e.target.value; }));
+      wrap.querySelectorAll('.sq-opt-del').forEach(el => el.addEventListener('click', e => { const q = surveyQuestionsState[+e.currentTarget.dataset.i]; q.options.splice(+e.currentTarget.dataset.oi,1); if (!q.options.length) q.options=['']; renderSurveyQuestions(); }));
+      wrap.querySelectorAll('.sq-opt-add').forEach(el => el.addEventListener('click', e => { surveyQuestionsState[+e.currentTarget.dataset.i].options.push(''); renderSurveyQuestions(); }));
+    }
+
+    document.getElementById('btnAddSurveyQuestion').addEventListener('click', addSurveyQuestion);
+
+    document.getElementById('btnCreateSurvey').addEventListener('click', async () => {
+      const alert = document.getElementById('alertAddSurvey');
+      const title = document.getElementById('surveyTitle').value.trim();
+      const desc  = document.getElementById('surveyDesc').value.trim();
+      const questions = surveyQuestionsState.filter(q => q.label.trim());
+      const proIds = Array.from(document.querySelectorAll('.survey-pro:checked')).map(c => c.value);
+
+      if (!title) { setAlert(alert,'Le titre est requis.','error'); return; }
+      if (!questions.length) { setAlert(alert,'Ajoutez au moins une question.','error'); return; }
+      if (!proIds.length) { setAlert(alert,'Sélectionnez au moins un professionnel.','error'); return; }
+
+      setAlert(alert,'','');
+      const btn = document.getElementById('btnCreateSurvey');
+      btn.disabled = true; btn.innerHTML = `<span class="spinner-inline"></span> Création…`;
+      try {
+        const { data:{ user } } = await sb.auth.getUser();
+        const { data: survey, error: sErr } = await sb.from('surveys')
+          .insert({ title, description: desc || null, created_by: user.id }).select().single();
+        if (sErr) throw sErr;
+
+        const qRows = questions.map((q,i) => ({
+          survey_id: survey.id, label: q.label.trim(), qtype: q.qtype,
+          options: q.qtype==='choice' ? q.options.map(o=>o.trim()).filter(Boolean) : [],
+          sort_order: i,
+        }));
+        const { error: qErr } = await sb.from('survey_questions').insert(qRows);
+        if (qErr) throw qErr;
+
+        const { error: aErr } = await sb.from('survey_assignments')
+          .insert(proIds.map(pid => ({ survey_id: survey.id, professional_id: pid })));
+        if (aErr) throw aErr;
+
+        toast('Sondage créé et envoyé aux professionnels.','success');
+        document.getElementById('surveyTitle').value = '';
+        document.getElementById('surveyDesc').value = '';
+        surveyQuestionsState = []; addSurveyQuestion();
+        document.querySelectorAll('.survey-pro:checked').forEach(c => c.checked = false);
+        await loadSurveys();
+      } catch (err) {
+        setAlert(alert,'Erreur : '+err.message,'error');
+      }
+      btn.disabled = false;
+      btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Créer le sondage`;
+    });
+
+    async function loadSurveys() {
+      const wrap = document.getElementById('surveysListWrap');
+      const { data: surveys, error } = await sb.from('surveys')
+        .select('id,title,description,created_at').order('created_at',{ascending:false});
+      if (error) { wrap.innerHTML = `<div class="empty-state">Erreur : ${esc(error.message)}</div>`; return; }
+      if (!surveys?.length) { wrap.innerHTML = `<div class="empty-state">Aucun sondage pour l'instant.</div>`; return; }
+
+      const ids = surveys.map(s=>s.id);
+      const { data: assigns } = await sb.from('survey_assignments').select('survey_id').in('survey_id',ids);
+      const { data: resps }   = await sb.from('survey_responses').select('survey_id').in('survey_id',ids);
+      const aCount={}, rCount={};
+      (assigns||[]).forEach(a => aCount[a.survey_id]=(aCount[a.survey_id]||0)+1);
+      (resps||[]).forEach(r => rCount[r.survey_id]=(rCount[r.survey_id]||0)+1);
+
+      wrap.innerHTML = surveys.map(s => `
+        <div class="card" style="margin-bottom:.6rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+            <div>
+              <strong>${esc(s.title)}</strong>
+              ${s.description?`<br><small style="color:var(--muted)">${esc(s.description)}</small>`:''}
+              <br><small style="color:var(--muted)">${rCount[s.id]||0} / ${aCount[s.id]||0} réponse(s)</small>
+            </div>
+            <div class="td-actions">
+              <button class="btn btn--ghost btn--sm" onclick="viewSurveyResponses('${s.id}')">👁 Voir les réponses</button>
+              <button class="btn btn--danger btn--sm" onclick="deleteSurvey('${s.id}', this)">Supprimer</button>
+            </div>
+          </div>
+          <div id="surveyResp_${s.id}" style="display:none;margin-top:.85rem;border-top:1px solid #e5ecf5;padding-top:.85rem"></div>
+        </div>`).join('');
+    }
+
+    window.deleteSurvey = async (id, btn) => {
+      if (!confirm('Supprimer ce sondage et toutes ses réponses ?')) return;
+      btn.disabled = true;
+      const { error } = await sb.from('surveys').delete().eq('id', id);
+      if (error) { toast('Erreur : '+error.message,'error'); btn.disabled=false; return; }
+      toast('Sondage supprimé.','success');
+      await loadSurveys();
+    };
+
+    window.viewSurveyResponses = async (id) => {
+      const box = document.getElementById('surveyResp_'+id);
+      if (box.style.display !== 'none') { box.style.display='none'; return; }
+      box.style.display = 'block';
+      box.innerHTML = `<div class="empty-state">Chargement…</div>`;
+
+      const [{ data: questions }, { data: assigns }, { data: resps }] = await Promise.all([
+        sb.from('survey_questions').select('*').eq('survey_id',id).order('sort_order'),
+        sb.from('survey_assignments').select('professional_id').eq('survey_id',id),
+        sb.from('survey_responses').select('professional_id,answers,submitted_at').eq('survey_id',id),
+      ]);
+
+      const staff = surveyStaff.length ? surveyStaff : ((await sb.rpc('chat_staff_profiles')).data || []);
+      const nameOf = pid => { const p = staff.find(x=>x.id===pid); return p ? (p.full_name||p.email) : 'Professionnel'; };
+      const respByPro = {}; (resps||[]).forEach(r => respByPro[r.professional_id]=r);
+
+      box.innerHTML = (assigns||[]).map(a => {
+        const r = respByPro[a.professional_id];
+        if (!r) return `<div style="padding:.5rem 0;border-bottom:1px solid #eef2f8"><strong>${esc(nameOf(a.professional_id))}</strong> — <span style="color:#c0392b">en attente</span></div>`;
+        const ans = (questions||[]).map(q => {
+          let v = r.answers?.[q.id];
+          if (v===undefined || v===null || v==='') v='—';
+          if (q.qtype==='scale' && v!=='—') v = `${v} / 5`;
+          return `<div style="margin:.3rem 0"><span style="color:var(--muted);font-size:.8rem">${esc(q.label)}</span><br>${esc(String(v))}</div>`;
+        }).join('');
+        return `<div style="padding:.6rem 0;border-bottom:1px solid #eef2f8"><strong>${esc(nameOf(a.professional_id))}</strong> — <span style="color:#1e8a4c">répondu</span> <small style="color:var(--muted)">${new Date(r.submitted_at).toLocaleDateString('fr-CA')}</small>${ans}</div>`;
+      }).join('') || `<div class="empty-state">Aucun destinataire.</div>`;
+    };
   </script>
 
   <!-- ── Bulle chat flottante ──────────────────────────── -->
