@@ -244,6 +244,7 @@
       const isVideo = r.type === 'video';
       const condLabel = COND[r.condition_tag] || r.condition_tag;
       const embedUrl = isVideo ? `https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${r.bunny_video_id}?autoplay=true&responsive=true` : '';
+      const isWord = r.type === 'word';
       const thumb = r.thumbnail_url ? `<img src="${esc(r.thumbnail_url)}" alt="" loading="lazy">` : `<div class="card__thumb-bg">${isVideo ? svgVideo() : svgPdf()}</div>`;
       const dur = isVideo && r.duration_sec ? `<span class="card__duration">${fmtDur(r.duration_sec)}</span>` : '';
 
@@ -266,16 +267,18 @@
           </div>
         </article>`;
       } else {
-        return `<article class="card" role="listitem" tabindex="0" data-id="${r.id}" data-type="pdf" data-url="${esc(r.pdf_url||'')}" data-title="${esc(r.title)}">
+        const badgeLabel = isWord ? 'Word' : 'PDF';
+        const ctaLabel   = isWord ? 'Ouvrir le document Word' : 'Ouvrir le PDF';
+        return `<article class="card" role="listitem" tabindex="0" data-id="${r.id}" data-type="${isWord ? 'word' : 'pdf'}" data-url="${esc(r.pdf_url||'')}" data-title="${esc(r.title)}">
           <div class="card__thumb">${thumb}</div>
           <div class="card__body">
             <div class="card__meta">
-              <span class="badge badge--pdf">PDF</span>
+              <span class="badge badge--${isWord ? 'word' : 'pdf'}">${badgeLabel}</span>
               <span class="badge badge--c-${r.condition_tag}">${condLabel}</span>
             </div>
             <h2 class="card__title">${esc(r.title)}</h2>
             ${r.description ? `<p class="card__desc">${esc(r.description)}</p>` : ''}
-            <p class="card__cta"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Ouvrir le PDF</p>
+            <p class="card__cta"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> ${ctaLabel}</p>
           </div>
         </article>`;
       }

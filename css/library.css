@@ -212,6 +212,7 @@
     .badge { display: inline-flex; align-items: center; gap: .25rem; padding: .3rem .75rem; border-radius: 100px; font-size: .875rem; font-weight: 500; }
     .badge--video   { background: var(--blue-light); color: var(--blue); }
     .badge--pdf     { background: #fef3c7; color: #92400e; }
+    .badge--word    { background: #dbeafe; color: #1e40af; }
     .badge--c-trousse_depart     { background: var(--c-trousse-bg);        color: var(--c-trousse-text); }
     .badge--c-hernie_discale     { background: var(--c-hernie-bg);         color: var(--c-hernie-text); }
     .badge--c-sciatique          { background: var(--c-sciatique-bg);      color: var(--c-sciatique-text); }
