@@ -3313,6 +3313,19 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       btn.disabled = true;
       btn.innerHTML = `<span class="spinner-inline"></span> Ajout…`;
 
+      // Garde-fou anti-doublon : même titre + même fichier dans la même audience
+      const srcCol = type === 'video' ? 'bunny_video_id' : 'pdf_url';
+      const srcVal = type === 'video' ? bunnyId : pdfUrl;
+      const { data: existing } = await sb.from('resources')
+        .select('id').eq('title', title).eq('type', type)
+        .eq('audience', currentResourceAudience).eq(srcCol, srcVal).limit(1);
+      if (existing && existing.length) {
+        setAlert(alert, 'Cette ressource existe déjà (même titre et même fichier). Ajout annulé.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Ajouter la ressource`;
+        return;
+      }
+
       const payload = {
         title, description: desc || null, type, condition_tag: cond, category,
         bunny_video_id: type === 'video' ? bunnyId : null,
