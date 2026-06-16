@@ -166,14 +166,16 @@
         .select('survey_id').eq('professional_id', userId).in('survey_id', surveyIds);
       const done = new Set((resps || []).map(r => r.survey_id));
 
-      const items = assigns.filter(a => a.survey).map(a => {
+      // On n'affiche que les sondages PAS encore remplis :
+      // une fois répondu, le sondage disparaît au rechargement.
+      const pending = assigns.filter(a => a.survey && !done.has(a.survey.id));
+      if (!pending.length) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+
+      const items = pending.map(a => {
         const s = a.survey;
-        const answered = done.has(s.id);
         return `<div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;background:#fff;border:1px solid #dbe4f0;border-radius:12px;padding:.85rem 1rem;margin-bottom:.5rem">
           <div><strong>📋 ${esc(s.title)}</strong>${s.description?`<br><small style="color:#667">${esc(s.description)}</small>`:''}</div>
-          ${answered
-            ? `<span style="color:#1e8a4c;font-weight:600;font-size:.85rem;white-space:nowrap">✓ Répondu</span>`
-            : `<button class="nav-btn nav-btn--primary" style="white-space:nowrap" onclick="openSurvey('${s.id}')">Répondre</button>`}
+          <button class="nav-btn nav-btn--primary" style="white-space:nowrap" onclick="openSurvey('${s.id}')">Répondre</button>
         </div>`;
       }).join('');
       wrap.innerHTML = `<div style="font-weight:700;color:#1B2B6B;margin-bottom:.5rem">Sondages à remplir</div>${items}`;
