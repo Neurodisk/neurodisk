@@ -230,6 +230,55 @@
       loadProSurveys(user.id);
     });
 
+    // ── OBJECTIFS (patient) ───────────────────────────────
+    async function loadObjectives() {
+      const wrap = document.getElementById('objectifsContent');
+      if (!wrap) return;
+      const { data, error } = await supabase.from('patient_objectives')
+        .select('*').eq('patient_id', _userId).order('sort_order').order('created_at');
+      if (error) { wrap.innerHTML = `<div class="state-wrap"><p class="state-title">Erreur de chargement</p></div>`; return; }
+      const objs = data || [];
+      if (!objs.length) {
+        wrap.innerHTML = `<div class="state-wrap"><div class="state-icon" style="font-size:2.5rem">🎯</div><p class="state-title">Vos objectifs arrivent bientôt</p><p class="state-text">Votre professionnel n'a pas encore défini d'objectifs. Ils apparaîtront ici pour vous accompagner vers votre rétablissement.</p></div>`;
+        return;
+      }
+      const total = objs.length, done = objs.filter(o => o.is_done).length;
+      const pct = Math.round(done / total * 100);
+      const groups = { court:{icon:'🎯',title:'Court terme'}, moyen:{icon:'📈',title:'Moyen terme'}, long:{icon:'🏆',title:'Long terme'} };
+
+      let html = `
+        <div style="background:linear-gradient(135deg,#1B2B6B,#2563eb);color:#fff;border-radius:16px;padding:1.25rem 1.5rem;margin-bottom:1.5rem">
+          <div style="font-size:1.05rem;font-weight:700;margin-bottom:.2rem">Votre progression</div>
+          <div style="font-size:.85rem;opacity:.92;margin-bottom:.6rem">${done} objectif${done>1?'s':''} atteint${done>1?'s':''} sur ${total}${pct===100?' — bravo ! 🎉':''}</div>
+          <div style="background:rgba(255,255,255,.25);border-radius:100px;height:12px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:#34d399;border-radius:100px;transition:width .5s"></div>
+          </div>
+        </div>`;
+
+      for (const h of ['court','moyen','long']) {
+        const list = objs.filter(o => o.horizon === h);
+        if (!list.length) continue;
+        html += `<div style="margin-bottom:1.5rem"><h2 style="font-size:1.05rem;color:#1B2B6B;margin:0 0 .6rem">${groups[h].icon} ${groups[h].title}</h2>`;
+        html += list.map(o => `
+          <label style="display:flex;align-items:flex-start;gap:.7rem;background:#fff;border:1px solid #dbe4f0;border-radius:12px;padding:.85rem 1rem;margin-bottom:.5rem;cursor:pointer">
+            <input type="checkbox" ${o.is_done?'checked':''} onchange="toggleObjective('${o.id}', this.checked)" style="width:20px;height:20px;margin-top:.1rem;flex-shrink:0;cursor:pointer">
+            <span style="flex:1">
+              <span style="${o.is_done?'text-decoration:line-through;color:#94a3b8':'color:#1e293b'};font-weight:500">${esc(o.label)}</span>
+              ${o.target_date?`<br><small style="color:#667">📅 Objectif pour le ${new Date(o.target_date+'T00:00').toLocaleDateString('fr-CA',{day:'numeric',month:'long',year:'numeric'})}</small>`:''}
+            </span>
+          </label>`).join('');
+        html += `</div>`;
+      }
+      wrap.innerHTML = html;
+    }
+
+    window.toggleObjective = async (id, done) => {
+      const { error } = await supabase.from('patient_objectives')
+        .update({ is_done: done, done_at: done ? new Date().toISOString() : null }).eq('id', id);
+      if (error) { toast('Erreur, réessayez.', 'error'); return; }
+      loadObjectives();
+    };
+
     async function loadResources(userId, isAdmin = false) {
       const audience = currentView === 'professional' ? 'professional' : 'patient';
       try {
@@ -488,10 +537,14 @@
 
       const cat = allCategories.find(c => c.id === section);
       const isProgramme = section === 'exercices' || cat?.shows_programme;
+      const isObjectifs = cat?.shows_objectifs;
 
       if (isProgramme) {
         document.getElementById('section-exercices').style.display = '';
         if (!programmeLoaded) loadProgramme();
+      } else if (isObjectifs) {
+        document.getElementById('section-objectifs').style.display = '';
+        loadObjectives();
       } else {
         document.getElementById('section-cat').style.display = '';
         renderCatGrid(section);

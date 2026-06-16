@@ -694,6 +694,10 @@
         <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
         Catégorie
       </a>
+      <a class="sidebar__link sidebar__sub" data-section="objectives" data-perm="objectifs" href="#">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        Objectifs
+      </a>
 
       <!-- ── Groupe Professionnel ── -->
       <div class="sidebar__group">
@@ -1545,6 +1549,57 @@
 
       </section>
 
+      <!-- ════════════════════════════════════ OBJECTIFS ══ -->
+      <section id="sec-objectives" class="section">
+
+        <div class="section-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          Objectifs
+        </div>
+
+        <p style="color:var(--muted);font-size:.85rem;margin-bottom:1.25rem">
+          Définissez les objectifs court / moyen / long terme de chaque patient. Ils apparaîtront dans un onglet motivant côté patient (case à cocher quand atteint). Activez l'onglet via la colonne « Objectifs » d'une catégorie.
+        </p>
+
+        <div class="card">
+          <div class="field" style="max-width:420px">
+            <label for="objPatientSelect">Patient</label>
+            <select id="objPatientSelect"><option value="">— Sélectionner un patient —</option></select>
+          </div>
+        </div>
+
+        <div id="objEditorWrap" style="display:none">
+          <div class="card" data-horizon="court">
+            <div class="card__title">🎯 Court terme</div>
+            <div id="objList_court"></div>
+            <div class="obj-add-row" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;align-items:flex-end">
+              <div class="field" style="flex:1;min-width:200px;margin:0"><label>Nouvel objectif</label><input type="text" id="objInput_court" placeholder="Ex. : Marcher 10 min par jour"></div>
+              <div class="field" style="margin:0"><label>Date cible <span style="font-weight:400;color:var(--muted)">optionnel</span></label><input type="date" id="objDate_court"></div>
+              <button class="btn btn--primary btn--sm" onclick="addObjective('court')">Ajouter</button>
+            </div>
+          </div>
+          <div class="card" data-horizon="moyen">
+            <div class="card__title">📈 Moyen terme</div>
+            <div id="objList_moyen"></div>
+            <div class="obj-add-row" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;align-items:flex-end">
+              <div class="field" style="flex:1;min-width:200px;margin:0"><label>Nouvel objectif</label><input type="text" id="objInput_moyen" placeholder="Ex. : Reprendre la natation"></div>
+              <div class="field" style="margin:0"><label>Date cible <span style="font-weight:400;color:var(--muted)">optionnel</span></label><input type="date" id="objDate_moyen"></div>
+              <button class="btn btn--primary btn--sm" onclick="addObjective('moyen')">Ajouter</button>
+            </div>
+          </div>
+          <div class="card" data-horizon="long">
+            <div class="card__title">🏆 Long terme</div>
+            <div id="objList_long"></div>
+            <div class="obj-add-row" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;align-items:flex-end">
+              <div class="field" style="flex:1;min-width:200px;margin:0"><label>Nouvel objectif</label><input type="text" id="objInput_long" placeholder="Ex. : Reprendre le sport sans douleur"></div>
+              <div class="field" style="margin:0"><label>Date cible <span style="font-weight:400;color:var(--muted)">optionnel</span></label><input type="date" id="objDate_long"></div>
+              <button class="btn btn--primary btn--sm" onclick="addObjective('long')">Ajouter</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
       <!-- ════════════════════════════════════ JOURNAL D'AUDIT ══ -->
       <section id="sec-audit" class="section">
         <div class="section-title">
@@ -1955,6 +2010,7 @@
           <label style="display:flex;align-items:center;gap:.4rem;font-size:.84rem;cursor:pointer"><input type="checkbox" data-perm="assignments"> Assignation</label>
           <label style="display:flex;align-items:center;gap:.4rem;font-size:.84rem;cursor:pointer"><input type="checkbox" data-perm="programme"> Programme</label>
           <label style="display:flex;align-items:center;gap:.4rem;font-size:.84rem;cursor:pointer"><input type="checkbox" data-perm="categories_patient"> Catégorie</label>
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.84rem;cursor:pointer"><input type="checkbox" data-perm="objectifs"> Objectifs</label>
         </div>
 
         <div style="font-size:.8rem;font-weight:700;color:#1a2b3c;margin-bottom:.3rem">Professionnel</div>
@@ -2634,6 +2690,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
               const secEl = document.getElementById('sec-' + sec);
               if (secEl) secEl.classList.add('is-active');
               if (sec === 'surveys') initSurveysSection();
+              if (sec === 'objectives') initObjectivesSection();
             }
           } else {
             // Aucune permission → message
@@ -2711,6 +2768,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         } else if (sec === 'surveys') {
           document.getElementById('sec-surveys').classList.add('is-active');
           initSurveysSection();
+        } else if (sec === 'objectives') {
+          document.getElementById('sec-objectives').classList.add('is-active');
+          initObjectivesSection();
         } else {
           document.getElementById('sec-' + sec).classList.add('is-active');
         }
@@ -4537,7 +4597,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       wrap.innerHTML = `
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Ordre</th><th>Icône</th><th>Nom</th><th>Identifiant</th><th>Ressources</th><th>Programme</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Ordre</th><th>Icône</th><th>Nom</th><th>Identifiant</th><th>Ressources</th><th>Programme</th><th>Objectifs</th><th>Actions</th></tr></thead>
             <tbody>
               ${allCategories.map((cat, idx) => {
                 const count = usageCounts[cat.id] || 0;
@@ -4557,6 +4617,10 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
                   <td style="text-align:center">
                     <input type="checkbox" style="width:20px;height:20px;cursor:pointer" ${cat.shows_programme ? 'checked' : ''}
                       onchange="setCatProgramme('${esc(cat.id)}', this.checked, this)" title="Afficher le programme d'exercices dans cette catégorie">
+                  </td>
+                  <td style="text-align:center">
+                    <input type="checkbox" style="width:20px;height:20px;cursor:pointer" ${cat.shows_objectifs ? 'checked' : ''}
+                      onchange="setCatObjectifs('${esc(cat.id)}', this.checked, this)" title="Afficher l'onglet Objectifs dans cette catégorie">
                   </td>
                   <td>
                     <div class="td-actions">
@@ -4707,6 +4771,21 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       const err = results.find(r => r.error);
       if (err) { toast('Erreur : ' + err.error.message, 'error'); }
       else toast(checked ? 'Programme lié à cette catégorie.' : 'Programme retiré.', 'success');
+      await loadCategories();
+    };
+
+    // ── Lier l'onglet Objectifs à une catégorie ───────────
+    // Une seule catégorie à la fois : cocher l'une décoche les autres.
+    window.setCatObjectifs = async (id, checked, input) => {
+      input.disabled = true;
+      const updates = allCategories
+        .filter(c => c.shows_objectifs && c.id !== id)
+        .map(c => sb.from('resource_categories').update({ shows_objectifs: false }).eq('id', c.id));
+      updates.push(sb.from('resource_categories').update({ shows_objectifs: checked }).eq('id', id));
+      const results = await Promise.all(updates);
+      const err = results.find(r => r.error);
+      if (err) { toast('Erreur : ' + err.error.message, 'error'); }
+      else toast(checked ? 'Onglet Objectifs lié à cette catégorie.' : 'Objectifs retirés.', 'success');
       await loadCategories();
     };
 
@@ -6801,6 +6880,64 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         }).join('');
         return `<div style="padding:.6rem 0;border-bottom:1px solid #eef2f8"><strong>${esc(nameOf(a.professional_id))}</strong> — <span style="color:#1e8a4c">répondu</span> <small style="color:var(--muted)">${new Date(r.submitted_at).toLocaleDateString('fr-CA')}</small>${ans}</div>`;
       }).join('') || `<div class="empty-state">Aucun destinataire.</div>`;
+    };
+
+    // ══════════════════════════════════════════════════════
+    // OBJECTIFS (par patient)
+    // ══════════════════════════════════════════════════════
+    const HORIZONS = ['court','moyen','long'];
+    let objCurrentPatient = null;
+
+    async function initObjectivesSection() {
+      if (!allPatients.length) await loadPatients();
+      const sel = document.getElementById('objPatientSelect');
+      const patients = allPatients.filter(p => !p.is_admin && !p.is_professional);
+      sel.innerHTML = `<option value="">— Sélectionner un patient —</option>` +
+        patients.map(p => `<option value="${esc(p.id)}">${esc(p.full_name || p.email)}</option>`).join('');
+      sel.onchange = () => {
+        objCurrentPatient = sel.value || null;
+        document.getElementById('objEditorWrap').style.display = objCurrentPatient ? '' : 'none';
+        if (objCurrentPatient) loadObjectivesAdmin(objCurrentPatient);
+      };
+    }
+
+    async function loadObjectivesAdmin(patientId) {
+      const { data, error } = await sb.from('patient_objectives')
+        .select('*').eq('patient_id', patientId).order('sort_order').order('created_at');
+      if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+      HORIZONS.forEach(h => {
+        const list = (data || []).filter(o => o.horizon === h);
+        const wrap = document.getElementById('objList_' + h);
+        wrap.innerHTML = list.length ? list.map(o => `
+          <div style="display:flex;align-items:center;gap:.6rem;padding:.45rem 0;border-bottom:1px solid #eef2f8">
+            <span style="flex:1">${o.is_done ? '✅ ' : ''}${esc(o.label)}${o.target_date ? ` <small style="color:var(--muted)">— ${new Date(o.target_date+'T00:00').toLocaleDateString('fr-CA')}</small>` : ''}</span>
+            ${o.is_done ? `<span style="color:#1e8a4c;font-size:.78rem">atteint</span>` : `<span style="color:var(--muted);font-size:.78rem">en cours</span>`}
+            <button class="btn btn--danger btn--sm" onclick="deleteObjective('${o.id}')">✕</button>
+          </div>`).join('') : `<div style="color:var(--muted);font-size:.85rem;padding:.3rem 0">Aucun objectif pour cet horizon.</div>`;
+      });
+    }
+
+    window.addObjective = async (horizon) => {
+      if (!objCurrentPatient) { toast('Sélectionnez un patient.', 'error'); return; }
+      const input = document.getElementById('objInput_' + horizon);
+      const dateEl = document.getElementById('objDate_' + horizon);
+      const label = input.value.trim();
+      if (!label) { toast('Entrez un objectif.', 'error'); return; }
+      const { error } = await sb.from('patient_objectives').insert({
+        patient_id: objCurrentPatient, horizon, label,
+        target_date: dateEl.value || null,
+      });
+      if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+      input.value = ''; dateEl.value = '';
+      toast('Objectif ajouté.', 'success');
+      loadObjectivesAdmin(objCurrentPatient);
+    };
+
+    window.deleteObjective = async (id) => {
+      if (!confirm('Supprimer cet objectif ?')) return;
+      const { error } = await sb.from('patient_objectives').delete().eq('id', id);
+      if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+      loadObjectivesAdmin(objCurrentPatient);
     };
   </script>
 
