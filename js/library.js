@@ -88,7 +88,6 @@
       _userId  = user.id;
       _isAdmin = isAdmin;
 
-      if (isAdmin || isPro) { const b = document.getElementById('btnMfaLib'); if (b) { b.style.display = 'flex'; setupLibMfa(); } }
       if (isAdmin && !isPro) document.getElementById('btnAdmin').style.display = 'flex';
       if (isPro) {
         document.getElementById('btnProfessionnel').style.display = 'flex';
@@ -166,6 +165,17 @@
           resources = data.map(r => ({ ...r.resource, assigned_at: r.assigned_at }))
             .filter(r => r?.id && (r.audience || 'patient') === audience);
         }
+        // Dé-duplication défensive : jamais deux fois la même ressource
+        // (par id, et par contenu identique titre+type+fichier au cas où
+        //  ce seraient des lignes distinctes mais identiques).
+        const seen = new Set();
+        resources = resources.filter(r => {
+          const key = r.id + '|' + (r.title || '').trim().toLowerCase() + '|' + r.type + '|' + (r.pdf_url || r.bunny_video_id || '');
+          const contentKey = (r.title || '').trim().toLowerCase() + '|' + r.type + '|' + (r.pdf_url || r.bunny_video_id || '');
+          if (seen.has(r.id) || seen.has(contentKey)) return false;
+          seen.add(r.id); seen.add(contentKey); seen.add(key);
+          return true;
+        });
         allResources = resources.sort((a, b) => a.sort_order - b.sort_order);
         renderCategories();
       } catch (e) {
