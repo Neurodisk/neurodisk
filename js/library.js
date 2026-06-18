@@ -68,7 +68,7 @@
       '🏆':'award','🥇':'award','🏅':'award','📅':'calendar','🗓️':'calendar','🗓':'calendar',
       '✅':'check','☑️':'check','✔️':'check',
     };
-    function catIconSvg(value, size = 30) {
+    function catIconSvg(value, size = 40) {
       const name = CATEGORY_ICON_PATHS[value] ? value : (EMOJI_TO_ICON[value] || 'folder');
       return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CATEGORY_ICON_PATHS[name]}</svg>`;
     }
