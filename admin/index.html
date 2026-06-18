@@ -1064,8 +1064,11 @@
               <input type="text" id="catLabel" placeholder="Ex. : Mes articles">
             </div>
             <div class="field">
-              <label for="catIcon">Icône (emoji)</label>
-              <input type="text" id="catIcon" placeholder="📁" maxlength="4" value="📁" style="font-size:1.4rem;width:80px">
+              <label for="catIcon">Icône</label>
+              <div style="display:flex;align-items:center;gap:.6rem">
+                <select id="catIcon"></select>
+                <span id="catIconPreview" style="display:inline-flex;color:var(--brand,#1B2B6B)"></span>
+              </div>
             </div>
             <div class="field">
               <label for="catSlug">Identifiant <span style="font-weight:400;color:var(--muted)">optionnel — auto-généré depuis le nom</span></label>
@@ -1862,8 +1865,11 @@
         <input type="text" id="catEditLabel" placeholder="Nom de la catégorie">
       </div>
       <div class="field" style="margin-bottom:1.25rem">
-        <label for="catEditIcon">Icône (emoji)</label>
-        <input type="text" id="catEditIcon" maxlength="4" style="font-size:1.4rem;width:80px">
+        <label for="catEditIcon">Icône</label>
+        <div style="display:flex;align-items:center;gap:.6rem">
+          <select id="catEditIcon"></select>
+          <span id="catEditIconPreview" style="display:inline-flex;color:var(--brand,#1B2B6B)"></span>
+        </div>
       </div>
       <div style="display:flex;gap:.75rem">
         <button class="btn btn--primary" id="btnCatEditSave">Enregistrer</button>
@@ -3890,7 +3896,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
       const catSel = document.getElementById('sendFormCategory');
       catSel.innerHTML = `<option value="">— Sélectionner une catégorie —</option>` +
-        allCategories.map(c => `<option value="${esc(c.id)}">${c.icon} ${esc(c.label)}</option>`).join('');
+        allCategories.map(c => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('');
 
       setAlert(document.getElementById('alertSendForm'), '', '');
       document.getElementById('modalSendForm').classList.add('is-open');
@@ -4570,6 +4576,62 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     let allCategories = [];
     let catEditId     = null;
 
+    // ── Bibliothèque d'icônes au trait (catégories) ───────
+    const CATEGORY_ICON_PATHS = {
+      folder:    '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
+      target:    '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
+      clipboard: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/>',
+      activity:  '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+      film:      '<rect x="2" y="2" width="20" height="20" rx="2.5"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/>',
+      video:     '<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>',
+      play:      '<circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>',
+      leaf:      '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/>',
+      heart:     '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
+      book:      '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+      star:      '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+      award:     '<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>',
+      calendar:  '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+      check:     '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+    };
+    const EMOJI_TO_ICON = {
+      '📁':'folder','📂':'folder','🗂️':'folder','🗂':'folder',
+      '🎯':'target','🥅':'target',
+      '📋':'clipboard','📝':'clipboard','🗒️':'clipboard','🗒':'clipboard',
+      '💪':'activity','🏃':'activity','🏃‍♂️':'activity','🤸':'activity','🏋️':'activity',
+      '🎬':'film','📹':'video','🎥':'video','▶️':'play','⏯️':'play',
+      '🌱':'leaf','🌿':'leaf','🍃':'leaf',
+      '❤️':'heart','💙':'heart','💗':'heart','🫀':'heart',
+      '📚':'book','📖':'book','📕':'book',
+      '⭐':'star','🌟':'star',
+      '🏆':'award','🥇':'award','🏅':'award',
+      '📅':'calendar','🗓️':'calendar','🗓':'calendar',
+      '✅':'check','☑️':'check','✔️':'check',
+    };
+    const CATEGORY_ICON_LIST = [
+      ['folder','Dossier'], ['target','Cible / Objectif'], ['clipboard','Liste / Recommandations'],
+      ['activity','Activité / Exercices'], ['film','Film'], ['video','Vidéo'], ['play','Lecture'],
+      ['leaf','Habitudes de vie'], ['heart','Santé'], ['book','Bibliothèque'],
+      ['star','Étoile'], ['award','Trophée'], ['calendar','Calendrier'], ['check','Validé'],
+    ];
+    function resolveIconName(value) {
+      if (CATEGORY_ICON_PATHS[value]) return value;
+      return EMOJI_TO_ICON[value] || 'folder';
+    }
+    function catIconSvg(value, size = 26) {
+      const paths = CATEGORY_ICON_PATHS[resolveIconName(value)];
+      return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+    }
+    function fillIconSelect(selId, previewId, current) {
+      const sel = document.getElementById(selId);
+      if (!sel) return;
+      const name = resolveIconName(current);
+      sel.innerHTML = CATEGORY_ICON_LIST.map(([n,l]) => `<option value="${n}" ${n===name?'selected':''}>${l}</option>`).join('');
+      const updatePreview = () => { const p = document.getElementById(previewId); if (p) p.innerHTML = catIconSvg(sel.value, 24); };
+      sel.onchange = updatePreview;
+      updatePreview();
+    }
+    fillIconSelect('catIcon', 'catIconPreview', 'folder');
+
     async function loadCategories() {
       const { data, error } = await sb
         .from('resource_categories')
@@ -4610,7 +4672,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
                       <button class="btn btn--ghost btn--sm" style="padding:.2rem .4rem" ${isLast  ? 'disabled' : ''} onclick="moveCat('${esc(cat.id)}',  1, this)" title="Descendre">↓</button>
                     </div>
                   </td>
-                  <td style="font-size:1.6rem;line-height:1">${cat.icon}</td>
+                  <td><span style="display:inline-flex;color:var(--brand,#1B2B6B)">${catIconSvg(cat.icon, 26)}</span></td>
                   <td><strong>${esc(cat.label)}</strong></td>
                   <td style="color:var(--muted);font-family:monospace;font-size:.8rem">${esc(cat.id)}</td>
                   <td style="color:var(--muted)">${count}</td>
@@ -4640,7 +4702,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
     function populateCategorySelects() {
       const opts = allCategories.map(c =>
-        `<option value="${esc(c.id)}">${c.icon} ${esc(c.label)}</option>`
+        `<option value="${esc(c.id)}">${esc(c.label)}</option>`
       ).join('');
       const rCat   = document.getElementById('rCategory');
       const editCat = document.getElementById('editCategory');
@@ -4651,7 +4713,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     // ── Ajouter une catégorie ─────────────────────────────
     document.getElementById('btnAddCat').addEventListener('click', async () => {
       const label   = document.getElementById('catLabel').value.trim();
-      const icon    = document.getElementById('catIcon').value.trim() || '📁';
+      const icon    = document.getElementById('catIcon').value || 'folder';
       let   slug    = document.getElementById('catSlug').value.trim();
       const alertEl = document.getElementById('alertAddCat');
 
@@ -4687,7 +4749,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       setAlert(alertEl, `✓ Catégorie "${label}" ajoutée.`, 'success');
       document.getElementById('catLabel').value = '';
       document.getElementById('catSlug').value  = '';
-      document.getElementById('catIcon').value  = '📁';
+      fillIconSelect('catIcon', 'catIconPreview', 'folder');
       await loadCategories();
     });
 
@@ -4697,7 +4759,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       if (!cat) return;
       catEditId = id;
       document.getElementById('catEditLabel').value = cat.label;
-      document.getElementById('catEditIcon').value  = cat.icon;
+      fillIconSelect('catEditIcon', 'catEditIconPreview', cat.icon);
       document.getElementById('modalCatSlug').textContent = `Identifiant : ${cat.id}`;
       setAlert(document.getElementById('alertCatEdit'), '', '');
       document.getElementById('modalCatEdit').classList.add('is-open');
@@ -4719,7 +4781,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
     document.getElementById('btnCatEditSave').addEventListener('click', async () => {
       const label   = document.getElementById('catEditLabel').value.trim();
-      const icon    = document.getElementById('catEditIcon').value.trim() || '📁';
+      const icon    = document.getElementById('catEditIcon').value || 'folder';
       const alertEl = document.getElementById('alertCatEdit');
       const btn     = document.getElementById('btnCatEditSave');
 

@@ -41,12 +41,44 @@
       renderTiles();
     }
 
+    // ── Icônes au trait des catégories (cohérent avec l'admin) ──
+    const CATEGORY_ICON_PATHS = {
+      folder:    '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
+      target:    '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
+      clipboard: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/>',
+      activity:  '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+      film:      '<rect x="2" y="2" width="20" height="20" rx="2.5"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/>',
+      video:     '<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>',
+      play:      '<circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>',
+      leaf:      '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/>',
+      heart:     '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
+      book:      '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+      star:      '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+      award:     '<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>',
+      calendar:  '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+      check:     '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+    };
+    const EMOJI_TO_ICON = {
+      '📁':'folder','📂':'folder','🗂️':'folder','🗂':'folder','🎯':'target','🥅':'target',
+      '📋':'clipboard','📝':'clipboard','🗒️':'clipboard','🗒':'clipboard',
+      '💪':'activity','🏃':'activity','🏃‍♂️':'activity','🤸':'activity','🏋️':'activity',
+      '🎬':'film','📹':'video','🎥':'video','▶️':'play','⏯️':'play',
+      '🌱':'leaf','🌿':'leaf','🍃':'leaf','❤️':'heart','💙':'heart','💗':'heart','🫀':'heart',
+      '📚':'book','📖':'book','📕':'book','⭐':'star','🌟':'star',
+      '🏆':'award','🥇':'award','🏅':'award','📅':'calendar','🗓️':'calendar','🗓':'calendar',
+      '✅':'check','☑️':'check','✔️':'check',
+    };
+    function catIconSvg(value, size = 30) {
+      const name = CATEGORY_ICON_PATHS[value] ? value : (EMOJI_TO_ICON[value] || 'folder');
+      return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CATEGORY_ICON_PATHS[name]}</svg>`;
+    }
+
     function renderTiles() {
       const nav = document.getElementById('heroNav');
       if (!nav) return;
       const catTabs = allCategories.map(cat => `
         <button class="hero-nav__tab" data-section="${esc(cat.id)}">
-          <span class="hero-nav__tab__icon">${cat.icon}</span>
+          <span class="hero-nav__tab__icon">${catIconSvg(cat.icon)}</span>
           ${esc(cat.label)}
         </button>`).join('');
       nav.innerHTML = catTabs;

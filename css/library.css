@@ -152,7 +152,7 @@
       outline: 3px solid rgba(255,255,255,.8);
       outline-offset: 2px;
     }
-    .hero-nav__tab__icon { font-size: 2.6rem; line-height: 1; display: block; }
+    .hero-nav__tab__icon { display: flex; justify-content: center; align-items: center; margin-bottom: .45rem; line-height: 1; }
     @media (max-width: 640px) {
       .hero-nav { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-bottom: .15rem; }
       .hero-nav::-webkit-scrollbar { display: none; }
