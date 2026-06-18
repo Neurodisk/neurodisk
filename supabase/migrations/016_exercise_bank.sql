@@ -12,6 +12,18 @@
 --
 --   ⚠️ Suggestions à valider par le professionnel selon chaque
 --   patient. Le dosage réel se règle à l'assignation (patient_exercises).
+--
+--   BASE PROBANTE (voir docs/exercices-base-probante.md) :
+--     • JOSPT CPG lombalgie 2021 — renforcement/endurance du tronc,
+--       activation spécifique (transverse/multifides), contrôle moteur,
+--       McKenzie/MDT, aérobie, aquatique.
+--     • Revue systématique 2024 (sténose lombaire) — biais en flexion,
+--       marche, vélo ; l'extension réduit le canal d'~67 % → évitée.
+--     • Spondylolisthésis — éviter l'extension, favoriser flexion +
+--       stabilisation lombo-pelvienne.
+--     • JOSPT CPG cervicalgie 2017 — amplitude, renforcement,
+--       fléchisseurs cervicaux profonds.
+--     • Neurodynamique = ADJUVANT (preuve faible à modérée).
 -- ============================================================
 
 DO $$
