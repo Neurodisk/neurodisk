@@ -21,6 +21,17 @@ Ce document justifie les choix cliniques de la banque d'exercices (`supabase/mig
 
 - **Neurodynamique (glissements neuraux, SLR actif)** et **étirement du piriforme** sont positionnés comme **adjuvants** : à utiliser en complément de l'exercice actif et de l'éducation, pas en traitement isolé. Réaliser en « glissement » (va-et-vient) sous le seuil de douleur, sans tension maintenue.
 
+## 2e vague — exercices avancés (migration 017)
+
+| Principe | Source | Niveau de preuve |
+|---|---|---|
+| Entraînement en résistance de la chaîne postérieure (RDL, soulevé de terre, hip thrust) supérieur à l'exercice général sur la lombalgie chronique (12-16 sem.) | Revue systématique/méta-analyse chaîne postérieure | Fort (effet modéré) |
+| Mise en charge progressive (chargée ou non) sûre et efficace si bien progressée ; volume et régularité priment sur l'intensité brute | Revue systématique résistance externe vs sans charge | Modéré |
+| Retour au sport fondé sur des **critères** (sans douleur, neuro intact, force/amplitude complètes) + progression graduée sport-spécifique | Protocoles de retour au sport (rachis/athlètes) | Consensus / modéré |
+| Pliométrie en réadaptation lombaire | Littérature limitée | Faible → **optionnel**, fin de parcours |
+
+Précautions conservées : éviter l'hyperextension et l'impact précoces en spondylolyse/spondylolisthésis ; charges en colonne neutre ; introduire la pliométrie seulement en fin de réadaptation, sans douleur.
+
 ## Sources
 
 - [JOSPT — Interventions for the Management of Acute and Chronic Low Back Pain: Revision 2021](https://www.jospt.org/doi/10.2519/jospt.2021.0304)
@@ -28,3 +39,7 @@ Ce document justifie les choix cliniques de la banque d'exercices (`supabase/mig
 - [Spondylolisthesis — Physiopedia (gestion conservatrice, stabilisation, éviter l'extension)](https://www.physio-pedia.com/Spondylolisthesis)
 - [Neural Mobilization for Reducing Pain and Disability in Patients with Lumbar Radiculopathy: Systematic Review and Meta-Analysis](https://pmc.ncbi.nlm.nih.gov/articles/PMC10744707/)
 - [JOSPT — Neck Pain: Clinical Practice Guidelines, Revision 2017](https://www.jospt.org/doi/10.2519/jospt.2017.0507)
+- [Posterior-Chain Resistance Training vs General Exercise for Chronic Low Back Pain: Systematic Review and Meta-Analysis](https://pmc.ncbi.nlm.nih.gov/articles/PMC7940464/)
+- [Resistance training with external loads vs unloaded exercise for chronic low back pain: systematic review](https://www.archivesofphysiotherapy.com/index.php/aop/article/view/3533)
+- [A phased rehabilitation protocol for athletes with lumbar intervertebral disc herniation (return to sport)](https://pmc.ncbi.nlm.nih.gov/articles/PMC3812831/)
+- [Return to play after conservative and surgical treatment in athletes with spondylolysis: systematic review](https://www.sciencedirect.com/science/article/abs/pii/S1466853X18303456)
