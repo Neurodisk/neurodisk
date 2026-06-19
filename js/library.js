@@ -331,8 +331,8 @@
         //  ce seraient des lignes distinctes mais identiques).
         const seen = new Set();
         resources = resources.filter(r => {
-          const key = r.id + '|' + (r.title || '').trim().toLowerCase() + '|' + r.type + '|' + (r.pdf_url || r.bunny_video_id || '');
-          const contentKey = (r.title || '').trim().toLowerCase() + '|' + r.type + '|' + (r.pdf_url || r.bunny_video_id || '');
+          const key = r.id + '|' + (r.title || '').trim().toLowerCase() + '|' + r.type + '|' + (r.pdf_url || r.video_url || r.bunny_video_id || '');
+          const contentKey = (r.title || '').trim().toLowerCase() + '|' + r.type + '|' + (r.pdf_url || r.video_url || r.bunny_video_id || '');
           if (seen.has(r.id) || seen.has(contentKey)) return false;
           seen.add(r.id); seen.add(contentKey); seen.add(key);
           return true;
@@ -401,13 +401,22 @@
       });
     }
 
+    // Extrait l'ID d'une URL YouTube (watch, youtu.be, embed, shorts)
+    function ytId(url) {
+      if (!url) return null;
+      const m = String(url).match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+      return m ? m[1] : null;
+    }
+
     function renderCard(r) {
       const isVideo = r.type === 'video';
       const condLabel = COND[r.condition_tag] || r.condition_tag;
-      // Lecture : URL Supabase Storage (HTML5) en priorité, sinon ancien embed Bunny
-      const directVid = isVideo && !!r.video_url;
+      // Lecture : YouTube (embed) en priorité, sinon fichier direct (HTML5), sinon ancien Bunny
+      const yt = isVideo ? ytId(r.video_url) : null;
+      const directVid = isVideo && !!r.video_url && !yt;
       const embedUrl = isVideo
-        ? (r.video_url || (r.bunny_video_id ? `https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${r.bunny_video_id}?autoplay=true&responsive=true` : ''))
+        ? (yt ? `https://www.youtube-nocookie.com/embed/${yt}?rel=0&autoplay=1&playsinline=1`
+           : (r.video_url || (r.bunny_video_id ? `https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${r.bunny_video_id}?autoplay=true&responsive=true` : '')))
         : '';
       const isWord = r.type === 'word';
       const thumb = r.thumbnail_url ? `<img src="${esc(r.thumbnail_url)}" alt="" loading="lazy">` : `<div class="card__thumb-bg">${isVideo ? svgVideo() : svgPdf()}</div>`;
@@ -1073,9 +1082,12 @@
       // ── Zone média ──
       const mediaEl = document.getElementById('exModalMedia');
       if (hasVideo) {
-        mediaEl.innerHTML = ex.video_url
-          ? `<video src="${ex.video_url}" controls playsinline style="width:100%;aspect-ratio:16/9;display:block;background:#000"></video>`
-          : `<iframe src="https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${ex.bunny_video_id}?autoplay=true&responsive=true" allowfullscreen allow="autoplay" style="width:100%;aspect-ratio:16/9;border:none;display:block;"></iframe>`;
+        const yt = ytId(ex.video_url);
+        mediaEl.innerHTML = yt
+          ? `<iframe src="https://www.youtube-nocookie.com/embed/${yt}?rel=0&playsinline=1" allowfullscreen allow="autoplay" style="width:100%;aspect-ratio:16/9;border:none;display:block;"></iframe>`
+          : ex.video_url
+            ? `<video src="${ex.video_url}" controls playsinline style="width:100%;aspect-ratio:16/9;display:block;background:#000"></video>`
+            : `<iframe src="https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${ex.bunny_video_id}?autoplay=true&responsive=true" allowfullscreen allow="autoplay" style="width:100%;aspect-ratio:16/9;border:none;display:block;"></iframe>`;
       } else if (allImgs.length > 0) {
         const imgUrls = allImgs.map(i => i.url);
         mediaEl.innerHTML = `

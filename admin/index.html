@@ -856,10 +856,13 @@
                 </select>
               </div>
               <div class="field" id="fieldBunny">
-                <label>Vidéo *</label>
+                <label for="rYoutube">Lien YouTube (vidéo « non répertoriée ») *</label>
+                <input type="url" id="rYoutube" placeholder="https://youtu.be/…  ou  https://www.youtube.com/watch?v=…"
+                  oninput="document.getElementById('rBunnyId').value=this.value.trim()">
+                <p style="font-size:.75rem;color:var(--muted);margin:.3rem 0 0">Téléversez d'abord la vidéo sur votre chaîne YouTube en « Non répertorié », puis collez le lien ici.</p>
 
-                <!-- Zone glisser-déposer -->
-                <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Zone d'upload vidéo">
+                <!-- Zone d'upload désactivée (hébergement YouTube) -->
+                <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Zone d'upload vidéo" style="display:none">
                   <div class="drop-zone__icon">🎬</div>
                   <p class="drop-zone__label">
                     <strong>Glissez votre vidéo ici</strong> ou cliquez pour choisir<br>
@@ -1249,8 +1252,10 @@
                   </div>
                 </div>
                 <div class="field" style="grid-column:1/-1">
-                  <label>Vidéo de démonstration <span style="font-weight:400;color:var(--muted)">optionnel</span></label>
-                  <div class="drop-zone" id="dropZoneNewExVideo" tabindex="0" role="button" aria-label="Zone vidéo">
+                  <label for="newExYoutube">Lien YouTube de démonstration <span style="font-weight:400;color:var(--muted)">optionnel — vidéo « non répertoriée »</span></label>
+                  <input type="url" id="newExYoutube" placeholder="https://youtu.be/…  ou  https://www.youtube.com/watch?v=…"
+                    oninput="document.getElementById('newExBunny').value=this.value.trim()">
+                  <div class="drop-zone" id="dropZoneNewExVideo" tabindex="0" role="button" aria-label="Zone vidéo" style="display:none">
                     <div class="drop-zone__icon">🎬</div>
                     <p class="drop-zone__label"><strong>Glissez la vidéo ici</strong> ou cliquez pour choisir<br><span style="font-size:.75rem">MP4, MOV, WEBM — max 50 Mo (compressez les clips)</span></p>
                     <p class="drop-zone__file" id="newExVideoName" style="display:none"></p>
@@ -1788,8 +1793,10 @@
 
           <!-- Re-upload vidéo -->
           <div class="field" id="editFieldVideo" style="grid-column:1/-1;display:none">
-            <label>Changer la vidéo <span style="font-weight:400;color:var(--muted)">optionnel — laisser vide pour conserver l'actuelle</span></label>
-            <div class="drop-zone" id="dropZoneEdit" tabindex="0" role="button">
+            <label for="editYoutube">Changer le lien YouTube <span style="font-weight:400;color:var(--muted)">optionnel — laisser vide pour conserver l'actuel</span></label>
+            <input type="url" id="editYoutube" placeholder="https://youtu.be/…  ou  https://www.youtube.com/watch?v=…"
+              oninput="document.getElementById('editBunnyId').value=this.value.trim()">
+            <div class="drop-zone" id="dropZoneEdit" tabindex="0" role="button" style="display:none">
               <div class="drop-zone__icon">🎬</div>
               <p class="drop-zone__label"><strong>Glissez une nouvelle vidéo</strong> ou cliquez pour choisir</p>
               <p class="drop-zone__file" id="dropEditFileName" style="display:none"></p>
@@ -3469,7 +3476,10 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       const alert        = document.getElementById('alertAddResource');
 
       if (!cond) { setAlert(alert, 'Veuillez sélectionner une condition.', 'error'); return; }
-      if (type === 'video' && !bunnyId) { setAlert(alert, 'Veuillez d\'abord uploader une vidéo.', 'error'); return; }
+      if (type === 'video' && !bunnyId) { setAlert(alert, 'Collez le lien YouTube de la vidéo.', 'error'); return; }
+      if (type === 'video' && !/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[A-Za-z0-9_-]{11}/.test(bunnyId)) {
+        setAlert(alert, 'Lien YouTube invalide. Ex. : https://youtu.be/XXXXXXXXXXX', 'error'); return;
+      }
       if (type === 'pdf'   && !pdfUrl)  { setAlert(alert, 'L\'URL du PDF est requise.', 'error'); return; }
       if (type === 'word'  && !wordUrl) { setAlert(alert, 'Veuillez d\'abord uploader un document Word.', 'error'); return; }
 
@@ -5930,6 +5940,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         uploadProgressNewExVideo.style.display='none';
         newExVideoName.style.display='none';
         newExBunnyInput.value='';
+        document.getElementById('newExYoutube').value='';
         uploadBarImages.style.width='0%';
         uploadBarNewExVideo.style.width='0%';
         fileInputImages.value='';
@@ -5968,6 +5979,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       document.getElementById('uploadProgressEdit').style.display = 'none';
       document.getElementById('uploadBarEdit').style.width = '0%';
       document.getElementById('editBunnyId').value = '';
+      document.getElementById('editYoutube').value = '';
       document.getElementById('dropEditPdfName').style.display = 'none';
       document.getElementById('uploadProgressEditPdf').style.display = 'none';
       document.getElementById('uploadBarEditPdf').style.width = '0%';
@@ -5995,6 +6007,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       document.getElementById('editDuration').value     = r.duration_sec || '';
       document.getElementById('editOrder').value        = r.sort_order || 1;
       document.getElementById('editDesc').value         = r.description || '';
+      document.getElementById('editYoutube').value      = r.video_url || '';
       // Miniature existante
       const editThumbUrl   = r.thumbnail_url || '';
       document.getElementById('editThumbnailUrl').value = editThumbUrl;
