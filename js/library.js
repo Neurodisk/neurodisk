@@ -321,7 +321,7 @@
           if (error) throw error;
           resources = data;
         } else {
-          const { data, error } = await supabase.from('patient_resources').select(`assigned_at, resource:resources (id,title,description,type,condition_tag,category,bunny_video_id,pdf_url,thumbnail_url,duration_sec,sort_order,audience)`).order('assigned_at', { ascending: false });
+          const { data, error } = await supabase.from('patient_resources').select(`assigned_at, resource:resources (id,title,description,type,condition_tag,category,bunny_video_id,video_url,pdf_url,thumbnail_url,duration_sec,sort_order,audience)`).order('assigned_at', { ascending: false });
           if (error) throw error;
           resources = data.map(r => ({ ...r.resource, assigned_at: r.assigned_at }))
             .filter(r => r?.id && (r.audience || 'patient') === audience);
@@ -394,7 +394,7 @@
       grid.innerHTML = list.map(r => renderCard(r)).join('');
       grid.querySelectorAll('.card').forEach(c => {
         c.addEventListener('click', () => {
-          if (c.dataset.type==='video') openModal(c.dataset.id, c.dataset.title, c.dataset.url);
+          if (c.dataset.type==='video') openModal(c.dataset.id, c.dataset.title, c.dataset.url, c.dataset.direct==='1');
           else window.open(c.dataset.url, '_blank', 'noopener');
         });
         c.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); c.click(); } });
@@ -404,13 +404,17 @@
     function renderCard(r) {
       const isVideo = r.type === 'video';
       const condLabel = COND[r.condition_tag] || r.condition_tag;
-      const embedUrl = isVideo ? `https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${r.bunny_video_id}?autoplay=true&responsive=true` : '';
+      // Lecture : URL Supabase Storage (HTML5) en priorité, sinon ancien embed Bunny
+      const directVid = isVideo && !!r.video_url;
+      const embedUrl = isVideo
+        ? (r.video_url || (r.bunny_video_id ? `https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${r.bunny_video_id}?autoplay=true&responsive=true` : ''))
+        : '';
       const isWord = r.type === 'word';
       const thumb = r.thumbnail_url ? `<img src="${esc(r.thumbnail_url)}" alt="" loading="lazy">` : `<div class="card__thumb-bg">${isVideo ? svgVideo() : svgPdf()}</div>`;
       const dur = isVideo && r.duration_sec ? `<span class="card__duration">${fmtDur(r.duration_sec)}</span>` : '';
 
       if (isVideo) {
-        return `<article class="card" role="listitem" tabindex="0" data-id="${r.id}" data-type="video" data-url="${esc(embedUrl)}" data-title="${esc(r.title)}">
+        return `<article class="card" role="listitem" tabindex="0" data-id="${r.id}" data-type="video" data-direct="${directVid ? '1' : '0'}" data-url="${esc(embedUrl)}" data-title="${esc(r.title)}">
           <div class="card__thumb">
             ${thumb}
             <div class="card__overlay"></div>
@@ -453,9 +457,11 @@
     modalOverlay.addEventListener('click', e => { if (e.target===modalOverlay) closeModal(); });
     document.addEventListener('keydown', e => { if (e.key==='Escape' && modalOverlay.classList.contains('is-open')) closeModal(); });
 
-    function openModal(id, title, url) {
+    function openModal(id, title, url, direct = false) {
       modalTitle.textContent = title;
-      modalVideo.innerHTML = `<iframe src="${url}" allowfullscreen allow="autoplay"></iframe>`;
+      modalVideo.innerHTML = direct
+        ? `<video src="${url}" controls autoplay playsinline style="width:100%;height:100%;display:block;background:#000"></video>`
+        : `<iframe src="${url}" allowfullscreen allow="autoplay"></iframe>`;
       modalOverlay.classList.add('is-open');
       modalOverlay.setAttribute('aria-hidden','false');
       document.body.style.overflow = 'hidden';
@@ -596,7 +602,7 @@
       grid.innerHTML = list.map(r => r._isForm ? renderFormCard(r) : renderCard(r)).join('');
       grid.querySelectorAll('.card').forEach(c => {
         c.addEventListener('click', () => {
-          if (c.dataset.type === 'video') openModal(c.dataset.id, c.dataset.title, c.dataset.url);
+          if (c.dataset.type === 'video') openModal(c.dataset.id, c.dataset.title, c.dataset.url, c.dataset.direct==='1');
           else if (c.dataset.type === 'form') openFillForm(c.dataset.id, c.dataset.title);
           else window.open(c.dataset.url, '_blank', 'noopener');
         });
@@ -909,7 +915,7 @@
           .select(`
             id, sets, reps, rest_sec, frequency, notes, sort_order,
             exercise:exercises (
-              id, title, description, bunny_video_id, thumbnail_url, muscle_group,
+              id, title, description, bunny_video_id, video_url, thumbnail_url, muscle_group,
               exercise_images (url, sort_order)
             )
           `)
@@ -1001,7 +1007,7 @@
 
     function renderExerciseCard(pe, doneToday, totalCount) {
       const ex       = pe.exercise;
-      const hasVideo = !!ex.bunny_video_id;
+      const hasVideo = !!(ex.video_url || ex.bunny_video_id);
       const images   = (ex.exercise_images || []).sort((a,b) => a.sort_order - b.sort_order);
       const allImgs  = images.length > 0 ? images : (ex.thumbnail_url ? [{ url: ex.thumbnail_url }] : []);
       const firstImg = allImgs[0];
@@ -1060,15 +1066,16 @@
 
     function openExerciseModal(pe) {
       const ex       = pe.exercise;
-      const hasVideo = !!ex.bunny_video_id;
+      const hasVideo = !!(ex.video_url || ex.bunny_video_id);
       const images   = (ex.exercise_images || []).sort((a,b) => a.sort_order - b.sort_order);
       const allImgs  = images.length > 0 ? images : (ex.thumbnail_url ? [{ url: ex.thumbnail_url }] : []);
 
       // ── Zone média ──
       const mediaEl = document.getElementById('exModalMedia');
       if (hasVideo) {
-        const embedUrl = `https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${ex.bunny_video_id}?autoplay=true&responsive=true`;
-        mediaEl.innerHTML = `<iframe src="${embedUrl}" allowfullscreen allow="autoplay" style="width:100%;aspect-ratio:16/9;border:none;display:block;"></iframe>`;
+        mediaEl.innerHTML = ex.video_url
+          ? `<video src="${ex.video_url}" controls playsinline style="width:100%;aspect-ratio:16/9;display:block;background:#000"></video>`
+          : `<iframe src="https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${ex.bunny_video_id}?autoplay=true&responsive=true" allowfullscreen allow="autoplay" style="width:100%;aspect-ratio:16/9;border:none;display:block;"></iframe>`;
       } else if (allImgs.length > 0) {
         const imgUrls = allImgs.map(i => i.url);
         mediaEl.innerHTML = `

@@ -863,7 +863,7 @@
                   <div class="drop-zone__icon">🎬</div>
                   <p class="drop-zone__label">
                     <strong>Glissez votre vidéo ici</strong> ou cliquez pour choisir<br>
-                    <span style="font-size:.75rem">MP4, MOV, AVI — aucune limite de taille</span>
+                    <span style="font-size:.75rem">MP4, MOV, WEBM — max 50 Mo (compressez les clips)</span>
                   </p>
                   <p class="drop-zone__file" id="dropFileName" style="display:none"></p>
                 </div>
@@ -1252,7 +1252,7 @@
                   <label>Vidéo de démonstration <span style="font-weight:400;color:var(--muted)">optionnel</span></label>
                   <div class="drop-zone" id="dropZoneNewExVideo" tabindex="0" role="button" aria-label="Zone vidéo">
                     <div class="drop-zone__icon">🎬</div>
-                    <p class="drop-zone__label"><strong>Glissez la vidéo ici</strong> ou cliquez pour choisir<br><span style="font-size:.75rem">MP4, MOV — aucune limite de taille</span></p>
+                    <p class="drop-zone__label"><strong>Glissez la vidéo ici</strong> ou cliquez pour choisir<br><span style="font-size:.75rem">MP4, MOV, WEBM — max 50 Mo (compressez les clips)</span></p>
                     <p class="drop-zone__file" id="newExVideoName" style="display:none"></p>
                   </div>
                   <input type="file" id="fileInputNewExVideo" accept="video/*" style="display:none">
@@ -3478,7 +3478,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       btn.innerHTML = `<span class="spinner-inline"></span> Ajout…`;
 
       // Garde-fou anti-doublon : même titre + même fichier dans la même audience
-      const srcCol = type === 'video' ? 'bunny_video_id' : 'pdf_url';
+      const srcCol = type === 'video' ? 'video_url' : 'pdf_url';
       const srcVal = type === 'video' ? bunnyId : (type === 'word' ? wordUrl : pdfUrl);
       const { data: existing } = await sb.from('resources')
         .select('id').eq('title', title).eq('type', type)
@@ -3492,7 +3492,8 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
       const payload = {
         title, description: desc || null, type, condition_tag: cond, category,
-        bunny_video_id: type === 'video' ? bunnyId : null,
+        video_url:      type === 'video' ? bunnyId : null,
+        bunny_video_id: null,
         pdf_url:        type === 'pdf' ? pdfUrl : (type === 'word' ? wordUrl : null),
         duration_sec: duration, sort_order: order,
         thumbnail_url: thumbnailUrl,
@@ -4878,6 +4879,22 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     const uploadStatus  = document.getElementById('uploadStatus');
     const bunnyIdInput  = document.getElementById('rBunnyId');
 
+    // ── Upload vidéo vers Supabase Storage (remplace Bunny) ──
+    const VIDEO_BUCKET = 'exercise-videos';
+    const MAX_VIDEO_MB = 50;
+    async function uploadVideoStorage(file) {
+      if (!file.type.startsWith('video/')) throw new Error('Fichier vidéo requis (MP4, MOV, WEBM).');
+      if (file.size > MAX_VIDEO_MB * 1024 * 1024)
+        throw new Error(`Vidéo trop volumineuse (${(file.size/1048576).toFixed(0)} Mo). Compressez sous ${MAX_VIDEO_MB} Mo.`);
+      const safe = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+      const path = `${Date.now()}-${safe}`;
+      const { data, error } = await sb.storage.from(VIDEO_BUCKET).upload(path, file, {
+        contentType: file.type || 'video/mp4', upsert: false,
+      });
+      if (error) throw error;
+      return sb.storage.from(VIDEO_BUCKET).getPublicUrl(data.path).data.publicUrl;
+    }
+
     // ── Ouvrir le sélecteur de fichier au clic ────────────
     dropZone.addEventListener('click', () => fileInput.click());
     dropZone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
@@ -4911,42 +4928,14 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
       // Réinitialiser la progression
       uploadProgress.style.display = 'block';
-      setProgress(0, 'Préparation de l\'upload…');
+      setProgress(40, 'Upload en cours…');
       bunnyIdInput.value = '';
 
       try {
-        // 1. Récupérer le token admin Supabase
-        const { data: { session } } = await sb.auth.getSession();
-        if (!session) { throw new Error('Session expirée. Rechargez la page.'); }
-
-        // 2. Appeler l'Edge Function pour créer la vidéo sur Bunny
-        setProgress(5, 'Création de la vidéo…');
-        const fnRes = await fetch(EDGE_URL, {
-          method:  'POST',
-          headers: {
-            'Content-Type':  'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ title: file.name.replace(/\.[^/.]+$/, '') }),
-        });
-
-        const fnData = await fnRes.json();
-        if (!fnRes.ok) throw new Error(fnData.error || 'Erreur Edge Function');
-
-        const { videoId, uploadUrl, apiKey } = fnData;
-        setProgress(10, 'Upload en cours…');
-
-        // 3. Uploader directement vers Bunny via XHR (pour le suivi de progression)
-        await uploadToBunny(file, uploadUrl, apiKey, (pct) => {
-          setProgress(10 + Math.round(pct * 0.88), `Upload… ${Math.round(pct)}%`);
-        });
-
-        // 4. Succès
+        const url = await uploadVideoStorage(file);
         setProgress(100, '✅ Upload terminé !', 'is-done');
-        bunnyIdInput.value = videoId;
-        bunnyIdInput.focus();
+        bunnyIdInput.value = url;
         toast('Vidéo uploadée avec succès !', 'success');
-
       } catch (err) {
         setProgress(0, `❌ ${err.message}`, 'is-error');
         toast('Erreur upload : ' + err.message, 'error');
@@ -5692,7 +5681,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
           ${ex.description ? `<div class="ex-lib-card__desc">${esc(ex.description.substring(0,100))}${ex.description.length>100?'…':''}</div>` : ''}
           <div class="ex-lib-card__badges">
             ${ex.muscle_group ? `<span class="badge" style="background:#e8f1fb;color:#185FA5">${esc(ex.muscle_group)}</span>` : ''}
-            ${ex.bunny_video_id ? `<span class="badge" style="background:#e6f7ef;color:#0f8a48">▶ Vidéo</span>` : ''}
+            ${(ex.video_url || ex.bunny_video_id) ? `<span class="badge" style="background:#e6f7ef;color:#0f8a48">▶ Vidéo</span>` : ''}
             ${(ex.condition_ids||[]).map(cid => { const COND2 = Object.fromEntries(allConditions.map(c=>[c.id,c.label])); return `<span class="badge" style="background:#fff3cd;color:#856404">${esc(COND2[cid]||cid)}</span>`; }).join('')}
           </div>
           <div class="ex-lib-card__actions">
@@ -5884,24 +5873,12 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       newExVideoName.textContent = `📎 ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
       newExVideoName.style.display = 'block';
       uploadProgressNewExVideo.style.display = 'block';
-      setNewExVidProg(0,'Préparation de l\'upload…');
+      setNewExVidProg(40,'Upload en cours…');
       newExBunnyInput.value = '';
       try {
-        const { data:{ session } } = await sb.auth.getSession();
-        if (!session) throw new Error('Session expirée.');
-        setNewExVidProg(5,'Création de la vidéo…');
-        const fnRes = await fetch(EDGE_URL, {
-          method:'POST',
-          headers:{'Content-Type':'application/json','Authorization':`Bearer ${session.access_token}`},
-          body: JSON.stringify({ title: file.name.replace(/\.[^/.]+$/,'') }),
-        });
-        const fnData = await fnRes.json();
-        if (!fnRes.ok) throw new Error(fnData.error||'Erreur Edge Function');
-        const { videoId, uploadUrl, apiKey } = fnData;
-        setNewExVidProg(10,'Upload en cours…');
-        await uploadToBunny(file, uploadUrl, apiKey, pct => setNewExVidProg(10+Math.round(pct*0.88), `Upload… ${Math.round(pct)}%`));
+        const url = await uploadVideoStorage(file);
         setNewExVidProg(100,'✅ Vidéo uploadée !','is-done');
-        newExBunnyInput.value = videoId;
+        newExBunnyInput.value = url;
         toast('Vidéo uploadée !','success');
       } catch(err) {
         setNewExVidProg(0,`❌ ${err.message}`,'is-error');
@@ -5929,7 +5906,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       try {
         const thumbnail = newExImages.length ? newExImages[0].url : null;
         const { data: ex, error: exErr } = await sb.from('exercises').insert({
-          title, description: desc||null, bunny_video_id: bunny||null,
+          title, description: desc||null, video_url: bunny||null,
           muscle_group: muscle||null, thumbnail_url: thumbnail,
         }).select().single();
         if (exErr) throw exErr;
@@ -6071,7 +6048,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         duration_sec: type === 'video' ? duration : null,
         sort_order: order,
       };
-      if (type === 'video' && newBunny) payload.bunny_video_id = newBunny;
+      if (type === 'video' && newBunny) payload.video_url = newBunny;
       if (type === 'pdf'   && newPdf)   payload.pdf_url        = newPdf;
       payload.thumbnail_url = newThumb;
 
@@ -6115,24 +6092,12 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       dropEditFName.textContent = `📎 ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
       dropEditFName.style.display = 'block';
       uploadProgEdit.style.display = 'block';
-      setEditVidProg(0, 'Préparation de l\'upload…');
+      setEditVidProg(40, 'Upload en cours…');
       editBunnyInput.value = '';
       try {
-        const { data: { session } } = await sb.auth.getSession();
-        if (!session) throw new Error('Session expirée.');
-        setEditVidProg(5, 'Création de la vidéo…');
-        const fnRes = await fetch(EDGE_URL_EDIT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-          body: JSON.stringify({ title: file.name.replace(/\.[^/.]+$/, '') }),
-        });
-        const fnData = await fnRes.json();
-        if (!fnRes.ok) throw new Error(fnData.error || 'Erreur upload');
-        const { videoId, uploadUrl, apiKey } = fnData;
-        setEditVidProg(10, 'Upload en cours…');
-        await uploadToBunny(file, uploadUrl, apiKey, pct => setEditVidProg(10 + Math.round(pct * 0.88), `Upload… ${Math.round(pct)}%`));
+        const url = await uploadVideoStorage(file);
         setEditVidProg(100, '✅ Vidéo uploadée !', 'is-done');
-        editBunnyInput.value = videoId;
+        editBunnyInput.value = url;
         toast('Nouvelle vidéo prête. Cliquez sur Enregistrer pour appliquer.', 'success');
       } catch (err) {
         setEditVidProg(0, `❌ ${err.message}`, 'is-error');
