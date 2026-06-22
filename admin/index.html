@@ -706,6 +706,10 @@
         <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
         Adhérence
       </a>
+      <a class="sidebar__link sidebar__sub" data-section="education" data-perm="education" href="#">
+        <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        Éducation
+      </a>
 
       <!-- ── Groupe Professionnel ── -->
       <div class="sidebar__group">
@@ -1646,6 +1650,33 @@
         <div id="adherenceWrap"><div class="empty-state">Chargement…</div></div>
       </section>
 
+      <!-- ════════════════════════════════════ ÉDUCATION ══ -->
+      <section id="sec-education" class="section">
+        <div class="section-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          Capsules d'éducation à la douleur
+        </div>
+        <p style="color:var(--muted);font-size:.85rem;margin-bottom:1.25rem">
+          Parcours « Comprendre ma douleur » (fondé sur les données probantes). Les 8 capsules sont pré-remplies ; ajoute une vidéo YouTube à chacune, réordonne, édite. Active le parcours via la colonne « Éducation » d'une catégorie.
+        </p>
+        <div class="card">
+          <div class="card__title" id="capFormTitle">Ajouter une capsule</div>
+          <div id="alertCapsule" class="alert"></div>
+          <input type="hidden" id="capEditId">
+          <div class="form-grid">
+            <div class="field" style="grid-column:1/-1"><label for="capTitle">Titre *</label><input type="text" id="capTitle" placeholder="Ex. : La douleur, un système d'alarme"></div>
+            <div class="field" style="grid-column:1/-1"><label for="capBody">Fiche (texte)</label><textarea id="capBody" rows="4" placeholder="Texte de la capsule…"></textarea></div>
+            <div class="field" style="grid-column:1/-1"><label for="capVideo">Lien YouTube <span style="font-weight:400;color:var(--muted)">optionnel — vidéo « non répertoriée »</span></label><input type="url" id="capVideo" placeholder="https://youtu.be/…"></div>
+          </div>
+          <div style="margin-top:1rem;display:flex;gap:.6rem;flex-wrap:wrap">
+            <button class="btn btn--primary" id="btnSaveCapsule">Enregistrer la capsule</button>
+            <button class="btn btn--ghost" id="btnCancelCapsule" style="display:none">Annuler</button>
+          </div>
+        </div>
+        <div class="section-title" style="margin-top:2rem;font-size:.95rem">Capsules du parcours</div>
+        <div id="capsulesListWrap"><div class="empty-state">Chargement…</div></div>
+      </section>
+
       <!-- ════════════════════════════════════ JOURNAL D'AUDIT ══ -->
       <section id="sec-audit" class="section">
         <div class="section-title">
@@ -2063,6 +2094,7 @@
           <label style="display:flex;align-items:center;gap:.4rem;font-size:.84rem;cursor:pointer"><input type="checkbox" data-perm="categories_patient"> Catégorie</label>
           <label style="display:flex;align-items:center;gap:.4rem;font-size:.84rem;cursor:pointer"><input type="checkbox" data-perm="objectifs"> Objectifs</label>
           <label style="display:flex;align-items:center;gap:.4rem;font-size:.84rem;cursor:pointer"><input type="checkbox" data-perm="proms"> Questionnaires</label>
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.84rem;cursor:pointer"><input type="checkbox" data-perm="education"> Éducation</label>
         </div>
 
         <div style="font-size:.8rem;font-weight:700;color:#1a2b3c;margin-bottom:.3rem">Professionnel</div>
@@ -2778,6 +2810,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
               if (sec === 'objectives') initObjectivesSection();
               if (sec === 'proms') initPromsSection();
               if (sec === 'adherence') initAdherence();
+              if (sec === 'education') loadCapsulesAdmin();
             }
           } else {
             // Aucune permission → message
@@ -2864,6 +2897,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         } else if (sec === 'adherence') {
           document.getElementById('sec-adherence').classList.add('is-active');
           initAdherence();
+        } else if (sec === 'education') {
+          document.getElementById('sec-education').classList.add('is-active');
+          loadCapsulesAdmin();
         } else {
           document.getElementById('sec-' + sec).classList.add('is-active');
         }
@@ -4751,7 +4787,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       wrap.innerHTML = `
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Ordre</th><th>Icône</th><th>Nom</th><th>Identifiant</th><th>Ressources</th><th>Programme</th><th>Objectifs</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Ordre</th><th>Icône</th><th>Nom</th><th>Identifiant</th><th>Ressources</th><th>Programme</th><th>Objectifs</th><th>Éducation</th><th>Actions</th></tr></thead>
             <tbody>
               ${allCategories.map((cat, idx) => {
                 const count = usageCounts[cat.id] || 0;
@@ -4775,6 +4811,10 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
                   <td style="text-align:center">
                     <input type="checkbox" style="width:20px;height:20px;cursor:pointer" ${cat.shows_objectifs ? 'checked' : ''}
                       onchange="setCatObjectifs('${esc(cat.id)}', this.checked, this)" title="Afficher l'onglet Objectifs dans cette catégorie">
+                  </td>
+                  <td style="text-align:center">
+                    <input type="checkbox" style="width:20px;height:20px;cursor:pointer" ${cat.shows_education ? 'checked' : ''}
+                      onchange="setCatEducation('${esc(cat.id)}', this.checked, this)" title="Afficher le parcours d'éducation dans cette catégorie">
                   </td>
                   <td>
                     <div class="td-actions">
@@ -4940,6 +4980,20 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       const err = results.find(r => r.error);
       if (err) { toast('Erreur : ' + err.error.message, 'error'); }
       else toast(checked ? 'Onglet Objectifs lié à cette catégorie.' : 'Objectifs retirés.', 'success');
+      await loadCategories();
+    };
+
+    // ── Lier le parcours d'éducation à une catégorie ──────
+    window.setCatEducation = async (id, checked, input) => {
+      input.disabled = true;
+      const updates = allCategories
+        .filter(c => c.shows_education && c.id !== id)
+        .map(c => sb.from('resource_categories').update({ shows_education: false }).eq('id', c.id));
+      updates.push(sb.from('resource_categories').update({ shows_education: checked }).eq('id', id));
+      const results = await Promise.all(updates);
+      const err = results.find(r => r.error);
+      if (err) { toast('Erreur : ' + err.error.message, 'error'); }
+      else toast(checked ? 'Parcours d\'éducation lié à cette catégorie.' : 'Éducation retirée.', 'success');
       await loadCategories();
     };
 
@@ -7239,6 +7293,98 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       } catch (err) { toast('Erreur génération : ' + err.message, 'error'); }
       btn.disabled = false; btn.textContent = '⬇ Générer le Word';
     });
+
+    // ══════════════════════════════════════════════════════
+    // CAPSULES D'ÉDUCATION
+    // ══════════════════════════════════════════════════════
+    let allCapsules = [];
+    async function loadCapsulesAdmin() {
+      const wrap = document.getElementById('capsulesListWrap');
+      const { data, error } = await sb.from('capsules').select('*').order('sort_order');
+      if (error) { wrap.innerHTML = `<div class="empty-state">Erreur : ${esc(error.message)}</div>`; return; }
+      allCapsules = data || [];
+      if (!allCapsules.length) { wrap.innerHTML = `<div class="empty-state">Aucune capsule.</div>`; return; }
+      wrap.innerHTML = allCapsules.map((c, idx) => `
+        <div class="prog-list-item" style="align-items:flex-start">
+          <div style="display:flex;flex-direction:column;gap:.1rem">
+            <button class="btn btn--ghost btn--sm" style="padding:.1rem .35rem" ${idx === 0 ? 'disabled' : ''} onclick="moveCapsule('${c.id}',-1)">↑</button>
+            <button class="btn btn--ghost btn--sm" style="padding:.1rem .35rem" ${idx === allCapsules.length - 1 ? 'disabled' : ''} onclick="moveCapsule('${c.id}',1)">↓</button>
+          </div>
+          <div style="flex:1">
+            <strong>${esc(c.title)}</strong> ${c.video_url ? '<span class="badge" style="background:#e6f7ef;color:#0f8a48">▶ Vidéo</span>' : '<span style="color:#b8860b;font-size:.78rem">vidéo à ajouter</span>'}
+            ${c.body ? `<br><small style="color:var(--muted)">${esc(c.body.slice(0, 120))}${c.body.length > 120 ? '…' : ''}</small>` : ''}
+          </div>
+          <div class="td-actions">
+            <button class="btn btn--ghost btn--sm" onclick="editCapsule('${c.id}')">✏️ Modifier</button>
+            <button class="btn btn--danger btn--sm" onclick="deleteCapsule('${c.id}', this)">Supprimer</button>
+          </div>
+        </div>`).join('');
+    }
+
+    function resetCapsuleForm() {
+      document.getElementById('capEditId').value = '';
+      document.getElementById('capTitle').value = '';
+      document.getElementById('capBody').value = '';
+      document.getElementById('capVideo').value = '';
+      document.getElementById('capFormTitle').textContent = 'Ajouter une capsule';
+      document.getElementById('btnCancelCapsule').style.display = 'none';
+      setAlert(document.getElementById('alertCapsule'), '', '');
+    }
+    document.getElementById('btnCancelCapsule').addEventListener('click', resetCapsuleForm);
+
+    document.getElementById('btnSaveCapsule').addEventListener('click', async () => {
+      const id = document.getElementById('capEditId').value;
+      const title = document.getElementById('capTitle').value.trim();
+      const body = document.getElementById('capBody').value.trim();
+      const video = document.getElementById('capVideo').value.trim();
+      const alertEl = document.getElementById('alertCapsule');
+      if (!title) { setAlert(alertEl, 'Le titre est requis.', 'error'); return; }
+      if (video && !/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)[A-Za-z0-9_-]{11}/.test(video)) {
+        setAlert(alertEl, 'Lien YouTube invalide.', 'error'); return;
+      }
+      const payload = { title, body: body || null, video_url: video || null };
+      let error;
+      if (id) { ({ error } = await sb.from('capsules').update(payload).eq('id', id)); }
+      else {
+        payload.sort_order = allCapsules.length ? Math.max(...allCapsules.map(c => c.sort_order)) + 1 : 1;
+        ({ error } = await sb.from('capsules').insert(payload));
+      }
+      if (error) { setAlert(alertEl, 'Erreur : ' + error.message, 'error'); return; }
+      toast('Capsule enregistrée.', 'success');
+      resetCapsuleForm();
+      loadCapsulesAdmin();
+    });
+
+    window.editCapsule = (id) => {
+      const c = allCapsules.find(x => x.id === id); if (!c) return;
+      document.getElementById('capEditId').value = c.id;
+      document.getElementById('capTitle').value = c.title;
+      document.getElementById('capBody').value = c.body || '';
+      document.getElementById('capVideo').value = c.video_url || '';
+      document.getElementById('capFormTitle').textContent = 'Modifier la capsule';
+      document.getElementById('btnCancelCapsule').style.display = '';
+      document.getElementById('capTitle').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+
+    window.deleteCapsule = async (id, btn) => {
+      if (!confirm('Supprimer cette capsule ?')) return;
+      btn.disabled = true;
+      const { error } = await sb.from('capsules').delete().eq('id', id);
+      if (error) { toast('Erreur : ' + error.message, 'error'); btn.disabled = false; return; }
+      toast('Capsule supprimée.', 'success'); loadCapsulesAdmin();
+    };
+
+    window.moveCapsule = async (id, dir) => {
+      const idx = allCapsules.findIndex(c => c.id === id);
+      const swap = idx + dir;
+      if (swap < 0 || swap >= allCapsules.length) return;
+      const a = allCapsules[idx], b = allCapsules[swap];
+      await Promise.all([
+        sb.from('capsules').update({ sort_order: b.sort_order }).eq('id', a.id),
+        sb.from('capsules').update({ sort_order: a.sort_order }).eq('id', b.id),
+      ]);
+      loadCapsulesAdmin();
+    };
   </script>
 
   <!-- ── Bulle chat flottante ──────────────────────────── -->

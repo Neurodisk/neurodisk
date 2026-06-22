@@ -312,6 +312,54 @@
       loadObjectives();
     };
 
+    // ── ÉDUCATION (capsules PNE) ──────────────────────────
+    async function loadEducation() {
+      const wrap = document.getElementById('educationContent');
+      if (!wrap) return;
+      const [{ data: caps }, { data: views }] = await Promise.all([
+        supabase.from('capsules').select('*').order('sort_order'),
+        supabase.from('capsule_views').select('capsule_id').eq('patient_id', _userId),
+      ]);
+      const list = caps || [];
+      if (!list.length) {
+        wrap.innerHTML = `<div class="state-wrap"><div class="state-icon" style="font-size:2.5rem">📘</div><p class="state-title">Bientôt disponible</p><p class="state-text">Votre équipe prépare votre parcours « Comprendre ma douleur ».</p></div>`;
+        return;
+      }
+      const seen = new Set((views || []).map(v => v.capsule_id));
+      const done = list.filter(c => seen.has(c.id)).length;
+      const pct = Math.round(done / list.length * 100);
+
+      let html = `
+        <div style="background:linear-gradient(135deg,#1B2B6B,#2563eb);color:#fff;border-radius:16px;padding:1.25rem 1.5rem;margin-bottom:1.5rem">
+          <div style="font-size:1.05rem;font-weight:700;margin-bottom:.2rem">Comprendre ma douleur</div>
+          <div style="font-size:.85rem;opacity:.92;margin-bottom:.6rem">${done} capsule${done > 1 ? 's' : ''} sur ${list.length}${pct === 100 ? ' — parcours terminé ! 🎉' : ''}</div>
+          <div style="background:rgba(255,255,255,.25);border-radius:100px;height:12px;overflow:hidden"><div style="width:${pct}%;height:100%;background:#34d399;border-radius:100px;transition:width .5s"></div></div>
+        </div>`;
+
+      html += list.map(c => {
+        const yt = ytId(c.video_url);
+        const viewed = seen.has(c.id);
+        const media = yt ? `<div style="margin:.6rem 0"><iframe src="https://www.youtube-nocookie.com/embed/${yt}?rel=0" allowfullscreen allow="autoplay" style="width:100%;aspect-ratio:16/9;border:none;border-radius:10px"></iframe></div>` : '';
+        return `<div style="background:#fff;border:1px solid #dbe4f0;border-radius:12px;padding:1rem 1.1rem;margin-bottom:.7rem">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem">
+            <h2 style="font-size:1.02rem;color:#1B2B6B;margin:0">${esc(c.title)}</h2>
+            <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;white-space:nowrap;cursor:pointer;color:${viewed ? '#1e8a4c' : '#667'}">
+              <input type="checkbox" ${viewed ? 'checked' : ''} onchange="toggleCapsule('${c.id}', this.checked)" style="width:18px;height:18px;cursor:pointer"> Vu
+            </label>
+          </div>
+          ${media}
+          ${c.body ? `<p style="margin:.5rem 0 0;line-height:1.6;color:#1e293b">${esc(c.body)}</p>` : ''}
+        </div>`;
+      }).join('');
+      wrap.innerHTML = html;
+    }
+
+    window.toggleCapsule = async (id, viewed) => {
+      if (viewed) await supabase.from('capsule_views').insert({ patient_id: _userId, capsule_id: id });
+      else await supabase.from('capsule_views').delete().eq('patient_id', _userId).eq('capsule_id', id);
+      loadEducation();
+    };
+
     // ── PROMs (questionnaires de suivi du patient) ────────
     let _promCurrent = null, _promAssigns = {}, _promResps = {};
 
@@ -657,6 +705,7 @@
       const cat = allCategories.find(c => c.id === section);
       const isProgramme = section === 'exercices' || cat?.shows_programme;
       const isObjectifs = cat?.shows_objectifs;
+      const isEducation = cat?.shows_education;
 
       if (isProgramme) {
         document.getElementById('section-exercices').style.display = '';
@@ -664,6 +713,9 @@
       } else if (isObjectifs) {
         document.getElementById('section-objectifs').style.display = '';
         loadObjectives();
+      } else if (isEducation) {
+        document.getElementById('section-education').style.display = '';
+        loadEducation();
       } else {
         document.getElementById('section-cat').style.display = '';
         renderCatGrid(section);
