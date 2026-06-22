@@ -702,6 +702,10 @@
         <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
         Questionnaires
       </a>
+      <a class="sidebar__link sidebar__sub" data-section="adherence" data-perm="programme" href="#">
+        <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        Adhérence
+      </a>
 
       <!-- ── Groupe Professionnel ── -->
       <div class="sidebar__group">
@@ -1628,6 +1632,18 @@
           </div>
         </div>
         <div id="promEditorWrap" style="display:none"></div>
+      </section>
+
+      <!-- ════════════════════════════════════ ADHÉRENCE ══ -->
+      <section id="sec-adherence" class="section">
+        <div class="section-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          Adhérence au programme
+        </div>
+        <p style="color:var(--muted);font-size:.85rem;margin-bottom:1.25rem">
+          Qui fait ses exercices, qui décroche. Statut basé sur la dernière activité enregistrée (cases cochées par le patient). Les patients à risque ou décrochés apparaissent en premier — pour intervenir au bon moment.
+        </p>
+        <div id="adherenceWrap"><div class="empty-state">Chargement…</div></div>
       </section>
 
       <!-- ════════════════════════════════════ JOURNAL D'AUDIT ══ -->
@@ -2729,6 +2745,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
               if (sec === 'surveys') initSurveysSection();
               if (sec === 'objectives') initObjectivesSection();
               if (sec === 'proms') initPromsSection();
+              if (sec === 'adherence') initAdherence();
             }
           } else {
             // Aucune permission → message
@@ -2812,6 +2829,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         } else if (sec === 'proms') {
           document.getElementById('sec-proms').classList.add('is-active');
           initPromsSection();
+        } else if (sec === 'adherence') {
+          document.getElementById('sec-adherence').classList.add('is-active');
+          initAdherence();
         } else {
           document.getElementById('sec-' + sec).classList.add('is-active');
         }
@@ -7061,6 +7081,75 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
           toast('Questionnaire retiré.', 'success');
         }
       }));
+    }
+
+    // ══════════════════════════════════════════════════════
+    // ADHÉRENCE (tableau de bord clinicien)
+    // ══════════════════════════════════════════════════════
+    async function initAdherence() {
+      const wrap = document.getElementById('adherenceWrap');
+      wrap.innerHTML = `<div class="empty-state">Chargement…</div>`;
+      if (!allPatients.length) await loadPatients();
+      const patients = allPatients.filter(p => !p.is_admin && !p.is_professional);
+      const since30 = new Date(Date.now() - 30 * 864e5).toISOString();
+
+      const [{ data: pex }, { data: logs }] = await Promise.all([
+        sb.from('patient_exercises').select('patient_id'),
+        sb.from('exercise_logs').select('patient_id, completed_at').gte('completed_at', since30),
+      ]);
+
+      const assigned = {}; (pex || []).forEach(r => { assigned[r.patient_id] = (assigned[r.patient_id] || 0) + 1; });
+      const byPat = {}; (logs || []).forEach(l => { (byPat[l.patient_id] = byPat[l.patient_id] || []).push(new Date(l.completed_at).getTime()); });
+
+      const now = Date.now();
+      const rows = patients.filter(p => assigned[p.id]).map(p => {
+        const ls = byPat[p.id] || [];
+        const last = ls.length ? Math.max(...ls) : null;
+        const daysSince = last !== null ? Math.floor((now - last) / 864e5) : null;
+        const count7 = ls.filter(t => (now - t) <= 7 * 864e5).length;
+        let status = 'Décroché', color = '#c0392b';
+        if (daysSince !== null && daysSince <= 3) { status = 'Actif'; color = '#1e8a4c'; }
+        else if (daysSince !== null && daysSince <= 7) { status = 'À risque'; color = '#b8860b'; }
+        // sparkline 14 jours
+        const perDay = {}; ls.forEach(t => { const k = Math.floor((now - t) / 864e5); if (k < 14) perDay[13 - k] = (perDay[13 - k] || 0) + 1; });
+        const spark = Array.from({ length: 14 }, (_, i) => {
+          const c = perDay[i] || 0; const h = c ? Math.min(16, 4 + c * 4) : 2;
+          return `<rect x="${i * 7}" y="${18 - h}" width="5" height="${h}" rx="1" fill="${c ? '#2563EB' : '#dbe4f0'}"/>`;
+        }).join('');
+        return { p, assigned: assigned[p.id], last, daysSince, count7, status, color, spark };
+      }).sort((a, b) => {
+        const rank = s => s === 'Décroché' ? 0 : s === 'À risque' ? 1 : 2;
+        return rank(a.status) - rank(b.status) || (b.daysSince || 999) - (a.daysSince || 999);
+      });
+
+      if (!rows.length) { wrap.innerHTML = `<div class="empty-state">Aucun patient avec un programme assigné pour l'instant.</div>`; return; }
+
+      const counts = { Actif: 0, 'À risque': 0, 'Décroché': 0 }; rows.forEach(r => counts[r.status]++);
+      const summary = `
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem">
+          ${[['Actif', '#1e8a4c'], ['À risque', '#b8860b'], ['Décroché', '#c0392b']].map(([s, c]) =>
+            `<div style="flex:1;min-width:120px;background:#f8fafc;border:1px solid #e5ecf5;border-radius:10px;padding:.7rem 1rem">
+               <div style="font-size:1.6rem;font-weight:700;color:${c}">${counts[s]}</div>
+               <div style="font-size:.8rem;color:var(--muted)">${s}</div>
+             </div>`).join('')}
+        </div>`;
+
+      const fmtLast = r => r.last === null ? 'Jamais (30 j)' : (r.daysSince === 0 ? "Aujourd'hui" : r.daysSince === 1 ? 'Hier' : `Il y a ${r.daysSince} j`);
+
+      wrap.innerHTML = summary + `
+        <div class="table-wrap"><table>
+          <thead><tr><th>Patient</th><th>Statut</th><th>Dernière activité</th><th>Cette semaine</th><th>14 derniers jours</th></tr></thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td><strong>${esc(r.p.full_name || r.p.email)}</strong><br><small style="color:var(--muted)">${r.assigned} exercice(s)</small></td>
+                <td><span class="badge" style="background:${r.color}22;color:${r.color};font-weight:600">${r.status}</span></td>
+                <td>${fmtLast(r)}</td>
+                <td>${r.count7} séance(s)</td>
+                <td><svg viewBox="0 0 95 18" width="95" height="18">${r.spark}</svg></td>
+              </tr>`).join('')}
+          </tbody>
+        </table></div>`;
     }
   </script>
 
