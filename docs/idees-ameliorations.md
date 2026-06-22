@@ -30,6 +30,7 @@ Les réévaluations officielles du protocole (R12, R24, + la 3ᵉ incluse) sont 
 - **Gamification** des objectifs (séries/badges/jalons).
 
 ### Clinique & résultats
+- ~~**Capsules d'éducation à la douleur (PNE)**~~ ✅ livré (parcours « Comprendre ma douleur », 8 capsules, migration 022).
 - **Lier R12/R24 à la courbe** (voir ci-dessus).
 - **Journal quotidien douleur/fonction** côté patient → alimente une vraie courbe de douleur en continu.
 
