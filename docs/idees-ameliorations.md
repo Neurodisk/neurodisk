@@ -35,7 +35,7 @@ Les réévaluations officielles du protocole (R12, R24, + la 3ᵉ incluse) sont 
 - **Journal quotidien douleur/fonction** côté patient → alimente une vraie courbe de douleur en continu.
 
 ### Productivité du clinicien
-- **Génération auto du programme depuis le diagnostic** : choisir la condition → l'app propose les exercices pertinents de la banque (taggés par condition) ; le clinicien valide.
+- ~~**Génération auto du programme depuis le diagnostic**~~ ✅ livré (bloc « Génération automatique » dans le builder de programme : condition → exercices pré-ajoutés, clinicien ajuste).
 - ~~**Rapport patient auto-rempli**~~ ✅ livré (bouton Rapport par patient, migration 021, js/rapport.js — nom/niveaux/plan + suivi NPRS).
 
 ### Expérience & technique

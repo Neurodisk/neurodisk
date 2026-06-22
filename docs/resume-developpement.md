@@ -18,6 +18,8 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 - **PROMs (questionnaires validés)** : ODI, NDI, NPRS (douleur), PSFS + **courbe d'évolution** (seuil MCID), visibles clinicien + patient. Moteur `js/proms.js`, migration **019**.
 - **Tableau de bord d'adhérence** (clinicien) : statut actif / à risque / décroché par patient (dernière activité), compteur de séances 7 j, sparkline 14 j, décrochés en premier. Migration **020**.
 - **Rapport patient auto-rempli** : bouton Rapport par patient → génère le Word branded rempli depuis la BD (nom, date RX, constats cervical/lombaire, plan, suivi NPRS). Champs cliniques migration **021**, génération navigateur `js/rapport.js` (docx via ESM).
+- **Génération auto du programme depuis le diagnostic** : dans le builder de programme, choisir une condition pré-ajoute les exercices de la banque taggés pour cette condition ; le clinicien ajuste (séries/reps, retrait/ajout) et valide. Admin seul, aucune migration.
+- **Fiches patient par condition** : 11 PDF vulgarisés (servis sous `/fiches/`) + ressources PDF taggées par condition (catégorie « Mes recommandations »), assignables. Migration **023**.
 - **Capsules d'éducation à la douleur (PNE)** : parcours « Comprendre ma douleur » (8 capsules pré-remplies, base probante) avec barre de progression et suivi « Vu » par capsule. Flag `shows_education` sur catégorie, section admin de gestion. Migration **022**, contenu dans `docs/capsules-pne.md`.
 
 ### 🎨 Interface / branding
