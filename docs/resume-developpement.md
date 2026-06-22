@@ -17,6 +17,7 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 - **Banque d'exercices probante** : 55 exercices de base (**016**) + 21 avancés / retour au sport (**017**) = **76**, taggés par condition avec les bons biais cliniques. Base probante documentée (`docs/exercices-base-probante.md`).
 - **PROMs (questionnaires validés)** : ODI, NDI, NPRS (douleur), PSFS + **courbe d'évolution** (seuil MCID), visibles clinicien + patient. Moteur `js/proms.js`, migration **019**.
 - **Tableau de bord d'adhérence** (clinicien) : statut actif / à risque / décroché par patient (dernière activité), compteur de séances 7 j, sparkline 14 j, décrochés en premier. Migration **020**.
+- **Rapport patient auto-rempli** : bouton Rapport par patient → génère le Word branded rempli depuis la BD (nom, date RX, constats cervical/lombaire, plan, suivi NPRS). Champs cliniques migration **021**, génération navigateur `js/rapport.js` (docx via ESM).
 
 ### 🎨 Interface / branding
 - **« 2FA » renommé « Sécurité »** partout dans l'interface + procédure PDF régénérée.
@@ -32,7 +33,7 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 - **Backlog d'idées** — `docs/idees-ameliorations.md`.
 
 ### ⚠️ Migrations SQL à exécuter dans le SQL Editor (accumulées)
-Dans l'ordre, non confirmées exécutées : **011, 012, 013, 014, 015, 016, 017, 018, 019, 020**. Obligatoire avant d'utiliser les nouvelles fonctionnalités correspondantes.
+Dans l'ordre, non confirmées exécutées : **011, 012, 013, 014, 015, 016, 017, 018, 019, 020, 021**. Obligatoire avant d'utiliser les nouvelles fonctionnalités correspondantes.
 
 ### 💡 Idée en attente
 Lier les **réévaluations R12/R24** à la courbe (jalons Départ → R12 → R24). Décisions ouvertes : quoi mesurer + qui saisit. Voir `docs/idees-ameliorations.md`.

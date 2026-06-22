@@ -35,7 +35,7 @@ Les réévaluations officielles du protocole (R12, R24, + la 3ᵉ incluse) sont 
 
 ### Productivité du clinicien
 - **Génération auto du programme depuis le diagnostic** : choisir la condition → l'app propose les exercices pertinents de la banque (taggés par condition) ; le clinicien valide.
-- **Rapport patient auto-rempli** : générer le Word (déjà créé) avec les données réelles (nom, niveaux, plan, courbes NPRS).
+- ~~**Rapport patient auto-rempli**~~ ✅ livré (bouton Rapport par patient, migration 021, js/rapport.js — nom/niveaux/plan + suivi NPRS).
 
 ### Expérience & technique
 - **App installable (PWA) + accès hors-ligne** aux exercices.
