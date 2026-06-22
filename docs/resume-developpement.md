@@ -34,7 +34,7 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 - **Backlog d'idées** — `docs/idees-ameliorations.md`.
 
 ### ⚠️ Migrations SQL à exécuter dans le SQL Editor (accumulées)
-Dans l'ordre, non confirmées exécutées : **011, 012, 013, 014, 015, 016, 017, 018, 019, 020, 021, 022**. Obligatoire avant d'utiliser les nouvelles fonctionnalités correspondantes.
+Dans l'ordre, non confirmées exécutées : **011, 012, 013, 014, 015, 016, 017, 018, 019, 020, 021, 022, 023**. Obligatoire avant d'utiliser les nouvelles fonctionnalités correspondantes.
 
 ### 💡 Idée en attente
 Lier les **réévaluations R12/R24** à la courbe (jalons Départ → R12 → R24). Décisions ouvertes : quoi mesurer + qui saisit. Voir `docs/idees-ameliorations.md`.
