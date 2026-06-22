@@ -698,6 +698,10 @@
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
         Objectifs
       </a>
+      <a class="sidebar__link sidebar__sub" data-section="proms" data-perm="proms" href="#">
+        <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+        Questionnaires
+      </a>
 
       <!-- ── Groupe Professionnel ── -->
       <div class="sidebar__group">
@@ -1608,6 +1612,24 @@
 
       </section>
 
+      <!-- ════════════════════════════════════ PROMs ══ -->
+      <section id="sec-proms" class="section">
+        <div class="section-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+          Questionnaires de suivi (PROMs)
+        </div>
+        <p style="color:var(--muted);font-size:.85rem;margin-bottom:1.25rem">
+          Assignez des questionnaires de résultats validés (ODI, NDI, douleur, PSFS). Le patient les remplit à intervalles ; le score et la courbe d'évolution s'affichent ici et côté patient.
+        </p>
+        <div class="card">
+          <div class="field" style="max-width:420px">
+            <label for="promPatientSelect">Patient</label>
+            <select id="promPatientSelect"><option value="">— Sélectionner un patient —</option></select>
+          </div>
+        </div>
+        <div id="promEditorWrap" style="display:none"></div>
+      </section>
+
       <!-- ════════════════════════════════════ JOURNAL D'AUDIT ══ -->
       <section id="sec-audit" class="section">
         <div class="section-title">
@@ -2024,6 +2046,7 @@
           <label style="display:flex;align-items:center;gap:.4rem;font-size:.84rem;cursor:pointer"><input type="checkbox" data-perm="programme"> Programme</label>
           <label style="display:flex;align-items:center;gap:.4rem;font-size:.84rem;cursor:pointer"><input type="checkbox" data-perm="categories_patient"> Catégorie</label>
           <label style="display:flex;align-items:center;gap:.4rem;font-size:.84rem;cursor:pointer"><input type="checkbox" data-perm="objectifs"> Objectifs</label>
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.84rem;cursor:pointer"><input type="checkbox" data-perm="proms"> Questionnaires</label>
         </div>
 
         <div style="font-size:.8rem;font-weight:700;color:#1a2b3c;margin-bottom:.3rem">Professionnel</div>
@@ -2163,6 +2186,7 @@
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+    import { PROM_DEFS, PROM_LIST, renderPromForm, collectProm, renderPromChart } from '/js/proms.js?v=1';
 
     const SUPABASE_URL      = 'https://jqxykxkikvrgwnajhhbi.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_t1EUH4wn9vtNBC7pUNbKOA_OhFfWsEi';
@@ -2704,6 +2728,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
               if (secEl) secEl.classList.add('is-active');
               if (sec === 'surveys') initSurveysSection();
               if (sec === 'objectives') initObjectivesSection();
+              if (sec === 'proms') initPromsSection();
             }
           } else {
             // Aucune permission → message
@@ -2784,6 +2809,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         } else if (sec === 'objectives') {
           document.getElementById('sec-objectives').classList.add('is-active');
           initObjectivesSection();
+        } else if (sec === 'proms') {
+          document.getElementById('sec-proms').classList.add('is-active');
+          initPromsSection();
         } else {
           document.getElementById('sec-' + sec).classList.add('is-active');
         }
@@ -6979,6 +7007,61 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       if (error) { toast('Erreur : ' + error.message, 'error'); return; }
       loadObjectivesAdmin(objCurrentPatient);
     };
+
+    // ══════════════════════════════════════════════════════
+    // PROMs (questionnaires de suivi par patient)
+    // ══════════════════════════════════════════════════════
+    async function initPromsSection() {
+      if (!allPatients.length) await loadPatients();
+      const sel = document.getElementById('promPatientSelect');
+      const patients = allPatients.filter(p => !p.is_admin && !p.is_professional);
+      sel.innerHTML = `<option value="">— Sélectionner un patient —</option>` +
+        patients.map(p => `<option value="${esc(p.id)}">${esc(p.full_name || p.email)}</option>`).join('');
+      sel.onchange = () => {
+        const pid = sel.value || null;
+        document.getElementById('promEditorWrap').style.display = pid ? '' : 'none';
+        if (pid) loadPromsAdmin(pid);
+      };
+    }
+
+    async function loadPromsAdmin(patientId) {
+      const wrap = document.getElementById('promEditorWrap');
+      wrap.innerHTML = `<div class="empty-state">Chargement…</div>`;
+      const [{ data: assigns }, { data: resps }] = await Promise.all([
+        sb.from('prom_assignments').select('instrument').eq('patient_id', patientId),
+        sb.from('prom_responses').select('instrument,score,completed_at').eq('patient_id', patientId).order('completed_at'),
+      ]);
+      const assigned = new Set((assigns || []).map(a => a.instrument));
+      const byInstr = {};
+      (resps || []).forEach(r => { (byInstr[r.instrument] = byInstr[r.instrument] || []).push(r); });
+
+      wrap.innerHTML = PROM_LIST.map(d => {
+        const rows = byInstr[d.code] || [];
+        const chart = rows.length ? renderPromChart(d.code, rows) : '<p style="color:#888;font-size:.85rem">Aucune passation pour l’instant.</p>';
+        return `<div class="card" style="margin-bottom:.7rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:.5rem">
+            <strong>${esc(d.name)}</strong>
+            <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;cursor:pointer">
+              <input type="checkbox" class="prom-assign" data-code="${d.code}" ${assigned.has(d.code) ? 'checked' : ''}> Assigné au patient
+            </label>
+          </div>
+          ${chart}
+        </div>`;
+      }).join('');
+
+      wrap.querySelectorAll('.prom-assign').forEach(cb => cb.addEventListener('change', async () => {
+        const code = cb.dataset.code;
+        if (cb.checked) {
+          const { error } = await sb.from('prom_assignments').insert({ patient_id: patientId, instrument: code });
+          if (error && error.code !== '23505') { toast('Erreur : ' + error.message, 'error'); cb.checked = false; return; }
+          toast('Questionnaire assigné.', 'success');
+        } else {
+          const { error } = await sb.from('prom_assignments').delete().eq('patient_id', patientId).eq('instrument', code);
+          if (error) { toast('Erreur : ' + error.message, 'error'); cb.checked = true; return; }
+          toast('Questionnaire retiré.', 'success');
+        }
+      }));
+    }
   </script>
 
   <!-- ── Bulle chat flottante ──────────────────────────── -->

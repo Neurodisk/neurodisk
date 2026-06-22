@@ -1,4 +1,5 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+    import { PROM_DEFS, PROM_LIST, renderPromForm, collectProm, renderPromChart } from '/js/proms.js?v=1';
 
     const SUPABASE_URL      = 'https://jqxykxkikvrgwnajhhbi.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_t1EUH4wn9vtNBC7pUNbKOA_OhFfWsEi';
@@ -132,7 +133,7 @@
         loadProSurveys(user.id);
       }
 
-      await Promise.all([loadCategories(), loadResources(user.id, isAdmin), loadPatientForms(user.id, isAdmin), loadNextAppointment(user.id)]);
+      await Promise.all([loadCategories(), loadResources(user.id, isAdmin), loadPatientForms(user.id, isAdmin), loadNextAppointment(user.id), loadProms(user.id)]);
 
       if (isAdmin || isPro) {
         _chatBindEvents();
@@ -310,6 +311,77 @@
       if (error) { toast('Erreur, réessayez.', 'error'); return; }
       loadObjectives();
     };
+
+    // ── PROMs (questionnaires de suivi du patient) ────────
+    let _promCurrent = null, _promAssigns = {}, _promResps = {};
+
+    async function loadProms(userId) {
+      const wrap = document.getElementById('promWrap');
+      if (!wrap) return;
+      const [{ data: assigns }, { data: resps }] = await Promise.all([
+        supabase.from('prom_assignments').select('instrument, activities').eq('patient_id', userId),
+        supabase.from('prom_responses').select('instrument,score,completed_at').eq('patient_id', userId).order('completed_at'),
+      ]);
+      if (!assigns || !assigns.length) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+      _promAssigns = {}; assigns.forEach(a => { _promAssigns[a.instrument] = a; });
+      _promResps = {}; (resps || []).forEach(r => { (_promResps[r.instrument] = _promResps[r.instrument] || []).push(r); });
+
+      const items = assigns.map(a => {
+        const d = PROM_DEFS[a.instrument];
+        const rows = _promResps[a.instrument] || [];
+        const last = rows.length ? rows[rows.length - 1] : null;
+        const chart = rows.length ? renderPromChart(a.instrument, rows) : '';
+        return `<div style="background:#fff;border:1px solid #dbe4f0;border-radius:12px;padding:.9rem 1rem;margin-bottom:.6rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+            <div><strong>${esc(d.name)}</strong>${last ? `<br><small style="color:#667">Dernier score : ${last.score} ${d.unit} — ${new Date(last.completed_at).toLocaleDateString('fr-CA')}</small>` : '<br><small style="color:#667">À remplir</small>'}</div>
+            <button class="nav-btn nav-btn--primary" style="white-space:nowrap" onclick="openProm('${a.instrument}')">Remplir</button>
+          </div>
+          ${chart}
+        </div>`;
+      }).join('');
+      wrap.innerHTML = `<div style="font-weight:700;color:#1B2B6B;margin-bottom:.5rem">Mes questionnaires de suivi</div>${items}`;
+      wrap.style.display = 'block';
+    }
+
+    window.openProm = (code) => {
+      _promCurrent = code;
+      const d = PROM_DEFS[code];
+      document.getElementById('promModalTitle').textContent = d.name;
+      document.getElementById('promModalMsg').textContent = '';
+      const body = document.getElementById('promModalBody');
+      let prefill = {};
+      if (code === 'psfs') {
+        const a = _promAssigns[code];
+        if (a && a.activities && a.activities.length) prefill.activities = a.activities.map(x => ({ name: x.name || x, score: '' }));
+      }
+      renderPromForm(code, body, prefill);
+      document.getElementById('promModal').style.display = 'flex';
+    };
+
+    document.getElementById('btnPromCancel')?.addEventListener('click', () => {
+      document.getElementById('promModal').style.display = 'none';
+    });
+
+    document.getElementById('btnPromSubmit')?.addEventListener('click', async () => {
+      if (!_promCurrent) return;
+      const body = document.getElementById('promModalBody');
+      const res = collectProm(_promCurrent, body);
+      if (res.error) { document.getElementById('promModalMsg').textContent = res.error; return; }
+      const btn = document.getElementById('btnPromSubmit'); btn.disabled = true; btn.textContent = 'Envoi…';
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from('prom_responses').insert({
+        patient_id: user.id, instrument: _promCurrent, answers: res.answers, score: res.score, score_max: res.max,
+      });
+      if (!error && _promCurrent === 'psfs' && res.answers.activities) {
+        await supabase.from('prom_assignments').update({ activities: res.answers.activities.map(a => ({ name: a.name })) })
+          .eq('patient_id', user.id).eq('instrument', 'psfs');
+      }
+      btn.disabled = false; btn.textContent = 'Envoyer';
+      if (error) { document.getElementById('promModalMsg').textContent = 'Erreur : ' + error.message; return; }
+      document.getElementById('promModal').style.display = 'none';
+      toast('Merci, votre questionnaire est enregistré.', 'success');
+      loadProms(user.id);
+    });
 
     async function loadResources(userId, isAdmin = false) {
       const audience = currentView === 'professional' ? 'professional' : 'patient';
