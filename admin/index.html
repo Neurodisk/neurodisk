@@ -2199,10 +2199,42 @@
 
   <div class="toast-wrap" id="toastWrap"></div>
 
+  <!-- ── Modal Rapport patient ───────────────────────── -->
+  <div class="modal-edit" id="modalRapport" aria-hidden="true">
+    <div class="modal-edit__overlay" data-close-rapport></div>
+    <div class="modal-edit__box" style="max-width:540px">
+      <div class="topbar"></div>
+      <div style="padding:1.5rem">
+        <h2 class="modal-edit__title">📄 Rapport patient</h2>
+        <div id="alertRapport" class="alert"></div>
+        <p id="rapportName" style="font-weight:600;color:#1B2B6B;margin:.2rem 0 1rem"></p>
+        <input type="hidden" id="rapportPatientId">
+        <div class="form-grid">
+          <div class="field"><label for="rapportRx">Radiographies effectuées le</label><input type="date" id="rapportRx"></div>
+          <div class="field"><label for="rapportPlan">Plan</label>
+            <select id="rapportPlan">
+              <option value="">— Non défini (afficher les deux) —</option>
+              <option value="annuel">Annuel — décompression discale</option>
+              <option value="combo">Combo — cervical + lombaire</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column:1/-1"><label for="rapportCervical">Constat colonne cervicale</label><input type="text" id="rapportCervical" placeholder="Ex. : hernie C5-C6, arthrose"></div>
+          <div class="field" style="grid-column:1/-1"><label for="rapportLumbar">Constat colonne lombaire</label><input type="text" id="rapportLumbar" placeholder="Ex. : hernie L4-L5"></div>
+        </div>
+        <div style="display:flex;gap:.6rem;margin-top:1rem;flex-wrap:wrap">
+          <button class="btn btn--primary" id="btnRapportGen">⬇ Générer le Word</button>
+          <button class="btn btn--ghost" id="btnRapportClose2">Fermer</button>
+        </div>
+        <p style="font-size:.78rem;color:var(--muted);margin-top:.6rem">Les informations sont enregistrées et insérées dans le rapport. Le nom vient du dossier patient ; le suivi de la douleur (NPRS) est ajouté s'il existe.</p>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
     import { PROM_DEFS, PROM_LIST, renderPromForm, collectProm, renderPromChart } from '/js/proms.js?v=1';
+    import { buildRapportBlob } from '/js/rapport.js?v=1';
 
     const SUPABASE_URL      = 'https://jqxykxkikvrgwnajhhbi.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_t1EUH4wn9vtNBC7pUNbKOA_OhFfWsEi';
@@ -3056,6 +3088,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
                            <button class="btn btn--ghost btn--sm" onclick="sendMagicLink('${esc(p.email)}', this)">✉️ Envoyer un lien</button>
                            <button class="btn btn--ghost btn--sm" onclick="openAssignSection('${p.id}')">Gérer les accès</button>
                            <button class="btn btn--ghost btn--sm" onclick="openPatientForms('${p.id}', '${esc(p.full_name || p.email)}')">📋 Formulaires</button>
+                           <button class="btn btn--ghost btn--sm" onclick="openRapportModal('${p.id}')">📄 Rapport</button>
                            <button class="btn btn--ghost btn--sm" onclick="openPasswordModal('${p.id}', '${esc(p.full_name || p.email)}', '${esc(p.email)}')">🔑 Mot de passe</button>
                            ${!currentUserIsPro ? `<button class="btn btn--danger btn--sm" onclick="erasePatient('${p.id}', '${esc(p.email)}', this)">🗑 Effacer</button>` : ''}`
                       }
@@ -7151,6 +7184,61 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
           </tbody>
         </table></div>`;
     }
+
+    // ══════════════════════════════════════════════════════
+    // RAPPORT PATIENT (Word auto-rempli)
+    // ══════════════════════════════════════════════════════
+    window.openRapportModal = async (id) => {
+      const m = document.getElementById('modalRapport');
+      setAlert(document.getElementById('alertRapport'), '', '');
+      document.getElementById('rapportPatientId').value = id;
+      const { data, error } = await sb.from('profiles')
+        .select('full_name, email, rx_date, cervical_finding, lumbar_finding, plan_type').eq('id', id).single();
+      if (error) { toast('Erreur (migration 021 exécutée ?) : ' + error.message, 'error'); return; }
+      document.getElementById('rapportName').textContent = data.full_name || data.email;
+      document.getElementById('rapportRx').value = data.rx_date || '';
+      document.getElementById('rapportCervical').value = data.cervical_finding || '';
+      document.getElementById('rapportLumbar').value = data.lumbar_finding || '';
+      document.getElementById('rapportPlan').value = data.plan_type || '';
+      m.classList.add('is-open'); m.setAttribute('aria-hidden', 'false'); document.body.style.overflow = 'hidden';
+    };
+    function closeRapportModal() {
+      const m = document.getElementById('modalRapport');
+      m.classList.remove('is-open'); m.setAttribute('aria-hidden', 'true'); document.body.style.overflow = '';
+    }
+    document.getElementById('btnRapportClose2').addEventListener('click', closeRapportModal);
+    document.querySelector('[data-close-rapport]').addEventListener('click', closeRapportModal);
+
+    document.getElementById('btnRapportGen').addEventListener('click', async () => {
+      const id = document.getElementById('rapportPatientId').value;
+      const name = document.getElementById('rapportName').textContent;
+      const rx = document.getElementById('rapportRx').value;
+      const cervical = document.getElementById('rapportCervical').value.trim();
+      const lumbar = document.getElementById('rapportLumbar').value.trim();
+      const planType = document.getElementById('rapportPlan').value;
+      const btn = document.getElementById('btnRapportGen');
+      btn.disabled = true; btn.textContent = 'Génération…';
+      await sb.from('profiles').update({
+        rx_date: rx || null, cervical_finding: cervical || null,
+        lumbar_finding: lumbar || null, plan_type: planType || null,
+      }).eq('id', id);
+      let nprs = [];
+      try {
+        const { data } = await sb.from('prom_responses').select('score, completed_at')
+          .eq('patient_id', id).eq('instrument', 'nprs').order('completed_at');
+        nprs = data || [];
+      } catch {}
+      try {
+        const rxStr = rx ? new Date(rx + 'T00:00').toLocaleDateString('fr-CA') : '';
+        const blob = await buildRapportBlob({ name, rxDate: rxStr, cervical, lumbar, planType, nprs });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `Rapport_${(name || 'patient').replace(/[^a-zA-Z0-9]+/g, '_')}.docx`; a.click();
+        URL.revokeObjectURL(url);
+        toast('Rapport généré.', 'success');
+      } catch (err) { toast('Erreur génération : ' + err.message, 'error'); }
+      btn.disabled = false; btn.textContent = '⬇ Générer le Word';
+    });
   </script>
 
   <!-- ── Bulle chat flottante ──────────────────────────── -->
