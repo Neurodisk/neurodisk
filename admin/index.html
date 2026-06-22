@@ -1191,6 +1191,16 @@
                   <label for="progDesc">Description <span style="font-weight:400;color:var(--muted)">optionnel</span></label>
                   <textarea id="progDesc" placeholder="Objectifs, durée recommandée…"></textarea>
                 </div>
+                <div class="field" style="grid-column:1/-1">
+                  <div style="background:#eef4ff;border:1px solid #c7d9f8;border-radius:10px;padding:.85rem 1rem">
+                    <div style="font-weight:600;color:#1B2B6B;margin-bottom:.35rem">⚡ Génération automatique <span style="font-weight:400;color:#667">optionnel</span></div>
+                    <p style="font-size:.8rem;color:#555;margin:0 0 .6rem">Choisissez une condition : les exercices pertinents de votre banque seront pré-ajoutés. Vous pourrez tout ajuster avant de créer.</p>
+                    <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+                      <select id="progGenCondition" style="flex:1;min-width:200px"><option value="">— Choisir une condition —</option></select>
+                      <button type="button" class="btn btn--primary btn--sm" id="btnGenProg">⚡ Générer</button>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div style="margin-top:1rem">
                 <button class="btn btn--primary" id="btnProgToStep2">
@@ -5404,7 +5414,32 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       document.getElementById('progStep2').style.display = 'none';
       setStepActive(1);
       populateProgPatientSelect();
+      const gc = document.getElementById('progGenCondition');
+      gc.innerHTML = `<option value="">— Choisir une condition —</option>` +
+        allConditions.map(c => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('');
       setAlert(document.getElementById('alertNewProg'), '', '');
+    });
+
+    // ── Génération automatique depuis une condition ───────
+    document.getElementById('btnGenProg').addEventListener('click', () => {
+      const name  = document.getElementById('progName').value.trim();
+      const patId = document.getElementById('progPatient').value;
+      const cond  = document.getElementById('progGenCondition').value;
+      const alert = document.getElementById('alertNewProg');
+      if (!cond)  { setAlert(alert, 'Choisissez une condition à générer.', 'error'); return; }
+      if (!name)  { setAlert(alert, 'Veuillez entrer un nom de programme.', 'error'); return; }
+      if (!patId) { setAlert(alert, 'Veuillez sélectionner un patient.', 'error'); return; }
+      const matches = allExercisesLib.filter(ex => (ex.condition_ids || []).includes(cond));
+      if (!matches.length) { setAlert(alert, 'Aucun exercice taggé pour cette condition dans votre banque.', 'error'); return; }
+      progSelectedEx = matches.map(ex => ({ id: ex.id, title: ex.title, muscle_group: ex.muscle_group, sets: '', reps: '', rest_sec: '', frequency: '', notes: '' }));
+      setAlert(alert, '', '');
+      document.getElementById('progNameLabel').textContent = name;
+      document.getElementById('progStep1').style.display = 'none';
+      document.getElementById('progStep2').style.display = '';
+      setStepActive(2);
+      renderExerciseLibrary('');
+      renderProgExList();
+      toast(`${matches.length} exercice(s) pré-ajouté(s) — ajustez puis créez le programme.`, 'success');
     });
 
     document.getElementById('btnGoCreateEx').addEventListener('click', () => {
