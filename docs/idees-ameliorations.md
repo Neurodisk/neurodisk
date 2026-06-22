@@ -26,7 +26,7 @@ Les réévaluations officielles du protocole (R12, R24, + la 3ᵉ incluse) sont 
 
 ### Engagement & adhérence
 - **Rappels automatiques** (courriel) pour exercices / rendez-vous — meilleur ratio impact/effort pour l'adhérence. Déclencheur pg_cron ou Cloudflare Cron → Edge Function → courriel (Resend). Tables `reminder_settings` + `reminder_log`. *Prérequis : fournisseur courriel + domaine d'envoi vérifié.*
-- **Tableau de bord d'adhérence** (clinicien) : qui fait son programme, qui décroche.
+- ~~**Tableau de bord d'adhérence** (clinicien)~~ ✅ livré (section Adhérence, migration 020).
 - **Gamification** des objectifs (séries/badges/jalons).
 
 ### Clinique & résultats
