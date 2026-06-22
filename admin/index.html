@@ -1194,11 +1194,9 @@
                 <div class="field" style="grid-column:1/-1">
                   <div style="background:#eef4ff;border:1px solid #c7d9f8;border-radius:10px;padding:.85rem 1rem">
                     <div style="font-weight:600;color:#1B2B6B;margin-bottom:.35rem">⚡ Génération automatique <span style="font-weight:400;color:#667">optionnel</span></div>
-                    <p style="font-size:.8rem;color:#555;margin:0 0 .6rem">Choisissez une condition : les exercices pertinents de votre banque seront pré-ajoutés. Vous pourrez tout ajuster avant de créer.</p>
-                    <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
-                      <select id="progGenCondition" style="flex:1;min-width:200px"><option value="">— Choisir une condition —</option></select>
-                      <button type="button" class="btn btn--primary btn--sm" id="btnGenProg">⚡ Générer</button>
-                    </div>
+                    <p style="font-size:.8rem;color:#555;margin:0 0 .6rem">Cochez une ou plusieurs conditions : les exercices de votre banque taggés pour <strong>au moins une</strong> d'elles seront pré-ajoutés (sans doublon). Vous pourrez tout ajuster avant de créer.</p>
+                    <div id="progGenConditions" style="display:flex;flex-wrap:wrap;gap:.4rem 1.1rem;margin-bottom:.7rem"></div>
+                    <button type="button" class="btn btn--primary btn--sm" id="btnGenProg">⚡ Générer</button>
                   </div>
                 </div>
               </div>
@@ -5414,9 +5412,8 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       document.getElementById('progStep2').style.display = 'none';
       setStepActive(1);
       populateProgPatientSelect();
-      const gc = document.getElementById('progGenCondition');
-      gc.innerHTML = `<option value="">— Choisir une condition —</option>` +
-        allConditions.map(c => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('');
+      document.getElementById('progGenConditions').innerHTML = allConditions.map(c =>
+        `<label style="display:flex;align-items:center;gap:.35rem;font-size:.84rem;cursor:pointer"><input type="checkbox" class="prog-gen-cond" value="${esc(c.id)}"> ${esc(c.label)}</label>`).join('');
       setAlert(document.getElementById('alertNewProg'), '', '');
     });
 
@@ -5424,13 +5421,14 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     document.getElementById('btnGenProg').addEventListener('click', () => {
       const name  = document.getElementById('progName').value.trim();
       const patId = document.getElementById('progPatient').value;
-      const cond  = document.getElementById('progGenCondition').value;
+      const conds = [...document.querySelectorAll('.prog-gen-cond:checked')].map(c => c.value);
       const alert = document.getElementById('alertNewProg');
-      if (!cond)  { setAlert(alert, 'Choisissez une condition à générer.', 'error'); return; }
+      if (!conds.length) { setAlert(alert, 'Cochez au moins une condition à générer.', 'error'); return; }
       if (!name)  { setAlert(alert, 'Veuillez entrer un nom de programme.', 'error'); return; }
       if (!patId) { setAlert(alert, 'Veuillez sélectionner un patient.', 'error'); return; }
-      const matches = allExercisesLib.filter(ex => (ex.condition_ids || []).includes(cond));
-      if (!matches.length) { setAlert(alert, 'Aucun exercice taggé pour cette condition dans votre banque.', 'error'); return; }
+      const set = new Set(conds);
+      const matches = allExercisesLib.filter(ex => (ex.condition_ids || []).some(cid => set.has(cid)));
+      if (!matches.length) { setAlert(alert, 'Aucun exercice taggé pour les conditions choisies dans votre banque.', 'error'); return; }
       progSelectedEx = matches.map(ex => ({ id: ex.id, title: ex.title, muscle_group: ex.muscle_group, sets: '', reps: '', rest_sec: '', frequency: '', notes: '' }));
       setAlert(alert, '', '');
       document.getElementById('progNameLabel').textContent = name;
