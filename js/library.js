@@ -277,29 +277,61 @@
       }
       const total = objs.length, done = objs.filter(o => o.is_done).length;
       const pct = Math.round(done / total * 100);
-      const groups = { court:{icon:'🎯',title:'Court terme'}, moyen:{icon:'📈',title:'Moyen terme'}, long:{icon:'🏆',title:'Long terme'} };
+      const groups = {
+        court: { icon:'🎯', title:'Court terme', color:'#0d9488', bg:'#ecfdf5' },
+        moyen: { icon:'📈', title:'Moyen terme', color:'#2563EB', bg:'#eff6ff' },
+        long:  { icon:'🏆', title:'Long terme',  color:'#b45309', bg:'#fffbeb' },
+      };
+      const encourage = (p) =>
+        p === 0   ? "On commence ? Chaque petit pas compte. 💪" :
+        p === 100 ? "Incroyable — tous vos objectifs sont atteints ! 🎉" :
+        p >= 67   ? "Vous y êtes presque, gardez le cap ! 🔥" :
+        p >= 34   ? "Belle progression, continuez sur cette lancée ! 👏" :
+                    "Bravo, vous avez fait le premier pas ! 🌱";
+
+      // Anneau de progression circulaire
+      const R = 34, C = 2 * Math.PI * R, off = C * (1 - pct / 100);
+      const ring = `
+        <svg width="86" height="86" viewBox="0 0 84 84" style="flex-shrink:0">
+          <circle cx="42" cy="42" r="${R}" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="8"/>
+          <circle cx="42" cy="42" r="${R}" fill="none" stroke="#34d399" stroke-width="8" stroke-linecap="round"
+            stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 42 42)"
+            style="transition:stroke-dashoffset .7s ease"/>
+          <text x="42" y="48" text-anchor="middle" fill="#fff" font-size="19" font-weight="700">${pct}%</text>
+        </svg>`;
 
       let html = `
-        <div style="background:linear-gradient(135deg,#1B2B6B,#2563eb);color:#fff;border-radius:16px;padding:1.25rem 1.5rem;margin-bottom:1.5rem">
-          <div style="font-size:1.05rem;font-weight:700;margin-bottom:.2rem">Votre progression</div>
-          <div style="font-size:.85rem;opacity:.92;margin-bottom:.6rem">${done} objectif${done>1?'s':''} atteint${done>1?'s':''} sur ${total}${pct===100?' — bravo ! 🎉':''}</div>
-          <div style="background:rgba(255,255,255,.25);border-radius:100px;height:12px;overflow:hidden">
-            <div style="width:${pct}%;height:100%;background:#34d399;border-radius:100px;transition:width .5s"></div>
+        <div style="background:linear-gradient(135deg,#1B2B6B,#2563eb);color:#fff;border-radius:18px;padding:1.3rem 1.5rem;margin-bottom:1.6rem;display:flex;align-items:center;gap:1.2rem">
+          ${ring}
+          <div style="flex:1">
+            <div style="font-size:1.15rem;font-weight:700;margin-bottom:.15rem">Votre progression</div>
+            <div style="font-size:.9rem;opacity:.95;margin-bottom:.1rem">${done} objectif${done>1?'s':''} atteint${done>1?'s':''} sur ${total}</div>
+            <div style="font-size:.92rem;font-weight:600;color:#a7f3d0">${encourage(pct)}</div>
           </div>
         </div>`;
 
       for (const h of ['court','moyen','long']) {
         const list = objs.filter(o => o.horizon === h);
         if (!list.length) continue;
-        html += `<div style="margin-bottom:1.5rem"><h2 style="font-size:1.05rem;color:#1B2B6B;margin:0 0 .6rem">${groups[h].icon} ${groups[h].title}</h2>`;
-        html += list.map(o => `
-          <label style="display:flex;align-items:flex-start;gap:.7rem;background:#fff;border:1px solid #dbe4f0;border-radius:12px;padding:.85rem 1rem;margin-bottom:.5rem;cursor:pointer">
-            <input type="checkbox" ${o.is_done?'checked':''} onchange="toggleObjective('${o.id}', this.checked)" style="width:20px;height:20px;margin-top:.1rem;flex-shrink:0;cursor:pointer">
+        const g = groups[h];
+        const hDone = list.filter(o => o.is_done).length;
+        html += `<div style="margin-bottom:1.5rem">
+          <div style="display:flex;align-items:center;gap:.5rem;margin:0 0 .7rem">
+            <span style="font-size:1.2rem">${g.icon}</span>
+            <h2 style="font-size:1.05rem;color:${g.color};margin:0;font-weight:700">${g.title}</h2>
+            <span style="margin-left:auto;font-size:.78rem;font-weight:600;color:${g.color};background:${g.bg};border-radius:100px;padding:.15rem .6rem">${hDone}/${list.length}</span>
+          </div>`;
+        html += list.map(o => {
+          const d = o.is_done;
+          return `<label style="display:flex;align-items:flex-start;gap:.8rem;background:${d?'#f0fdf4':'#fff'};border:1px solid ${d?'#bbf7d0':'#dbe4f0'};border-left:4px solid ${d?'#16a34a':g.color};border-radius:12px;padding:.9rem 1rem;margin-bottom:.55rem;cursor:pointer;transition:background .2s">
+            <input type="checkbox" ${d?'checked':''} onchange="toggleObjective('${o.id}', this.checked)" style="width:22px;height:22px;margin-top:.05rem;flex-shrink:0;cursor:pointer;accent-color:#16a34a">
             <span style="flex:1">
-              <span style="${o.is_done?'text-decoration:line-through;color:#94a3b8':'color:#1e293b'};font-weight:500">${esc(o.label)}</span>
-              ${o.target_date?`<br><small style="color:#667">📅 Objectif pour le ${new Date(o.target_date+'T00:00').toLocaleDateString('fr-CA',{day:'numeric',month:'long',year:'numeric'})}</small>`:''}
+              <span style="${d?'text-decoration:line-through;color:#94a3b8':'color:#1e293b'};font-weight:600;font-size:1rem">${esc(o.label)}</span>
+              ${d ? '<span style="color:#16a34a;font-weight:600;font-size:.82rem;margin-left:.4rem">✓ atteint</span>' : ''}
+              ${o.target_date?`<br><small style="color:#64748b">📅 Objectif pour le ${new Date(o.target_date+'T00:00').toLocaleDateString('fr-CA',{day:'numeric',month:'long',year:'numeric'})}</small>`:''}
             </span>
-          </label>`).join('');
+          </label>`;
+        }).join('');
         html += `</div>`;
       }
       wrap.innerHTML = html;
