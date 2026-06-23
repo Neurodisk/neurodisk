@@ -80,7 +80,7 @@ Les réévaluations officielles du protocole (R12, R24, + la 3ᵉ incluse) sont 
 ### IA sur-mesure
 - ⭐ Triage d'admission par IA (symptômes → condition probable + drapeaux rouges).
 - Résumé d'évolution en langage clair avant visite ; assistant santé patient (encadré).
-- ~~Rédaction IA (lettre référence, résumé de rapport)~~ ✅ livré (edge function `ai-redaction`, Claude `claude-opus-4-8`, carte dans la section Lettre de référence). Éducation personnalisée ; traduction FR/EN : à faire.
+- ~~Rédaction IA (lettre référence, résumé de rapport)~~ ✅ livré (edge function `ai-redaction`, **Google Gemini niveau gratuit**, carte dans la section Lettre de référence). Éducation personnalisée ; traduction FR/EN : à faire.
 
 ### Productivité clinicien
 - Modèles de programme réutilisables par condition.
