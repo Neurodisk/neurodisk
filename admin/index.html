@@ -1322,6 +1322,40 @@
           Lettre de référence
         </div>
 
+        <!-- Assistant de rédaction IA -->
+        <div class="card" style="max-width:760px;margin-bottom:1.25rem">
+          <div class="card__title">✍️ Assistant de rédaction (IA)</div>
+          <div id="alertAi" class="alert"></div>
+          <p style="font-size:.8rem;color:#555;margin:0 0 .6rem">À partir de quelques notes, l'IA propose un brouillon de lettre de référence ou de résumé. <strong>Toujours relire et valider</strong> avant usage.</p>
+          <div class="form-grid">
+            <div class="field">
+              <label>Type</label>
+              <div class="type-toggle">
+                <label><input type="radio" name="aiType" value="lettre" checked><span>📄 Lettre de référence</span></label>
+                <label><input type="radio" name="aiType" value="resume"><span>📝 Résumé de rapport</span></label>
+              </div>
+            </div>
+            <div class="field">
+              <label for="aiPatient">Patient <span style="font-weight:400;color:var(--muted)">optionnel — ajoute le contexte</span></label>
+              <select id="aiPatient"><option value="">— Aucun —</option></select>
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="aiNotes">Vos notes *</label>
+              <textarea id="aiNotes" rows="4" placeholder="Ex. : hernie L4-L5, douleur en amélioration (NPRS 7→3), bonne adhésion, demande suivi en physiothérapie pour renforcement…"></textarea>
+            </div>
+          </div>
+          <div style="margin-top:.8rem">
+            <button class="btn btn--primary" id="btnAiGenerate">⚡ Générer le brouillon</button>
+          </div>
+          <div id="aiResultWrap" style="display:none;margin-top:1rem">
+            <label style="font-weight:600;color:#1B2B6B;font-size:.85rem">Brouillon (modifiable)</label>
+            <textarea id="aiResult" rows="12" style="width:100%;font-family:inherit"></textarea>
+            <div style="margin-top:.5rem;display:flex;gap:.5rem;flex-wrap:wrap">
+              <button class="btn btn--ghost btn--sm" id="btnAiCopy">📋 Copier</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Gestion : 2 colonnes côte à côte -->
         <div style="max-width:760px;display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
 
@@ -2819,6 +2853,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
               if (sec === 'proms') initPromsSection();
               if (sec === 'adherence') initAdherence();
               if (sec === 'education') loadCapsulesAdmin();
+              if (sec === 'referral') populateAiPatient();
             }
           } else {
             // Aucune permission → message
@@ -2910,6 +2945,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
           loadCapsulesAdmin();
         } else {
           document.getElementById('sec-' + sec).classList.add('is-active');
+          if (sec === 'referral') populateAiPatient();
         }
       });
     });
@@ -7481,6 +7517,72 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       ]);
       loadCapsulesAdmin();
     };
+
+    // ══════════════════════════════════════════════════════
+    // ASSISTANT DE RÉDACTION (IA)
+    // ══════════════════════════════════════════════════════
+    function populateAiPatient() {
+      const sel = document.getElementById('aiPatient');
+      if (!sel || !allPatients.length) return;
+      const cur = sel.value;
+      const patients = allPatients.filter(p => !p.is_admin && !p.is_professional);
+      sel.innerHTML = `<option value="">— Aucun —</option>` +
+        patients.map(p => `<option value="${esc(p.id)}">${esc(p.full_name || p.email)}</option>`).join('');
+      if (cur) sel.value = cur;
+    }
+
+    document.getElementById('btnAiGenerate').addEventListener('click', async () => {
+      const type = document.querySelector('input[name="aiType"]:checked').value;
+      const notes = document.getElementById('aiNotes').value.trim();
+      const alertEl = document.getElementById('alertAi');
+      if (!notes) { setAlert(alertEl, 'Entrez d\'abord quelques notes.', 'error'); return; }
+      setAlert(alertEl, '', '');
+      const btn = document.getElementById('btnAiGenerate');
+      btn.disabled = true; btn.innerHTML = '<span class="spinner-inline"></span> Rédaction…';
+
+      // Contexte patient optionnel (nom, conditions, NPRS)
+      let context = '';
+      const pid = document.getElementById('aiPatient').value;
+      if (pid) {
+        try {
+          const p = allPatients.find(x => x.id === pid);
+          const parts = [];
+          if (p) parts.push(`Nom : ${p.full_name || p.email}`);
+          const { data: conds } = await sb.from('patient_conditions').select('condition_id').eq('patient_id', pid);
+          if (conds && conds.length) {
+            const COND = Object.fromEntries(allConditions.map(c => [c.id, c.label]));
+            parts.push('Conditions : ' + conds.map(c => COND[c.condition_id] || c.condition_id).join(', '));
+          }
+          const { data: nprs } = await sb.from('prom_responses').select('score, completed_at')
+            .eq('patient_id', pid).eq('instrument', 'nprs').order('completed_at');
+          if (nprs && nprs.length) {
+            parts.push(`Douleur (NPRS) : ${nprs[0].score} → ${nprs[nprs.length - 1].score} / 10 (${nprs.length} mesures)`);
+          }
+          context = parts.join('\n');
+        } catch {}
+      }
+
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/ai-redaction`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({ type, notes, context }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'Erreur IA');
+        document.getElementById('aiResult').value = data.text || '';
+        document.getElementById('aiResultWrap').style.display = '';
+      } catch (err) {
+        setAlert(alertEl, 'Erreur : ' + err.message, 'error');
+      }
+      btn.disabled = false; btn.innerHTML = '⚡ Générer le brouillon';
+    });
+
+    document.getElementById('btnAiCopy').addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(document.getElementById('aiResult').value); toast('Copié dans le presse-papiers.', 'success'); }
+      catch { toast('Copie impossible — sélectionnez et copiez manuellement.', 'error'); }
+    });
   </script>
 
   <!-- ── Bulle chat flottante ──────────────────────────── -->
