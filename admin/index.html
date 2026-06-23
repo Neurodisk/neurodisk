@@ -1339,6 +1339,14 @@
               <label for="aiPatient">Patient <span style="font-weight:400;color:var(--muted)">optionnel — ajoute le contexte</span></label>
               <select id="aiPatient"><option value="">— Aucun —</option></select>
             </div>
+            <div class="field">
+              <label for="aiProf">Destinataire <span style="font-weight:400;color:var(--muted)">inséré automatiquement</span></label>
+              <select id="aiProf"><option value="">— Aucun —</option></select>
+            </div>
+            <div class="field">
+              <label for="aiStaff">Signataire <span style="font-weight:400;color:var(--muted)">inséré automatiquement</span></label>
+              <select id="aiStaff"><option value="">— Aucun —</option></select>
+            </div>
             <div class="field" style="grid-column:1/-1">
               <label for="aiNotes">Vos notes *</label>
               <textarea id="aiNotes" rows="4" placeholder="Ex. : hernie L4-L5, douleur en amélioration (NPRS 7→3), bonne adhésion, demande suivi en physiothérapie pour renforcement…"></textarea>
@@ -7523,12 +7531,28 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     // ══════════════════════════════════════════════════════
     function populateAiPatient() {
       const sel = document.getElementById('aiPatient');
-      if (!sel || !allPatients.length) return;
-      const cur = sel.value;
-      const patients = allPatients.filter(p => !p.is_admin && !p.is_professional);
-      sel.innerHTML = `<option value="">— Aucun —</option>` +
-        patients.map(p => `<option value="${esc(p.id)}">${esc(p.full_name || p.email)}</option>`).join('');
-      if (cur) sel.value = cur;
+      if (sel && allPatients.length) {
+        const cur = sel.value;
+        const patients = allPatients.filter(p => !p.is_admin && !p.is_professional);
+        sel.innerHTML = `<option value="">— Aucun —</option>` +
+          patients.map(p => `<option value="${esc(p.id)}">${esc(p.full_name || p.email)}</option>`).join('');
+        if (cur) sel.value = cur;
+      }
+      // Destinataire + signataire (mêmes listes que la lettre du bas)
+      const selP = document.getElementById('aiProf');
+      if (selP) {
+        const cur = selP.value;
+        selP.innerHTML = `<option value="">— Aucun —</option>` +
+          allProfessionals.map(p => `<option value="${esc(p.id)}">${esc(p.name)}${p.title ? ' — ' + esc(p.title) : ''}</option>`).join('');
+        if (cur) selP.value = cur;
+      }
+      const selS = document.getElementById('aiStaff');
+      if (selS) {
+        const cur = selS.value;
+        selS.innerHTML = `<option value="">— Aucun —</option>` +
+          allStaff.map(s => `<option value="${esc(s.id)}">${esc(s.name)}${s.title ? ' — ' + esc(s.title) : ''}</option>`).join('');
+        if (cur) selS.value = cur;
+      }
     }
 
     document.getElementById('btnAiGenerate').addEventListener('click', async () => {
@@ -7581,9 +7605,18 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         });
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.error || 'Erreur IA');
-        // Réinsérer le vrai nom localement (jamais envoyé à l'IA)
+        // Réinsérer localement nom / destinataire / signataire (jamais envoyés à l'IA)
         let out = data.text || '';
         if (realName) out = out.replace(/\[NOM DU PATIENT\]/g, realName);
+
+        const prof = allProfessionals.find(p => p.id === document.getElementById('aiProf').value);
+        const destStr = prof ? (prof.name + (prof.title ? ', ' + prof.title : '')) : '[À COMPLÉTER]';
+        out = out.replace(/\[DESTINATAIRE\]/g, destStr);
+
+        const staff = allStaff.find(s => s.id === document.getElementById('aiStaff').value);
+        const signStr = staff ? (staff.name + (staff.title ? '\n' + staff.title : '')) : '[À COMPLÉTER]';
+        out = out.replace(/\[SIGNATAIRE\]/g, signStr);
+
         document.getElementById('aiResult').value = out;
         document.getElementById('aiResultWrap').style.display = '';
       } catch (err) {
