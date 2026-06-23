@@ -2474,6 +2474,7 @@
       allProfessionals = data || [];
       populateProfSelect();
       renderProfList();
+      if (typeof populateAiPatient === 'function') populateAiPatient();
     }
 
     function populateProfSelect() {
@@ -2529,6 +2530,7 @@
       allStaff = data || [];
       populateStaffSelect();
       renderStaffList();
+      if (typeof populateAiPatient === 'function') populateAiPatient();
     }
 
     function populateStaffSelect() {
