@@ -18,6 +18,7 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 - **PROMs (questionnaires validés)** : ODI, NDI, NPRS (douleur), PSFS + **courbe d'évolution** (seuil MCID), visibles clinicien + patient. Moteur `js/proms.js`, migration **019**.
 - **Tableau de bord d'adhérence** (clinicien) : statut actif / à risque / décroché par patient (dernière activité), compteur de séances 7 j, sparkline 14 j, décrochés en premier. Migration **020**.
 - **Rapport patient auto-rempli** : bouton Rapport par patient → génère le Word branded rempli depuis la BD (nom, date RX, constats cervical/lombaire, plan, suivi NPRS). Champs cliniques migration **021**, génération navigateur `js/rapport.js` (docx via ESM).
+- **Conditions structurées par patient + auto-assignation** : table `patient_conditions` (migration **024**). Dans le panneau d'assignation, on coche les diagnostics du patient → bouton « Enregistrer + auto-assigner » qui assigne automatiquement les ressources/fiches taggées pour ces conditions (additif). Le générateur de programme pré-coche aussi les conditions du patient sélectionné.
 - **Génération auto du programme depuis le diagnostic** : dans le builder de programme, choisir une condition pré-ajoute les exercices de la banque taggés pour cette condition ; le clinicien ajuste (séries/reps, retrait/ajout) et valide. Admin seul, aucune migration.
 - **Fiches patient par condition** : 11 PDF vulgarisés (servis sous `/fiches/`) + ressources PDF taggées par condition (catégorie « Mes recommandations »), assignables. Migration **023**.
 - **Capsules d'éducation à la douleur (PNE)** : parcours « Comprendre ma douleur » (8 capsules pré-remplies, base probante) avec barre de progression et suivi « Vu » par capsule. Flag `shows_education` sur catégorie, section admin de gestion. Migration **022**, contenu dans `docs/capsules-pne.md`.
@@ -36,7 +37,7 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 - **Backlog d'idées** — `docs/idees-ameliorations.md`.
 
 ### ⚠️ Migrations SQL à exécuter dans le SQL Editor (accumulées)
-Dans l'ordre, non confirmées exécutées : **011, 012, 013, 014, 015, 016, 017, 018, 019, 020, 021, 022, 023**. Obligatoire avant d'utiliser les nouvelles fonctionnalités correspondantes.
+Dans l'ordre, non confirmées exécutées : **011, 012, 013, 014, 015, 016, 017, 018, 019, 020, 021, 022, 023, 024**. Obligatoire avant d'utiliser les nouvelles fonctionnalités correspondantes.
 
 ### 💡 Idée en attente
 Lier les **réévaluations R12/R24** à la courbe (jalons Départ → R12 → R24). Décisions ouvertes : quoi mesurer + qui saisit. Voir `docs/idees-ameliorations.md`.
