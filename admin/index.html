@@ -1194,7 +1194,7 @@
                 <div class="field" style="grid-column:1/-1">
                   <div style="background:#eef4ff;border:1px solid #c7d9f8;border-radius:10px;padding:.85rem 1rem">
                     <div style="font-weight:600;color:#1B2B6B;margin-bottom:.35rem">⚡ Génération automatique <span style="font-weight:400;color:#667">optionnel</span></div>
-                    <p style="font-size:.8rem;color:#555;margin:0 0 .6rem">Cochez une ou plusieurs conditions : les exercices de votre banque taggés pour <strong>au moins une</strong> d'elles seront pré-ajoutés (sans doublon). Vous pourrez tout ajuster avant de créer.</p>
+                    <p style="font-size:.8rem;color:#555;margin:0 0 .6rem">Cochez une ou plusieurs conditions : l'app propose <strong>3 à 4 exercices de base</strong> (niveau débutant, fondés sur les données probantes), choisis dans votre banque selon les conditions. Vous pourrez tout ajuster avant de créer.</p>
                     <div id="progGenConditions" style="display:flex;flex-wrap:wrap;gap:.4rem 1.1rem;margin-bottom:.7rem"></div>
                     <button type="button" class="btn btn--primary btn--sm" id="btnGenProg">⚡ Générer</button>
                   </div>
@@ -5427,9 +5427,11 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       if (!name)  { setAlert(alert, 'Veuillez entrer un nom de programme.', 'error'); return; }
       if (!patId) { setAlert(alert, 'Veuillez sélectionner un patient.', 'error'); return; }
       const set = new Set(conds);
-      const matches = allExercisesLib.filter(ex => (ex.condition_ids || []).some(cid => set.has(cid)));
-      if (!matches.length) { setAlert(alert, 'Aucun exercice taggé pour les conditions choisies dans votre banque.', 'error'); return; }
-      progSelectedEx = matches.map(ex => ({ id: ex.id, title: ex.title, muscle_group: ex.muscle_group, sets: '', reps: '', rest_sec: '', frequency: '', notes: '' }));
+      const union = allExercisesLib.filter(ex => (ex.condition_ids || []).some(cid => set.has(cid)));
+      if (!union.length) { setAlert(alert, 'Aucun exercice taggé pour les conditions choisies dans votre banque.', 'error'); return; }
+      const picked = pickBasicExercises(union);
+      if (!picked.length) { setAlert(alert, 'Aucun exercice de base disponible pour ces conditions.', 'error'); return; }
+      progSelectedEx = picked.map(ex => ({ id: ex.id, title: ex.title, muscle_group: ex.muscle_group, sets: '', reps: '', rest_sec: '', frequency: '', notes: '' }));
       setAlert(alert, '', '');
       document.getElementById('progNameLabel').textContent = name;
       document.getElementById('progStep1').style.display = 'none';
@@ -5437,8 +5439,22 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       setStepActive(2);
       renderExerciseLibrary('');
       renderProgExList();
-      toast(`${matches.length} exercice(s) pré-ajouté(s) — ajustez puis créez le programme.`, 'success');
+      toast(`${picked.length} exercice(s) de base proposé(s) — ajustez puis créez le programme.`, 'success');
     });
+
+    // Sélectionne 3-4 exercices de base (exclut les avancés), variés,
+    // du plus fondamental au plus exigeant — fondé sur la banque probante.
+    function pickBasicExercises(list) {
+      const ADV = /avanc[ée]|pliom|mise en charge|retour (au sport|à la course)|gainage avanc/i;
+      const basic = list.filter(ex => !ADV.test(ex.muscle_group || '') && !ADV.test(ex.description || ''));
+      const PRIO = [/mobilit/i, /stabilisation/i, /contrôle/i, /respiration|détente/i, /aérobie/i, /étirement/i, /décompression|extension/i, /neurodynamique/i, /fessier/i, /renforcement/i, /proprioception/i, /fonctionnel/i, /gainage/i, /quadriceps/i];
+      const score = ex => { const m = (ex.muscle_group || '').toLowerCase(); for (let i = 0; i < PRIO.length; i++) if (PRIO[i].test(m)) return i; return 99; };
+      basic.sort((a, b) => score(a) - score(b));
+      const picked = [], usedCat = new Set();
+      for (const ex of basic) { const c = (ex.muscle_group || '').toLowerCase(); if (usedCat.has(c)) continue; picked.push(ex); usedCat.add(c); if (picked.length >= 4) break; }
+      if (picked.length < 3) for (const ex of basic) { if (!picked.includes(ex)) { picked.push(ex); if (picked.length >= 4) break; } }
+      return picked.slice(0, 4);
+    }
 
     document.getElementById('btnGoCreateEx').addEventListener('click', () => {
       showProgView('viewCreateEx');
