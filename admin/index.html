@@ -3740,13 +3740,14 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
       panel.innerHTML = `<div style="padding:1rem;color:var(--muted)">Chargement…</div>`;
 
-      // Récupérer les assignations actuelles
-      const { data: assignments } = await sb
-        .from('patient_resources')
-        .select('resource_id')
-        .eq('patient_id', patientId);
+      // Récupérer les assignations actuelles + les conditions du patient
+      const [{ data: assignments }, { data: pconds }] = await Promise.all([
+        sb.from('patient_resources').select('resource_id').eq('patient_id', patientId),
+        sb.from('patient_conditions').select('condition_id').eq('patient_id', patientId),
+      ]);
 
       const assignedIds = new Set((assignments || []).map(a => a.resource_id));
+      const patCondSet  = new Set((pconds || []).map(c => c.condition_id));
 
       // Grouper les ressources par condition
       const COND = Object.fromEntries(allConditions.map(c => [c.id, c.label]));
@@ -3763,6 +3764,14 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
       const patient = allPatients.find(p => p.id === patientId);
       panel.innerHTML = `
+        <div class="card" style="margin-bottom:1.1rem">
+          <div style="font-weight:600;color:#1B2B6B;margin-bottom:.3rem">🩺 Condition(s) du patient</div>
+          <p style="font-size:.8rem;color:#555;margin:0 0 .6rem">Cochez le ou les diagnostics, puis enregistrez : les ressources et fiches de ces conditions seront <strong>assignées automatiquement</strong> (sans rien retirer de ce qui est déjà assigné).</p>
+          <div style="display:flex;flex-wrap:wrap;gap:.4rem 1.1rem;margin-bottom:.7rem">
+            ${allConditions.map(c => `<label style="display:flex;align-items:center;gap:.35rem;font-size:.84rem;cursor:pointer"><input type="checkbox" class="pat-cond-check" value="${esc(c.id)}" ${patCondSet.has(c.id) ? 'checked' : ''}> ${esc(c.label)}</label>`).join('')}
+          </div>
+          <button class="btn btn--primary btn--sm" id="btnSaveCond" onclick="saveAndAutoAssign('${patientId}')">💾 Enregistrer + auto-assigner</button>
+        </div>
         <div class="access-panel__header">
           Ressources de ${esc(patient?.full_name || patient?.email || 'ce patient')}
         </div>
@@ -3816,6 +3825,34 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       }
 
       checkbox.disabled = false;
+    };
+
+    // ── Enregistrer les conditions du patient + auto-assigner ──
+    window.saveAndAutoAssign = async (patientId) => {
+      const checks = [...document.querySelectorAll('.pat-cond-check:checked')].map(c => c.value);
+      const btn = document.getElementById('btnSaveCond');
+      btn.disabled = true; btn.textContent = 'Enregistrement…';
+      // Remplacer les conditions du patient
+      await sb.from('patient_conditions').delete().eq('patient_id', patientId);
+      if (checks.length) {
+        await sb.from('patient_conditions').insert(checks.map(cid => ({ patient_id: patientId, condition_id: cid })));
+      }
+      // Auto-assigner les ressources de ces conditions (additif uniquement)
+      let added = 0;
+      if (checks.length) {
+        const set = new Set(checks);
+        const { data: cur } = await sb.from('patient_resources').select('resource_id').eq('patient_id', patientId);
+        const assigned = new Set((cur || []).map(a => a.resource_id));
+        const toAdd = allResources.filter(r => set.has(r.condition_tag) && !assigned.has(r.id));
+        if (toAdd.length) {
+          const { data: { user } } = await sb.auth.getUser();
+          const { error } = await sb.from('patient_resources')
+            .insert(toAdd.map(r => ({ patient_id: patientId, resource_id: r.id, assigned_by: user.id })));
+          if (!error) added = toAdd.length;
+        }
+      }
+      toast(`Conditions enregistrées. ${added} ressource(s) assignée(s) automatiquement.`, 'success');
+      openPanelForPatient(patientId);
     };
 
     // ══════════════════════════════════════════════════════
@@ -5455,6 +5492,16 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       if (picked.length < 3) for (const ex of basic) { if (!picked.includes(ex)) { picked.push(ex); if (picked.length >= 4) break; } }
       return picked.slice(0, 4);
     }
+
+    // Pré-cocher les conditions du patient dans le générateur
+    document.getElementById('progPatient').addEventListener('change', async (e) => {
+      const pid = e.target.value;
+      document.querySelectorAll('.prog-gen-cond').forEach(c => { c.checked = false; });
+      if (!pid) return;
+      const { data } = await sb.from('patient_conditions').select('condition_id').eq('patient_id', pid);
+      const set = new Set((data || []).map(c => c.condition_id));
+      document.querySelectorAll('.prog-gen-cond').forEach(c => { if (set.has(c.value)) c.checked = true; });
+    });
 
     document.getElementById('btnGoCreateEx').addEventListener('click', () => {
       showProgView('viewCreateEx');
