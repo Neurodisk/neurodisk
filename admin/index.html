@@ -7533,21 +7533,31 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
     document.getElementById('btnAiGenerate').addEventListener('click', async () => {
       const type = document.querySelector('input[name="aiType"]:checked').value;
-      const notes = document.getElementById('aiNotes').value.trim();
+      let notes = document.getElementById('aiNotes').value.trim();
       const alertEl = document.getElementById('alertAi');
       if (!notes) { setAlert(alertEl, 'Entrez d\'abord quelques notes.', 'error'); return; }
       setAlert(alertEl, '', '');
       const btn = document.getElementById('btnAiGenerate');
       btn.disabled = true; btn.innerHTML = '<span class="spinner-inline"></span> Rédaction…';
 
-      // Contexte patient optionnel (nom, conditions, NPRS)
+      // Contexte patient optionnel (conditions, NPRS) — JAMAIS le nom
       let context = '';
+      let realName = '';
       const pid = document.getElementById('aiPatient').value;
       if (pid) {
         try {
           const p = allPatients.find(x => x.id === pid);
-          const parts = [];
-          if (p) parts.push(`Nom : ${p.full_name || p.email}`);
+          realName = (p && p.full_name) ? p.full_name.trim() : '';
+          const parts = ['Le patient est désigné par le marqueur [NOM DU PATIENT].'];
+          // Confidentialité : retirer le nom des notes avant l'envoi
+          if (realName) {
+            const tokens = [realName, ...realName.split(/\s+/)].filter(t => t.length >= 3)
+              .sort((a, b) => b.length - a.length);
+            tokens.forEach(t => {
+              const re = new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+              notes = notes.replace(re, '[NOM DU PATIENT]');
+            });
+          }
           const { data: conds } = await sb.from('patient_conditions').select('condition_id').eq('patient_id', pid);
           if (conds && conds.length) {
             const COND = Object.fromEntries(allConditions.map(c => [c.id, c.label]));
@@ -7571,7 +7581,10 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         });
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.error || 'Erreur IA');
-        document.getElementById('aiResult').value = data.text || '';
+        // Réinsérer le vrai nom localement (jamais envoyé à l'IA)
+        let out = data.text || '';
+        if (realName) out = out.replace(/\[NOM DU PATIENT\]/g, realName);
+        document.getElementById('aiResult').value = out;
         document.getElementById('aiResultWrap').style.display = '';
       } catch (err) {
         setAlert(alertEl, 'Erreur : ' + err.message, 'error');

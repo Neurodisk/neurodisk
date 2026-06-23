@@ -37,12 +37,16 @@ const cors = {
 const SYSTEM_LETTRE = `Tu es un assistant de rédaction clinique pour la Clinique Neurodisk (réadaptation du rachis, décompression neuro-vertébrale et exercices actifs), au Québec.
 Rédige une LETTRE DE RÉFÉRENCE professionnelle en français québécois, à partir des notes fournies.
 Structure : destinataire (Dr/Dre [À COMPLÉTER] si inconnu), objet, corps (motif de référence, constats pertinents, recommandations/demande), formule de politesse, et bloc de signature à compléter par le professionnel.
-Ton : clinique, courtois, concis. N'INVENTE AUCUNE donnée clinique : si une information manque, laisse un champ « [À COMPLÉTER] ». Reste factuel et prudent. Ne pose pas de diagnostic non fourni. Réponds uniquement avec le texte de la lettre.`
+Ton : clinique, courtois, concis. N'INVENTE AUCUNE donnée clinique : si une information manque, laisse un champ « [À COMPLÉTER] ». Reste factuel et prudent. Ne pose pas de diagnostic non fourni.
+CONFIDENTIALITÉ : le nom du patient ne t'est jamais fourni. Chaque fois que tu dois nommer le patient, écris EXACTEMENT le marqueur « [NOM DU PATIENT] ». Ne génère jamais de nom réel.
+Réponds uniquement avec le texte de la lettre.`
 
 const SYSTEM_RESUME = `Tu es un assistant de rédaction clinique pour la Clinique Neurodisk, au Québec.
 Rédige un RÉSUMÉ clair et structuré du dossier / rapport à partir des notes et données fournies.
 Structure suggérée : contexte/condition, évolution (incluant les scores si fournis), adhésion, recommandations / suite. Français professionnel, concis.
-N'INVENTE RIEN : utilise seulement les éléments fournis ; laisse « [À COMPLÉTER] » si une information manque. Réponds uniquement avec le texte du résumé.`
+N'INVENTE RIEN : utilise seulement les éléments fournis ; laisse « [À COMPLÉTER] » si une information manque.
+CONFIDENTIALITÉ : le nom du patient ne t'est jamais fourni. Si tu dois le nommer, écris EXACTEMENT « [NOM DU PATIENT] ». Ne génère jamais de nom réel.
+Réponds uniquement avec le texte du résumé.`
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
