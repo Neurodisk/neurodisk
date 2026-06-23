@@ -19,7 +19,8 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 - **Tableau de bord d'adhérence** (clinicien) : statut actif / à risque / décroché par patient (dernière activité), compteur de séances 7 j, sparkline 14 j, décrochés en premier. Migration **020**.
 - **Rapport patient auto-rempli** : bouton Rapport par patient → génère le Word branded rempli depuis la BD (nom, date RX, constats cervical/lombaire, plan, suivi NPRS). Champs cliniques migration **021**, génération navigateur `js/rapport.js` (docx via ESM).
 - **Conditions structurées par patient + auto-assignation** : table `patient_conditions` (migration **024**). Dans le panneau d'assignation, on coche les diagnostics du patient → bouton « Enregistrer + auto-assigner » qui assigne automatiquement les ressources/fiches taggées pour ces conditions (additif). Le générateur de programme pré-coche aussi les conditions du patient sélectionné.
-- **Génération auto du programme depuis le diagnostic** : dans le builder de programme, choisir une condition pré-ajoute les exercices de la banque taggés pour cette condition ; le clinicien ajuste (séries/reps, retrait/ajout) et valide. Admin seul, aucune migration.
+- **Génération auto du programme depuis le diagnostic** : dans le builder de programme, cocher une OU plusieurs conditions (cases à cocher) propose **3-4 exercices de base** (exclut les avancés : pliométrie, mise en charge, retour au sport ; priorité mobilité/stabilisation/contrôle, variété de catégories) ; le clinicien ajuste et valide. Admin seul, aucune migration.
+- **Page Objectifs patient plus motivante** : anneau de progression circulaire, message d'encouragement adaptatif selon le %, couleurs + compteurs par horizon, état « atteint » mis en valeur (`library.js`, aucune migration).
 - **Fiches patient par condition** : 11 PDF vulgarisés (servis sous `/fiches/`) + ressources PDF taggées par condition (catégorie « Mes recommandations »), assignables. Migration **023**.
 - **Capsules d'éducation à la douleur (PNE)** : parcours « Comprendre ma douleur » (8 capsules pré-remplies, base probante) avec barre de progression et suivi « Vu » par capsule. Flag `shows_education` sur catégorie, section admin de gestion. Migration **022**, contenu dans `docs/capsules-pne.md`.
 
@@ -34,10 +35,19 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 - **PDF de la procédure Sécurité** (`docs/procedure-2fa.pdf`).
 - **Rapport patient Neurodisk** (Word branded, modèle hybride décompression + actif, consignes alignées sur les preuves, tarifs conservés) — `tools/gen_rapport_neurodisk.mjs` → `Rapport_Neurodisk.docx`.
 - **Feuille de tournage** des 76 exercices, classée par priorité (P1 trousse de départ, P2 base, P3 avancé), avec consignes « À filmer » et suivi à cocher — `tools/gen_feuille_tournage.mjs`.
+- **Recommandations cliniques par condition** (PDF professionnel, favoriser/limiter/éducation par condition + drapeaux rouges) — `docs/recommandations-conditions.html/.pdf`.
+- **11 fiches patient vulgarisées** par condition — `tools/gen_fiches_patient.mjs` → `fiches/<slug>.html/.pdf`.
 - **Backlog d'idées** — `docs/idees-ameliorations.md`.
 
 ### ⚠️ Migrations SQL à exécuter dans le SQL Editor (accumulées)
 Dans l'ordre, non confirmées exécutées : **011, 012, 013, 014, 015, 016, 017, 018, 019, 020, 021, 022, 023, 024**. Obligatoire avant d'utiliser les nouvelles fonctionnalités correspondantes.
 
-### 💡 Idée en attente
-Lier les **réévaluations R12/R24** à la courbe (jalons Départ → R12 → R24). Décisions ouvertes : quoi mesurer + qui saisit. Voir `docs/idees-ameliorations.md`.
+### 💡 Idées en attente / backlog
+- Prioritaire : lier les **réévaluations R12/R24** à la courbe (jalons Départ → R12 → R24). Décisions ouvertes : quoi mesurer + qui saisit.
+- Autres : tableau « Patients à revoir » (combine adhérence + PROMs + sondages), progression auto du programme (base→avancé), bilan de fin de traitement, rappels courriel, « Ma séance d'aujourd'hui », PWA hors-ligne, suivi des paiements. Détail dans `docs/idees-ameliorations.md`.
+
+### 🔁 Pour reprendre après un clear du chat
+1. Lire ce fichier + `docs/idees-ameliorations.md`.
+2. **Exécuter les migrations 011→024** dans le SQL Editor Supabase (voir liste ci-dessus) — rien n'est confirmé exécuté.
+3. Pour la vidéo : héberger sur YouTube « non répertorié » et coller le lien dans l'admin.
+4. Toujours `git add/commit/push` après chaque tâche (déclenche Cloudflare) et incrémenter `?v=` sur `library.js`/`library.css`.
