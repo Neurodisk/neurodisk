@@ -31,14 +31,46 @@
     let _isAdmin = false;
     const loader = document.getElementById('pageLoader');
 
+    // ── Hors-ligne : cache local + bandeau ──────────────────
+    const Cache = {
+      set(k, v) { try { localStorage.setItem('nd_' + k, JSON.stringify(v)); } catch {} },
+      get(k)    { try { return JSON.parse(localStorage.getItem('nd_' + k)); } catch { return null; } },
+    };
+    function setOfflineBanner(on) {
+      let b = document.getElementById('offlineBanner');
+      if (on) {
+        if (!b) {
+          b = document.createElement('div');
+          b.id = 'offlineBanner';
+          b.style.cssText = 'background:#fff8e8;border:1px solid #f0d98a;color:#7c5b00;padding:.65rem 1rem;border-radius:10px;margin:0 0 1.25rem;font-size:.95rem;text-align:center;font-weight:500';
+          b.textContent = '📴 Mode hors-ligne — consignes et images disponibles. Vidéos indisponibles sans Internet.';
+          const main = document.querySelector('.main');
+          if (main) main.prepend(b);
+        }
+      } else if (b) { b.remove(); }
+    }
+    window.addEventListener('online',  () => setOfflineBanner(false));
+    window.addEventListener('offline', () => setOfflineBanner(true));
+
     async function loadCategories() {
       const audience = currentView === 'professional' ? 'professional' : 'patient';
-      const { data } = await supabase
-        .from('resource_categories')
-        .select('*')
-        .eq('audience', audience)
-        .order('sort_order');
-      allCategories = data || [];
+      let data = null;
+      try {
+        const res = await supabase
+          .from('resource_categories')
+          .select('*')
+          .eq('audience', audience)
+          .order('sort_order');
+        if (res.error) throw res.error;
+        data = res.data;
+      } catch {}
+      if (data && data.length) {
+        allCategories = data;
+        if (audience === 'patient') Cache.set('categories', data);
+      } else {
+        allCategories = (audience === 'patient' ? Cache.get('categories') : null) || data || [];
+        if (!navigator.onLine) setOfflineBanner(true);
+      }
       renderTiles();
     }
 
@@ -105,8 +137,23 @@
     }
 
     async function init() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { window.location.replace('/'); return; }
+      let session = null;
+      try { ({ data: { session } } = await supabase.auth.getSession()); } catch {}
+      if (!session) {
+        // Hors-ligne : ne pas renvoyer à la connexion si des données sont en cache
+        if (!navigator.onLine && Cache.get('uid')) {
+          loader.classList.add('is-hidden');
+          setTimeout(() => loader.remove(), 350);
+          setOfflineBanner(true);
+          _userId = Cache.get('uid');
+          await loadCategories();
+          loadProgramme();
+          return;
+        }
+        window.location.replace('/');
+        return;
+      }
+      Cache.set('uid', session.user.id);
 
       loader.classList.add('is-hidden');
       setTimeout(() => loader.remove(), 350);
@@ -979,19 +1026,28 @@
       summaryEl.innerHTML = `<div class="state-wrap"><div class="spinner"></div></div>`;
 
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
+        let session = null;
+        try { ({ data: { session } } = await supabase.auth.getSession()); } catch {}
 
-        const { data, error } = await supabase
-          .from('programmes')
-          .select('id, name, description, created_at, section_id, section:programme_sections(name, sort_order)')
-          .eq('patient_id', session.user.id)
-          .order('created_at', { ascending: false });
+        let data = null;
+        if (session) {
+          const res = await supabase
+            .from('programmes')
+            .select('id, name, description, created_at, section_id, section:programme_sections(name, sort_order)')
+            .eq('patient_id', session.user.id)
+            .order('created_at', { ascending: false });
+          if (res.error) throw res.error;
+          data = res.data;
+        }
 
-        if (error) throw error;
-        allProgrammes = data || [];
+        if (data && data.length) {
+          allProgrammes = data;
+          Cache.set('programmes', data);
+        } else {
+          allProgrammes = Cache.get('programmes') || data || [];
+          if (!navigator.onLine) setOfflineBanner(true);
+        }
 
-        // Un seul programme → ouvrir directement, sans afficher la liste
         if (allProgrammes.length === 1) {
           openProgramme(allProgrammes[0].id);
         } else {
@@ -999,7 +1055,15 @@
         }
 
       } catch(e) {
-        document.getElementById('programmeSummary').innerHTML = `<div class="state-wrap"><div class="state-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><p class="state-title">Erreur de chargement</p><p class="state-text">Rechargez la page ou contactez la clinique.</p></div>`;
+        // Dernier recours : cache local
+        allProgrammes = Cache.get('programmes') || [];
+        if (allProgrammes.length) {
+          if (!navigator.onLine) setOfflineBanner(true);
+          if (allProgrammes.length === 1) openProgramme(allProgrammes[0].id);
+          else renderProgrammeSummary();
+        } else {
+          document.getElementById('programmeSummary').innerHTML = `<div class="state-wrap"><div class="state-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><p class="state-title">Erreur de chargement</p><p class="state-text">Rechargez la page ou contactez la clinique.</p></div>`;
+        }
       }
     }
 
@@ -1099,11 +1163,20 @@
         (allLogs||[]).forEach(l => { logCounts[l.exercise_id] = (logCounts[l.exercise_id]||0)+1; });
 
         programmeData = { exercises: data || [], completedToday, logCounts };
+        Cache.set('prog_' + programmeId, data || []);
         showExercises();
         renderProgressCalendar();
 
       } catch(e) {
-        grid.innerHTML = `<div class="state-wrap"><p class="state-title">Erreur de chargement</p></div>`;
+        const cached = Cache.get('prog_' + programmeId);
+        if (cached && cached.length) {
+          programmeData = { exercises: cached, completedToday: new Set(), logCounts: {} };
+          if (!navigator.onLine) setOfflineBanner(true);
+          showExercises();
+          try { renderProgressCalendar(); } catch {}
+        } else {
+          grid.innerHTML = `<div class="state-wrap"><p class="state-title">Erreur de chargement</p></div>`;
+        }
       }
     }
 
