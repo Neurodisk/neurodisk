@@ -83,22 +83,38 @@ serve(async (req: Request) => {
         ? 'Rédige la lettre de référence à partir de ces éléments.'
         : 'Rédige le résumé à partir de ces éléments.')
 
-    // 4. Appel Gemini (niveau gratuit)
+    // 4. Appel Gemini (niveau gratuit) avec réessais (le free tier est
+    //    parfois surchargé → 503/429/500, généralement transitoire)
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`
-    const geminiResp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: type === 'lettre' ? SYSTEM_LETTRE : SYSTEM_RESUME }] },
-        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
-      }),
+    const payload = JSON.stringify({
+      system_instruction: { parts: [{ text: type === 'lettre' ? SYSTEM_LETTRE : SYSTEM_RESUME }] },
+      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+      generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
     })
 
-    const data = await geminiResp.json()
-    if (!geminiResp.ok) {
-      const msg = data?.error?.message || 'Erreur Gemini'
-      return json({ error: msg }, 502)
+    let data: any = null
+    let lastStatus = 0
+    const delays = [0, 1500, 3000, 5000] // 1 essai + 3 réessais
+    for (let i = 0; i < delays.length; i++) {
+      if (delays[i] > 0) await new Promise(r => setTimeout(r, delays[i]))
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+      })
+      lastStatus = r.status
+      data = await r.json()
+      if (r.ok) break
+      // Réessayer seulement sur surcharge/limite transitoire
+      if (![429, 500, 503].includes(r.status)) break
+      data = data // garde la dernière erreur
+    }
+
+    if (lastStatus !== 200) {
+      if ([429, 500, 503].includes(lastStatus)) {
+        return json({ error: 'Le service IA gratuit est temporairement saturé. Réessayez dans une minute.' }, 503)
+      }
+      return json({ error: data?.error?.message || 'Erreur Gemini' }, 502)
     }
 
     const text = (data?.candidates?.[0]?.content?.parts || [])
