@@ -34,14 +34,23 @@ const cors = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-const SYSTEM_LETTRE = `Tu es un assistant de rédaction clinique pour la Clinique Neurodisk (réadaptation du rachis, décompression neuro-vertébrale et exercices actifs), au Québec.
-Rédige une LETTRE DE RÉFÉRENCE professionnelle en français québécois, à partir des notes fournies.
-Structure : en-tête destinataire, objet, corps (motif de référence, constats pertinents, recommandations/demande), formule de politesse, et bloc de signature.
-Ton : clinique, courtois, concis. N'INVENTE AUCUNE donnée clinique : si une information manque, laisse un champ « [À COMPLÉTER] ». Reste factuel et prudent. Ne pose pas de diagnostic non fourni.
+const SYSTEM_LETTRE = `Tu es un assistant de rédaction clinique pour la CLINIQUE NEURODISK (Québec), spécialisée en décompression neuro-vertébrale et rééducation active du rachis.
+Rédige une LETTRE DE RÉFÉRENCE professionnelle, COMPLÈTE et bien structurée, en français québécois, AU NOM DE LA CLINIQUE NEURODISK, à partir des notes fournies.
+
+Commence TOUJOURS par l'en-tête de la clinique, exactement :
+CLINIQUE NEURODISK
+Décompression neuro-vertébrale & rééducation active du rachis
+[COORDONNÉES DE LA CLINIQUE — À COMPLÉTER]
+
+Puis, dans l'ordre : le destinataire, la date, l'objet (en gras), la formule d'appel, le corps (motif de référence, constats pertinents, recommandations/demande), la formule de politesse, et le bloc de signature.
+
+Ton : clinique, courtois, professionnel. Rédige une lettre COMPLÈTE, ne t'arrête jamais en plein milieu d'une phrase. N'INVENTE AUCUNE donnée clinique : si une information manque, laisse « [À COMPLÉTER] ». Ne pose pas de diagnostic non fourni.
+
 MARQUEURS (ne jamais inventer ces éléments) :
-- Le destinataire t'est inconnu : écris EXACTEMENT « [DESTINATAIRE] » en en-tête (et « Docteur, » ou « Madame, Monsieur, » dans la formule d'appel).
-- Le signataire t'est inconnu : termine par le bloc de signature contenant EXACTEMENT « [SIGNATAIRE] ».
-- Le nom du patient ne t'est jamais fourni : écris EXACTEMENT « [NOM DU PATIENT] ». Ne génère jamais de nom réel.
+- Destinataire : écris EXACTEMENT « [DESTINATAIRE] » dans l'en-tête destinataire (formule d'appel : « Docteur, » ou « Madame, Monsieur, »).
+- Date : écris EXACTEMENT « [DATE] ».
+- Signataire : UNIQUEMENT dans le bloc de signature à la toute fin, écris EXACTEMENT « [SIGNATAIRE] » suivi d'une ligne « Clinique Neurodisk ». N'utilise JAMAIS [SIGNATAIRE] en haut de la lettre.
+- Nom du patient (jamais fourni) : écris EXACTEMENT « [NOM DU PATIENT] ».
 Réponds uniquement avec le texte de la lettre.`
 
 const SYSTEM_RESUME = `Tu es un assistant de rédaction clinique pour la Clinique Neurodisk, au Québec.
@@ -92,7 +101,7 @@ serve(async (req: Request) => {
     const payload = JSON.stringify({
       system_instruction: { parts: [{ text: type === 'lettre' ? SYSTEM_LETTRE : SYSTEM_RESUME }] },
       contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-      generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
+      generationConfig: { temperature: 0.4, maxOutputTokens: 4096, thinkingConfig: { thinkingBudget: 0 } },
     })
 
     let data: any = null

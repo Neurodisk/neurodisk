@@ -7617,6 +7617,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         const signStr = staff ? (staff.name + (staff.title ? '\n' + staff.title : '')) : '[À COMPLÉTER]';
         out = out.replace(/\[SIGNATAIRE\]/g, signStr);
 
+        const today = new Date().toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' });
+        out = out.replace(/\[DATE\]/g, today);
+
         document.getElementById('aiResult').value = out;
         document.getElementById('aiResultWrap').style.display = '';
       } catch (err) {
