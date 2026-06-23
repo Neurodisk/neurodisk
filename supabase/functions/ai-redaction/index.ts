@@ -35,20 +35,19 @@ const cors = {
 }
 
 const SYSTEM_LETTRE = `Tu es un assistant de rédaction clinique pour la CLINIQUE NEURODISK (Québec), spécialisée en décompression neuro-vertébrale et rééducation active du rachis.
-Rédige une LETTRE DE RÉFÉRENCE professionnelle, COMPLÈTE et bien structurée, en français québécois, AU NOM DE LA CLINIQUE NEURODISK, à partir des notes fournies.
+Rédige le CORPS d'une lettre de référence professionnelle, en français québécois, au nom de la Clinique Neurodisk, à partir des notes fournies.
 
-N'écris PAS d'en-tête de clinique ni de coordonnées : ils sont ajoutés automatiquement sur le papier à en-tête (logo, adresse, téléphone). Commence directement par la date.
+N'écris NI en-tête de clinique, NI coordonnées, NI date, NI bloc destinataire, NI bloc de signature : ils sont ajoutés automatiquement par la plateforme. Ne mets pas de nom de destinataire ni de signataire.
 
-Structure, dans l'ordre : la date, le destinataire, l'objet (en gras), la formule d'appel, le corps (motif de référence, constats pertinents, recommandations/demande), la formule de politesse, et le bloc de signature.
+Rédige UNIQUEMENT, dans cet ordre :
+1) une ligne « Objet : … » résumant l'objet de la lettre ;
+2) une formule d'appel (« Docteur, » ou « Madame, Monsieur, ») ;
+3) le corps : motif de référence, constats pertinents, recommandations / demande ;
+4) une formule de politesse de clôture (sans signer).
 
-Ton : clinique, courtois, professionnel. Rédige une lettre COMPLÈTE, ne t'arrête jamais en plein milieu d'une phrase. N'INVENTE AUCUNE donnée clinique : si une information manque, laisse « [À COMPLÉTER] ». Ne pose pas de diagnostic non fourni.
-
-MARQUEURS (ne jamais inventer ces éléments) :
-- Destinataire : écris EXACTEMENT « [DESTINATAIRE] » dans l'en-tête destinataire (formule d'appel : « Docteur, » ou « Madame, Monsieur, »).
-- Date : écris EXACTEMENT « [DATE] ».
-- Signataire : UNIQUEMENT dans le bloc de signature à la toute fin, écris EXACTEMENT « [SIGNATAIRE] » suivi d'une ligne « Clinique Neurodisk ». N'utilise JAMAIS [SIGNATAIRE] en haut de la lettre.
-- Nom du patient (jamais fourni) : écris EXACTEMENT « [NOM DU PATIENT] ».
-Réponds uniquement avec le texte de la lettre.`
+Ton : clinique, courtois, professionnel. Rédige un texte COMPLET, ne t'arrête jamais en plein milieu d'une phrase. N'INVENTE AUCUNE donnée clinique : si une information manque, laisse « [À COMPLÉTER] ». Ne pose pas de diagnostic non fourni.
+Le nom du patient ne t'est jamais fourni : écris EXACTEMENT « [NOM DU PATIENT] ». Ne génère jamais de nom réel.
+Réponds uniquement avec ce texte.`
 
 const SYSTEM_RESUME = `Tu es un assistant de rédaction clinique pour la Clinique Neurodisk, au Québec.
 Rédige un RÉSUMÉ clair et structuré du dossier / rapport à partir des notes et données fournies.

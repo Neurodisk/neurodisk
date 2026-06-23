@@ -7606,20 +7606,23 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         });
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.error || 'Erreur IA');
-        // Réinsérer localement nom / destinataire / signataire (jamais envoyés à l'IA)
-        let out = data.text || '';
-        if (realName) out = out.replace(/\[NOM DU PATIENT\]/g, realName);
+        // L'IA ne rédige que le CORPS. On assemble date / destinataire /
+        // signataire nous-mêmes → toujours corrects, jamais dépendants de l'IA.
+        let body = (data.text || '').trim();
+        if (realName) body = body.replace(/\[NOM DU PATIENT\]/g, realName);
 
-        const prof = allProfessionals.find(p => p.id === document.getElementById('aiProf').value);
-        const destStr = prof ? (prof.name + (prof.title ? ', ' + prof.title : '')) : '[À COMPLÉTER]';
-        out = out.replace(/\[DESTINATAIRE\]/g, destStr);
-
-        const staff = allStaff.find(s => s.id === document.getElementById('aiStaff').value);
-        const signStr = staff ? (staff.name + (staff.title ? '\n' + staff.title : '')) : '[À COMPLÉTER]';
-        out = out.replace(/\[SIGNATAIRE\]/g, signStr);
-
-        const today = new Date().toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' });
-        out = out.replace(/\[DATE\]/g, today);
+        let out = body;
+        if (type === 'lettre') {
+          const today = new Date().toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' });
+          const prof  = allProfessionals.find(p => p.id === document.getElementById('aiProf').value);
+          const staff = allStaff.find(s => s.id === document.getElementById('aiStaff').value);
+          const recipient = prof ? (prof.name + (prof.title ? '\n' + prof.title : '')) : '';
+          const signature = (staff ? (staff.name + (staff.title ? '\n' + staff.title : '')) : '[À COMPLÉTER]') + '\nClinique Neurodisk';
+          out = `${today}\n\n` +
+                (recipient ? recipient + '\n\n' : '') +
+                body + '\n\n' +
+                signature;
+        }
 
         document.getElementById('aiResult').value = out;
         document.getElementById('aiResultWrap').style.display = '';
