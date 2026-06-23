@@ -57,3 +57,53 @@ Les réévaluations officielles du protocole (R12, R24, + la 3ᵉ incluse) sont 
 - Hébergement vidéo YouTube (non répertorié).
 - **PROMs** (ODI/NDI/NPRS/PSFS) + courbe d'évolution (migration 019, js/proms.js).
 - Rapport patient Word branded (gabarit, base probante).
+
+---
+
+## 🧠 Brainstorm exhaustif (vision plateforme)
+
+### Engagement & adhérence
+- ⭐ « Ma séance d'aujourd'hui » : flux guidé (minuteur de repos, coche par exercice, ressenti douleur/effort).
+- Gamification (séries, badges, niveaux, défis, carte de parcours).
+- Rappels intelligents (courriel/SMS/push), intensifiés si décrochage.
+- Coaching audio des exercices (synthèse vocale, 50+).
+- Accès proche aidant (lecture seule).
+- Programme imprimable + QR vers vidéos ; comparaison « filme-toi ».
+
+### Intelligence clinique
+- ⭐ Tableau « Patients à revoir » (adhérence + PROM aggravé + sondage + drapeaux).
+- ⭐ Progression auto du programme (base → intermédiaire → avancé selon adhérence/PROMs).
+- Alertes d'évolution PROMs (MCID) ; dépistage drapeaux rouges + STarT Back.
+- Bilan de fin de traitement auto (patient + médecin référent).
+- Trajectoire attendue vs typique de la condition.
+
+### IA sur-mesure
+- ⭐ Triage d'admission par IA (symptômes → condition probable + drapeaux rouges).
+- Résumé d'évolution en langage clair avant visite ; assistant santé patient (encadré).
+- Rédaction IA (lettre référence, rapport) ; éducation personnalisée ; traduction FR/EN.
+
+### Productivité clinicien
+- Modèles de programme réutilisables par condition.
+- Calendrier + prise de RDV en ligne + rappels ; planificateur R12/R24 (déclenche PROMs).
+- Analyse des trous de contenu ; tableau de bord KPIs.
+
+### Opérations / affaires / croissance
+- ⭐ Suivi des paiements / plans de traitement (payé/restant).
+- Gestion des références (suivi médecins référents + bilans → plus de références).
+- ⭐ Multi-clinique / SaaS marque blanche (revendre la plateforme).
+- Demande d'avis Google automatisée ; stats de résultats anonymisées (marketing) ; liste d'attente + préadmission.
+
+### Conformité (Loi 25)
+- Consentement électronique + admission (e-signature) ; export du dossier patient ; finaliser items Loi 25.
+
+### Accessibilité & expérience
+- Taille de police / fort contraste / mode senior + lecture audio des fiches/capsules.
+- PWA installable + hors-ligne ; mode sombre ; multilingue (anglais).
+
+### Innovation « wow » spécifique clinique
+- ⭐ Contenu par phase du protocole (R12/R24) : débloquer auto les exercices/capsules selon l'avancement des 24 traitements.
+- Intégration podomètre/montre (pas → adhérence marche ; check-ins douleur).
+- Analyse posturale par caméra (IA pose) ; QR en salle d'attente ; télésuivi vidéo.
+
+### Top 5 (innovation × valeur × synergie)
+1. « Ma séance d'aujourd'hui »  2. Tableau « Patients à revoir »  3. Contenu par phase du protocole (R12/R24)  4. Triage d'admission par IA  5. Suivi des paiements / SaaS marque blanche.
