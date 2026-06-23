@@ -1359,6 +1359,7 @@
             <label style="font-weight:600;color:#1B2B6B;font-size:.85rem">Brouillon (modifiable)</label>
             <textarea id="aiResult" rows="12" style="width:100%;font-family:inherit"></textarea>
             <div style="margin-top:.5rem;display:flex;gap:.5rem;flex-wrap:wrap">
+              <button class="btn btn--primary btn--sm" id="btnAiPdf">📄 Générer le PDF brandé</button>
               <button class="btn btn--ghost btn--sm" id="btnAiCopy">📋 Copier</button>
             </div>
           </div>
@@ -7631,6 +7632,57 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     document.getElementById('btnAiCopy').addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(document.getElementById('aiResult').value); toast('Copié dans le presse-papiers.', 'success'); }
       catch { toast('Copie impossible — sélectionnez et copiez manuellement.', 'error'); }
+    });
+
+    // PDF brandé Neurodisk à partir du brouillon IA
+    const CLINIC = {
+      address: '443 Rue Racine E, bureau 201, Chicoutimi (QC) G7H 1T5',
+      phone:   '(418) 543-1113',
+    };
+
+    function buildAiPdfHtml(bodyText) {
+      const esc2 = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const logo = `${location.origin}/assets/logo-neurodisk.png`;
+      return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+        <title>Lettre — Clinique Neurodisk</title>
+        <style>
+          @page { size: letter; margin: 0; }
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: Georgia,'Times New Roman',serif; font-size: 11pt; color:#1a1a2e; line-height:1.8; background:#fff; }
+          .page { min-height:100vh; display:flex; flex-direction:column; }
+          .topbar { background:#1B2B6B; height:6px; }
+          .content { padding:1.6cm 2.6cm 1.4cm; flex:1; }
+          .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.6rem; padding-bottom:1rem; border-bottom:1px solid #d0d8f0; }
+          .header img { height:62px; width:auto; }
+          .header__meta { text-align:right; font-family:Arial,sans-serif; font-size:8.5pt; color:#555; line-height:1.6; }
+          .body { white-space:pre-wrap; font-size:11pt; line-height:1.85; }
+          .footer { background:#f7f9fd; border-top:1px solid #d0d8f0; padding:.45cm 2.6cm; text-align:center; font-family:Arial,sans-serif; font-size:7.5pt; color:#888; }
+          .bottombar { background:#2468D6; height:3px; }
+          @media print { * { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+        </style></head><body>
+        <div class="page">
+          <div class="topbar"></div>
+          <div class="content">
+            <div class="header">
+              <img src="${logo}" alt="Neurodisk">
+              <div class="header__meta">${esc2(CLINIC.address)}<br>Tél. : ${esc2(CLINIC.phone)}</div>
+            </div>
+            <div class="body">${esc2(bodyText)}</div>
+          </div>
+          <div class="footer">Clinique Neurodisk — ${esc2(CLINIC.address)} — Tél. : ${esc2(CLINIC.phone)} · Document confidentiel</div>
+          <div class="bottombar"></div>
+        </div>
+        <script>window.onload=()=>{ setTimeout(()=>window.print(), 350); }<\/script>
+      </body></html>`;
+    }
+
+    document.getElementById('btnAiPdf').addEventListener('click', () => {
+      const text = document.getElementById('aiResult').value.trim();
+      if (!text) { toast('Générez d\'abord un brouillon.', 'error'); return; }
+      const win = window.open('', '_blank');
+      if (!win) { toast('Autorisez les fenêtres pop-up pour générer le PDF.', 'error'); return; }
+      win.document.write(buildAiPdfHtml(text));
+      win.document.close();
     });
   </script>
 
