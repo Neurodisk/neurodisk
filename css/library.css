@@ -896,3 +896,70 @@
       .prog-calendar__day { width: 28px; height: 28px; }
       .prog-calendar { padding: 1.1rem 1rem; }
     }
+
+    /* ════════════════════════════════════════════════════════
+       FINITION MOBILE / PWA  (encoche, tactile, plein écran)
+       ════════════════════════════════════════════════════════ */
+
+    /* Pas de surbrillance grise au toucher + meilleur défilement */
+    body { -webkit-tap-highlight-color: transparent; }
+    button, a, .card, .filter-btn, .hero-nav__tab { touch-action: manipulation; }
+
+    /* Zone sûre (encoche / barre d'état) quand installé en app */
+    @supports (padding: max(0px)) {
+      .nav { height: auto; padding-top: env(safe-area-inset-top); }
+      .nav__inner { min-height: var(--nav-h); height: auto;
+        padding-left: max(2rem, env(safe-area-inset-left));
+        padding-right: max(2rem, env(safe-area-inset-right)); }
+    }
+
+    /* Appareils tactiles : retour visuel au toucher, pas de survol collant */
+    @media (hover: none) {
+      .card:hover { transform: none; box-shadow: var(--shadow-card); border-color: var(--border); }
+      .card:active { transform: scale(.98); }
+      .filter-btn:active, .nav-btn:active, .hero-nav__tab:active,
+      .cat-card:active, .prog-card:active, .home-tile:active { transform: scale(.97); }
+      .cat-card:hover, .prog-card:hover, .home-tile:hover { transform: none; }
+    }
+
+    /* Téléphone : tailles, espacements, onglets plus faciles à toucher */
+    @media (max-width: 640px) {
+      .main {
+        padding: 1.25rem 1rem calc(3.5rem + env(safe-area-inset-bottom));
+      }
+      .hero { padding: 1.5rem 1.1rem; }
+      .hero__title { font-size: 1.35rem; }
+      .hero__sub { font-size: .95rem; }
+
+      /* Onglets : défilement horizontal mais cibles bien plus grandes */
+      .hero-nav { gap: .55rem; }
+      .hero-nav__tab {
+        flex: 0 0 auto;
+        min-width: 92px;
+        padding: 1rem .9rem;
+        font-size: 1rem;
+        border-radius: 16px;
+      }
+      .hero-nav__tab__icon svg { width: 28px; height: 28px; }
+
+      /* Filtres : pleine largeur tactile */
+      .filter-btn { font-size: 1.02rem; padding: .85rem 1.2rem; min-height: 50px; }
+
+      /* Cartes : titres/descriptions plus lisibles */
+      .card__title { font-size: 1.05rem; }
+      .card__body { padding: 1.15rem 1.15rem 1.25rem; }
+    }
+
+    /* Modales en PLEIN ÉCRAN sur téléphone (lecture/exercice plus confortable) */
+    @media (max-width: 640px) {
+      .modal-overlay, .ex-modal-overlay { padding: 0; align-items: stretch; }
+      .modal, .ex-modal {
+        max-width: 100%; width: 100%;
+        border-radius: 0;
+        max-height: 100dvh; height: 100dvh;
+        display: flex; flex-direction: column;
+        overflow-y: auto; -webkit-overflow-scrolling: touch;
+      }
+      .modal__header, .ex-modal__close { padding-top: max(1rem, env(safe-area-inset-top)); }
+      .modal__close, .ex-modal__close { width: 52px; height: 52px; }
+    }
