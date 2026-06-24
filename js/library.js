@@ -36,6 +36,21 @@
       set(k, v) { try { localStorage.setItem('nd_' + k, JSON.stringify(v)); } catch {} },
       get(k)    { try { return JSON.parse(localStorage.getItem('nd_' + k)); } catch { return null; } },
     };
+    // Lit la session Supabase stockée localement (même expirée) → l'utilisateur
+    // s'est déjà connecté sur cet appareil. Sert de filet hors-ligne.
+    function storedSupabaseUser() {
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('sb-') && k.endsWith('-auth-token')) {
+            const v = JSON.parse(localStorage.getItem(k) || 'null');
+            const u = v?.user || v?.currentSession?.user;
+            if (u?.id) return u.id;
+          }
+        }
+      } catch {}
+      return null;
+    }
     function setOfflineBanner(on) {
       let b = document.getElementById('offlineBanner');
       if (on) {
@@ -140,12 +155,14 @@
       let session = null;
       try { ({ data: { session } } = await supabase.auth.getSession()); } catch {}
       if (!session) {
-        // Hors-ligne : ne pas renvoyer à la connexion si des données sont en cache
-        if (!navigator.onLine && Cache.get('uid')) {
+        // Hors-ligne : rester dans l'app si l'utilisateur s'est déjà connecté ici
+        const uid = Cache.get('uid') || storedSupabaseUser();
+        if (!navigator.onLine && uid) {
           loader.classList.add('is-hidden');
           setTimeout(() => loader.remove(), 350);
           setOfflineBanner(true);
-          _userId = Cache.get('uid');
+          _userId = uid;
+          Cache.set('uid', uid);
           await loadCategories();
           loadProgramme();
           return;

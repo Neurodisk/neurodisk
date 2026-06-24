@@ -440,6 +440,21 @@
       console.log('[œil] type du champ:', passwordInput.type);
     });
 
+    // Session Supabase stockée localement (même expirée) → déjà connecté ici
+    function storedSupabaseUser() {
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('sb-') && k.endsWith('-auth-token')) {
+            const v = JSON.parse(localStorage.getItem(k) || 'null');
+            const u = v?.user || v?.currentSession?.user;
+            if (u?.id) return u.id;
+          }
+        }
+      } catch {}
+      return null;
+    }
+
     // ── Vérification session existante ───────────────────
     async function checkSession() {
       if (!IS_CONFIGURED) { console.warn('[auth] Supabase non configuré'); return; }
@@ -448,8 +463,11 @@
         const { data: { session } } = await supabase.auth.getSession();
         console.log('[auth] session existante:', !!session);
         if (session) { await gateAfterAuth(); return; }
+        // Hors-ligne mais déjà connecté ici → ouvrir la bibliothèque (mode hors-ligne)
+        if (!navigator.onLine && storedSupabaseUser()) { window.location.replace('/library.html'); return; }
       } catch (err) {
         console.error('[auth] checkSession error:', err);
+        if (!navigator.onLine && storedSupabaseUser()) { window.location.replace('/library.html'); return; }
       } finally {
         loader.classList.add('is-hidden');
         setTimeout(() => loader.remove(), 350);

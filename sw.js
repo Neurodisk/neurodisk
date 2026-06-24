@@ -5,7 +5,7 @@
 //   Supabase, Gemini, fonts et CDN passent normalement (jamais cachés).
 //   Respecte le cache-bust ?v= : une nouvelle version = nouvelle URL.
 // ============================================================
-const CACHE = 'neurodisk-v2';
+const CACHE = 'neurodisk-v3';
 const CORE = [
   '/', '/index.html', '/library.html', '/404.html',
   '/assets/icon-192.png', '/assets/icon-512.png', '/assets/logo-neurodisk.png',

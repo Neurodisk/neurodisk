@@ -3,7 +3,7 @@
   "short_name": "Neurodisk",
   "description": "Vos exercices et ressources cliniques personnalisés — Clinique Neurodisk.",
   "lang": "fr-CA",
-  "start_url": "/",
+  "start_url": "/library.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
