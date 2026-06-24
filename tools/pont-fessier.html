@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Pont fessier — Coach (POC) · Neurodisk</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root { --navy:#1B2B6B; --blue:#2468D6; --green:#0f8a48; --amber:#d97706; }
+  body { font-family: 'Segoe UI', system-ui, Arial, sans-serif; background:#0c1430; color:#fff; min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; }
+  header { padding: calc(.7rem + env(safe-area-inset-top)) 1rem .7rem; display:flex; align-items:center; gap:.6rem; background:var(--navy); }
+  header h1 { font-size:1rem; font-weight:600; }
+  header .tag { margin-left:auto; font-size:.7rem; background:rgba(255,255,255,.15); padding:.2rem .5rem; border-radius:6px; }
+  .stage { position:relative; flex:1; background:#000; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+  video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+  canvas { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+  .hud { position:absolute; inset:0; pointer-events:none; display:flex; flex-direction:column; justify-content:space-between; padding:1rem; }
+  .count-box { align-self:flex-start; background:rgba(0,0,0,.55); backdrop-filter:blur(6px); border-radius:16px; padding:.6rem 1.1rem; text-align:center; }
+  .count-box .n { font-size:3rem; font-weight:800; line-height:1; }
+  .count-box .l { font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; opacity:.8; }
+  .cue { align-self:center; font-size:1.3rem; font-weight:700; padding:.6rem 1.2rem; border-radius:100px; background:rgba(0,0,0,.6); transition:all .2s; min-height:0; }
+  .cue.good { background:var(--green); }
+  .cue.warn { background:var(--amber); }
+  .meter { align-self:stretch; display:flex; align-items:center; gap:.6rem; background:rgba(0,0,0,.5); border-radius:12px; padding:.5rem .8rem; font-size:.8rem; }
+  .meter .bar { flex:1; height:8px; background:rgba(255,255,255,.2); border-radius:4px; overflow:hidden; }
+  .meter .bar i { display:block; height:100%; background:var(--blue); width:0; transition:width .1s; }
+  .controls { display:flex; gap:.6rem; padding:.8rem 1rem calc(.8rem + env(safe-area-inset-bottom)); background:var(--navy); }
+  button { font:inherit; cursor:pointer; border:none; border-radius:12px; padding:.9rem 1rem; font-weight:600; color:#fff; background:rgba(255,255,255,.14); flex:1; }
+  button.primary { background:var(--blue); }
+  .overlay { position:absolute; inset:0; background:rgba(8,16,40,.92); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem; gap:1rem; z-index:5; }
+  .overlay h2 { font-size:1.2rem; }
+  .overlay p { opacity:.85; font-size:.95rem; max-width:340px; line-height:1.5; }
+  .overlay ul { text-align:left; font-size:.9rem; opacity:.9; line-height:1.7; max-width:340px; }
+  .overlay .spin { width:38px; height:38px; border:3px solid rgba(255,255,255,.25); border-top-color:#fff; border-radius:50%; animation:s 1s linear infinite; }
+  @keyframes s { to { transform:rotate(360deg); } }
+  .badge-priv { font-size:.78rem; opacity:.8; background:rgba(255,255,255,.1); padding:.5rem .8rem; border-radius:10px; }
+</style>
+</head>
+<body>
+  <header>
+    <strong>Pont fessier</strong> <span style="opacity:.7;font-size:.85rem">— Coach</span>
+    <span class="tag">PROTOTYPE</span>
+  </header>
+
+  <div class="stage">
+    <video id="video" playsinline muted></video>
+    <canvas id="canvas"></canvas>
+    <div class="hud">
+      <div class="count-box"><div class="n" id="count">0</div><div class="l">répétitions</div></div>
+      <div class="cue" id="cue">Prépare-toi…</div>
+      <div class="meter"><span>Hanches</span><div class="bar"><i id="bar"></i></div><span id="ang">—</span></div>
+    </div>
+
+    <div class="overlay" id="overlay">
+      <h2>Coach « pont fessier »</h2>
+      <div class="badge-priv">🔒 Tout se passe sur ton téléphone. Aucune vidéo n'est enregistrée ni envoyée.</div>
+      <p><strong>Installe-toi :</strong></p>
+      <ul>
+        <li>Allonge-toi sur le dos, genoux pliés, pieds au sol.</li>
+        <li>Place le téléphone <strong>sur le côté</strong>, à ~1,5 m, pour qu'il voie tout ton corps de profil.</li>
+        <li>Lève les hanches jusqu'à aligner épaules–hanches–genoux, puis redescends.</li>
+      </ul>
+      <button class="primary" id="btnStart" style="flex:0 0 auto;padding:.9rem 2rem">Activer la caméra</button>
+      <p id="status" style="font-size:.8rem;opacity:.7"></p>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="btnFlip">🔄 Caméra</button>
+    <button id="btnReset">↺ Remettre à 0</button>
+  </div>
+
+<script type="module">
+  import { FilesetResolver, PoseLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const elCount = document.getElementById('count');
+  const elCue = document.getElementById('cue');
+  const elBar = document.getElementById('bar');
+  const elAng = document.getElementById('ang');
+  const overlay = document.getElementById('overlay');
+  const status = document.getElementById('status');
+
+  let landmarker = null, stream = null, facing = 'user', running = false;
+  let count = 0, state = 'down', lastCueT = 0;
+
+  // Seuils (ajustables après test réel)
+  const UP_TH = 158;   // hanches « en haut » : épaule-hanche-genou presque droit
+  const DOWN_TH = 130; // hanches « en bas »
+
+  function angle(a, b, c) {
+    const ab = { x: a.x - b.x, y: a.y - b.y };
+    const cb = { x: c.x - b.x, y: c.y - b.y };
+    const dot = ab.x * cb.x + ab.y * cb.y;
+    const m = Math.hypot(ab.x, ab.y) * Math.hypot(cb.x, cb.y) || 1e-6;
+    return Math.acos(Math.max(-1, Math.min(1, dot / m))) * 180 / Math.PI;
+  }
+
+  function setCue(text, cls) {
+    elCue.textContent = text;
+    elCue.className = 'cue' + (cls ? ' ' + cls : '');
+  }
+
+  async function loadModel() {
+    status.textContent = 'Chargement du modèle…';
+    const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+    landmarker = await PoseLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+        delegate: "GPU",
+      },
+      runningMode: "VIDEO",
+      numPoses: 1,
+    });
+  }
+
+  async function startCamera() {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false,
+    });
+    video.srcObject = stream;
+    await video.play();
+  }
+
+  async function start() {
+    try {
+      document.getElementById('btnStart').disabled = true;
+      if (!landmarker) await loadModel();
+      status.textContent = 'Activation de la caméra…';
+      await startCamera();
+      overlay.style.display = 'none';
+      running = true;
+      setCue('Lève les hanches', '');
+      loop();
+    } catch (err) {
+      status.textContent = 'Erreur : ' + err.message + ' — autorise la caméra et réessaie.';
+      document.getElementById('btnStart').disabled = false;
+    }
+  }
+
+  function loop() {
+    if (!running) return;
+    if (video.readyState >= 2) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const res = landmarker.detectForVideo(video, performance.now());
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (res.landmarks && res.landmarks[0]) process(res.landmarks[0]);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function draw(lms) {
+    const pairs = [[11,23],[23,25],[25,27],[12,24],[24,26],[26,28],[11,12],[23,24]];
+    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(36,104,214,.9)';
+    pairs.forEach(([a,b]) => {
+      ctx.beginPath();
+      ctx.moveTo(lms[a].x*canvas.width, lms[a].y*canvas.height);
+      ctx.lineTo(lms[b].x*canvas.width, lms[b].y*canvas.height);
+      ctx.stroke();
+    });
+    [11,12,23,24,25,26].forEach(i => {
+      ctx.beginPath(); ctx.arc(lms[i].x*canvas.width, lms[i].y*canvas.height, 6, 0, 7); ctx.fillStyle='#fff'; ctx.fill();
+    });
+  }
+
+  function process(lms) {
+    draw(lms);
+    // choisir le côté le plus visible
+    const visL = (lms[11].visibility + lms[23].visibility + lms[25].visibility) / 3;
+    const visR = (lms[12].visibility + lms[24].visibility + lms[26].visibility) / 3;
+    const [sh, hp, kn] = visL >= visR ? [lms[11], lms[23], lms[25]] : [lms[12], lms[24], lms[26]];
+    if (Math.min(sh.visibility, hp.visibility, kn.visibility) < 0.5) {
+      setCue('Place-toi de profil dans le cadre', 'warn');
+      return;
+    }
+    const a = angle(sh, hp, kn);
+    elAng.textContent = Math.round(a) + '°';
+    const pct = Math.max(0, Math.min(100, (a - DOWN_TH) / (UP_TH - DOWN_TH) * 100));
+    elBar.style.width = pct + '%';
+
+    if (state === 'down' && a >= UP_TH) {
+      state = 'up';
+      count++;
+      elCount.textContent = count;
+      setCue('Bien ! 💪', 'good');
+      navigator.vibrate && navigator.vibrate(60);
+    } else if (state === 'up' && a <= DOWN_TH) {
+      state = 'down';
+      setCue('Lève les hanches', '');
+    } else if (state === 'down' && a > DOWN_TH && a < UP_TH) {
+      const now = performance.now();
+      if (now - lastCueT > 600) { setCue('Monte plus haut', 'warn'); lastCueT = now; }
+    }
+  }
+
+  document.getElementById('btnStart').addEventListener('click', start);
+  document.getElementById('btnReset').addEventListener('click', () => { count = 0; state = 'down'; elCount.textContent = '0'; setCue('Lève les hanches', ''); });
+  document.getElementById('btnFlip').addEventListener('click', async () => {
+    facing = facing === 'user' ? 'environment' : 'user';
+    const mir = facing === 'user' ? 'scaleX(-1)' : 'none';
+    video.style.transform = mir; canvas.style.transform = mir;
+    if (running) { try { await startCamera(); } catch {} }
+  });
+</script>
+</body>
+</html>
