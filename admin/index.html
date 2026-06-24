@@ -1033,6 +1033,20 @@
           </div>
         </div>
 
+        <!-- Import de l'horaire (drag & drop) -->
+        <div class="card" style="margin-bottom:1.5rem">
+          <div class="card__title">📥 Importer l'horaire (Chirosoft)</div>
+          <p style="font-size:.82rem;color:#555;margin:0 0 .8rem">Glissez le fichier exporté (CSV ou Excel) du matin. Les rendez-vous seront associés aux patients (par courriel, sinon par nom) et le prochain RDV s'affichera automatiquement sur leur page. Aucun envoi — affichage seulement.</p>
+          <div id="alertImport" class="alert"></div>
+          <div id="apptDropZone" style="border:2px dashed var(--border);border-radius:12px;padding:1.7rem 1rem;text-align:center;cursor:pointer;color:#555;background:#fafbff;transition:all .15s">
+            <input type="file" id="apptFile" accept=".csv,.xlsx,.xls" style="display:none">
+            <div style="font-size:1.6rem;margin-bottom:.3rem">📄</div>
+            Glissez le fichier ici, ou <strong style="color:var(--blue)">cliquez pour choisir</strong>
+            <div style="font-size:.78rem;color:#999;margin-top:.25rem">.csv, .xlsx ou .xls</div>
+          </div>
+          <div id="apptImportWrap" style="display:none;margin-top:1rem"></div>
+        </div>
+
         <!-- Liste des RDV à venir -->
         <div class="section-title" style="margin-top:2rem">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
@@ -7689,6 +7703,150 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       win.document.write(buildAiPdfHtml(text));
       win.document.close();
     });
+
+    // ══════════════════════════════════════════════════════
+    // IMPORT HORAIRE (Chirosoft) — drag & drop, affichage seul
+    // ══════════════════════════════════════════════════════
+    (function initApptImport() {
+      const dz = document.getElementById('apptDropZone');
+      const fileInput = document.getElementById('apptFile');
+      const wrap = document.getElementById('apptImportWrap');
+      const alertEl = document.getElementById('alertImport');
+      if (!dz || !fileInput) return;
+
+      let rows = [], headers = [], matched = [];
+
+      dz.addEventListener('click', () => fileInput.click());
+      ['dragover', 'dragenter'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.style.borderColor = 'var(--blue)'; dz.style.background = '#eef4ff'; }));
+      ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.style.borderColor = 'var(--border)'; dz.style.background = '#fafbff'; }));
+      dz.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
+      fileInput.addEventListener('change', e => { const f = e.target.files[0]; if (f) handleFile(f); });
+
+      async function handleFile(file) {
+        setAlert(alertEl, '', '');
+        try {
+          const XLSX = await import('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm');
+          const wb = XLSX.read(await file.arrayBuffer(), { cellDates: true });
+          rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+          if (!rows.length) { setAlert(alertEl, 'Fichier vide ou illisible.', 'error'); return; }
+          headers = Object.keys(rows[0]);
+          renderMapping();
+        } catch (err) {
+          setAlert(alertEl, 'Lecture impossible : ' + err.message, 'error');
+        }
+      }
+
+      const guess = (words) => headers.find(h => words.some(w => h.toLowerCase().includes(w))) || '';
+
+      function renderMapping() {
+        const saved = JSON.parse(localStorage.getItem('nd_appt_map') || '{}');
+        const opt = (sel) => `<option value="">—</option>` + headers.map(h => `<option value="${esc(h)}"${sel === h ? ' selected' : ''}>${esc(h)}</option>`).join('');
+        wrap.style.display = '';
+        wrap.innerHTML = `
+          <div style="background:#f5f8ff;border:1px solid var(--border);border-radius:10px;padding:1rem">
+            <strong style="font-size:.9rem">Associer les colonnes</strong>
+            <div style="font-size:.78rem;color:#666;margin:.2rem 0 .8rem">${rows.length} ligne(s) détectée(s).</div>
+            <div class="form-grid">
+              <div class="field"><label>Nom du patient *</label><select id="mapName">${opt(saved.name || guess(['nom','patient','name','client']))}</select></div>
+              <div class="field"><label>Courriel <span style="font-weight:400;color:var(--muted)">(améliore la correspondance)</span></label><select id="mapEmail">${opt(saved.email || guess(['courriel','email','mail']))}</select></div>
+              <div class="field"><label>Date *</label><select id="mapDate">${opt(saved.date || guess(['date','jour','rendez','rdv']))}</select></div>
+              <div class="field"><label>Heure <span style="font-weight:400;color:var(--muted)">(si séparée)</span></label><select id="mapTime">${opt(saved.time || guess(['heure','time','hre']))}</select></div>
+            </div>
+            <div style="margin-top:.8rem"><button class="btn btn--primary btn--sm" id="btnApptPreview">Prévisualiser</button></div>
+            <div id="apptPreview" style="margin-top:1rem"></div>
+          </div>`;
+        document.getElementById('btnApptPreview').addEventListener('click', preview);
+      }
+
+      function parseTime(v) {
+        const s = String(v); const m = s.match(/(\d{1,2})[h:](\d{2})/i) || s.match(/(\d{1,2})\s*(am|pm)/i);
+        if (!m) return null;
+        let h = +m[1], mi = (m[2] && /^\d+$/.test(m[2])) ? +m[2] : 0;
+        if (/pm/i.test(s) && h < 12) h += 12;
+        if (/am/i.test(s) && h === 12) h = 0;
+        return { h, m: mi };
+      }
+      function parseDateTime(dateVal, timeVal) {
+        if (dateVal instanceof Date && !isNaN(dateVal)) {
+          const d = new Date(dateVal);
+          if (timeVal) { const t = parseTime(timeVal); if (t) d.setHours(t.h, t.m, 0, 0); }
+          return d;
+        }
+        let s = String(dateVal).trim();
+        if (!s) return null;
+        if (timeVal) s += ' ' + String(timeVal).trim();
+        let d = new Date(s);
+        if (!isNaN(d)) return d;
+        const m = s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})(?:\D+(\d{1,2})[h:](\d{2}))?/);
+        if (m) {
+          let [, dd, mo, yy, hh, mi] = m;
+          yy = yy.length === 2 ? '20' + yy : yy;
+          d = new Date(+yy, +mo - 1, +dd, hh ? +hh : 0, mi ? +mi : 0);
+          if (!isNaN(d)) return d;
+        }
+        return null;
+      }
+      const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+
+      function preview() {
+        const cName = document.getElementById('mapName').value;
+        const cEmail = document.getElementById('mapEmail').value;
+        const cDate = document.getElementById('mapDate').value;
+        const cTime = document.getElementById('mapTime').value;
+        if (!cName || !cDate) { setAlert(alertEl, 'Indiquez au moins les colonnes Nom et Date.', 'error'); return; }
+        setAlert(alertEl, '', '');
+        localStorage.setItem('nd_appt_map', JSON.stringify({ name: cName, email: cEmail, date: cDate, time: cTime }));
+
+        const patients = allPatients.filter(p => !p.is_admin && !p.is_professional);
+        const byEmail = new Map(patients.filter(p => p.email).map(p => [norm(p.email), p]));
+        const byName = new Map(patients.map(p => [norm(p.full_name), p]));
+
+        matched = []; const unmatched = [];
+        rows.forEach(r => {
+          const nm = String(r[cName] || '').trim();
+          if (!nm) return;
+          const dt = parseDateTime(r[cDate], cTime ? r[cTime] : null);
+          let p = (cEmail && r[cEmail]) ? byEmail.get(norm(r[cEmail])) : null;
+          if (!p) p = byName.get(norm(nm));
+          if (p && dt) matched.push({ patient_id: p.id, appointment_at: dt, name: p.full_name || nm });
+          else unmatched.push({ name: nm, reason: !dt ? 'date illisible' : 'patient non trouvé dans Neurodisk' });
+        });
+
+        const prev = document.getElementById('apptPreview');
+        prev.innerHTML = `
+          <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.7rem">
+            <span style="background:#d1fae5;color:#065f46;padding:.3rem .7rem;border-radius:8px;font-size:.82rem;font-weight:600">✓ ${matched.length} associé(s)</span>
+            ${unmatched.length ? `<span style="background:#fee2e2;color:#991b1b;padding:.3rem .7rem;border-radius:8px;font-size:.82rem;font-weight:600">⚠ ${unmatched.length} non importé(s)</span>` : ''}
+          </div>
+          ${unmatched.length ? `<details style="margin-bottom:.7rem"><summary style="cursor:pointer;font-size:.82rem;color:#991b1b">Voir les non importés</summary><div style="font-size:.8rem;color:#666;margin-top:.4rem;max-height:140px;overflow:auto">${unmatched.map(u => `• ${esc(u.name)} — ${u.reason}`).join('<br>')}</div></details>` : ''}
+          ${matched.length ? `<button class="btn btn--primary btn--sm" id="btnApptImport">Importer ${matched.length} rendez-vous</button>` : '<div style="font-size:.85rem;color:#991b1b">Rien à importer — vérifiez le mappage des colonnes.</div>'}`;
+        if (matched.length) document.getElementById('btnApptImport').addEventListener('click', doImport);
+      }
+
+      async function doImport() {
+        const btn = document.getElementById('btnApptImport');
+        btn.disabled = true; btn.textContent = 'Import…';
+        const ids = [...new Set(matched.map(m => m.patient_id))];
+        const todayIso = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+        const { data: existing } = await sb.from('appointments').select('patient_id, appointment_at').in('patient_id', ids).gte('appointment_at', todayIso);
+        const seen = new Set((existing || []).map(e => e.patient_id + '|' + new Date(e.appointment_at).toISOString().slice(0, 16)));
+        const toInsert = [];
+        matched.forEach(m => {
+          const key = m.patient_id + '|' + m.appointment_at.toISOString().slice(0, 16);
+          if (seen.has(key)) return;
+          seen.add(key);
+          toInsert.push({ patient_id: m.patient_id, appointment_at: m.appointment_at.toISOString(), note: 'Importé de l\'horaire' });
+        });
+        let err = null;
+        if (toInsert.length) ({ error: err } = await sb.from('appointments').insert(toInsert));
+        btn.disabled = false; btn.textContent = `Importer ${matched.length} rendez-vous`;
+        if (err) { setAlert(alertEl, 'Erreur : ' + err.message, 'error'); return; }
+        setAlert(alertEl, `${toInsert.length} rendez-vous importé(s)${matched.length - toInsert.length ? ', ' + (matched.length - toInsert.length) + ' déjà présent(s)' : ''}.`, 'success');
+        wrap.style.display = 'none'; wrap.innerHTML = '';
+        fileInput.value = '';
+        if (typeof loadAppointments === 'function') loadAppointments();
+      }
+    })();
   </script>
 
   <!-- ── Bulle chat flottante ──────────────────────────── -->
