@@ -1664,6 +1664,8 @@
             <div class="obj-add-row" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;align-items:flex-end">
               <div class="field" style="flex:1;min-width:200px;margin:0"><label>Nouvel objectif</label><input type="text" id="objInput_court" placeholder="Ex. : Marcher 10 min par jour"></div>
               <div class="field" style="margin:0"><label>Date cible <span style="font-weight:400;color:var(--muted)">optionnel</span></label><input type="date" id="objDate_court"></div>
+              <div class="field" style="margin:0"><label>Récurrence</label><select id="objRecur_court" onchange="toggleObjRecurCustom('court')"><option value="">Ponctuel</option><option value="1">Chaque jour</option><option value="2">Aux 2 jours</option><option value="3">Aux 3 jours</option><option value="7">Chaque semaine</option><option value="custom">Personnalisé…</option></select></div>
+              <div class="field" style="margin:0;display:none" id="objRecurCustomWrap_court"><label>Tous les (jours)</label><input type="number" id="objRecurN_court" min="1" max="90" placeholder="ex. 4" style="width:100px"></div>
               <button class="btn btn--primary btn--sm" onclick="addObjective('court')">Ajouter</button>
             </div>
           </div>
@@ -1673,6 +1675,8 @@
             <div class="obj-add-row" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;align-items:flex-end">
               <div class="field" style="flex:1;min-width:200px;margin:0"><label>Nouvel objectif</label><input type="text" id="objInput_moyen" placeholder="Ex. : Reprendre la natation"></div>
               <div class="field" style="margin:0"><label>Date cible <span style="font-weight:400;color:var(--muted)">optionnel</span></label><input type="date" id="objDate_moyen"></div>
+              <div class="field" style="margin:0"><label>Récurrence</label><select id="objRecur_moyen" onchange="toggleObjRecurCustom('moyen')"><option value="">Ponctuel</option><option value="1">Chaque jour</option><option value="2">Aux 2 jours</option><option value="3">Aux 3 jours</option><option value="7">Chaque semaine</option><option value="custom">Personnalisé…</option></select></div>
+              <div class="field" style="margin:0;display:none" id="objRecurCustomWrap_moyen"><label>Tous les (jours)</label><input type="number" id="objRecurN_moyen" min="1" max="90" placeholder="ex. 4" style="width:100px"></div>
               <button class="btn btn--primary btn--sm" onclick="addObjective('moyen')">Ajouter</button>
             </div>
           </div>
@@ -1682,6 +1686,8 @@
             <div class="obj-add-row" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;align-items:flex-end">
               <div class="field" style="flex:1;min-width:200px;margin:0"><label>Nouvel objectif</label><input type="text" id="objInput_long" placeholder="Ex. : Reprendre le sport sans douleur"></div>
               <div class="field" style="margin:0"><label>Date cible <span style="font-weight:400;color:var(--muted)">optionnel</span></label><input type="date" id="objDate_long"></div>
+              <div class="field" style="margin:0"><label>Récurrence</label><select id="objRecur_long" onchange="toggleObjRecurCustom('long')"><option value="">Ponctuel</option><option value="1">Chaque jour</option><option value="2">Aux 2 jours</option><option value="3">Aux 3 jours</option><option value="7">Chaque semaine</option><option value="custom">Personnalisé…</option></select></div>
+              <div class="field" style="margin:0;display:none" id="objRecurCustomWrap_long"><label>Tous les (jours)</label><input type="number" id="objRecurN_long" min="1" max="90" placeholder="ex. 4" style="width:100px"></div>
               <button class="btn btn--primary btn--sm" onclick="addObjective('long')">Ajouter</button>
             </div>
           </div>
@@ -7264,12 +7270,18 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         const wrap = document.getElementById('objList_' + h);
         wrap.innerHTML = list.length ? list.map(o => `
           <div style="display:flex;align-items:center;gap:.6rem;padding:.45rem 0;border-bottom:1px solid #eef2f8">
-            <span style="flex:1">${o.is_done ? '✅ ' : ''}${esc(o.label)}${o.target_date ? ` <small style="color:var(--muted)">— ${new Date(o.target_date+'T00:00').toLocaleDateString('fr-CA')}</small>` : ''}</span>
-            ${o.is_done ? `<span style="color:#1e8a4c;font-size:.78rem">atteint</span>` : `<span style="color:var(--muted);font-size:.78rem">en cours</span>`}
+            <span style="flex:1">${o.is_done ? '✅ ' : ''}${esc(o.label)}${o.recur_interval_days ? ` <span style="background:#e6f1fb;color:#2468D6;font-size:.72rem;font-weight:600;padding:.1rem .45rem;border-radius:6px">🔁 ${recurLabel(o.recur_interval_days)}</span>` : ''}${o.target_date ? ` <small style="color:var(--muted)">— ${new Date(o.target_date+'T00:00').toLocaleDateString('fr-CA')}</small>` : ''}</span>
+            ${o.recur_interval_days ? '' : (o.is_done ? `<span style="color:#1e8a4c;font-size:.78rem">atteint</span>` : `<span style="color:var(--muted);font-size:.78rem">en cours</span>`)}
             <button class="btn btn--danger btn--sm" onclick="deleteObjective('${o.id}')">✕</button>
           </div>`).join('') : `<div style="color:var(--muted);font-size:.85rem;padding:.3rem 0">Aucun objectif pour cet horizon.</div>`;
       });
     }
+
+    function recurLabel(n) { if (!n) return ''; if (n === 1) return 'Chaque jour'; if (n === 7) return 'Chaque semaine'; return 'Aux ' + n + ' jours'; }
+    window.toggleObjRecurCustom = (h) => {
+      const v = document.getElementById('objRecur_' + h).value;
+      document.getElementById('objRecurCustomWrap_' + h).style.display = (v === 'custom') ? '' : 'none';
+    };
 
     window.addObjective = async (horizon) => {
       if (!objCurrentPatient) { toast('Sélectionnez un patient.', 'error'); return; }
@@ -7277,12 +7289,21 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       const dateEl = document.getElementById('objDate_' + horizon);
       const label = input.value.trim();
       if (!label) { toast('Entrez un objectif.', 'error'); return; }
+      // Récurrence
+      const recurSel = document.getElementById('objRecur_' + horizon).value;
+      let recur = null;
+      if (recurSel === 'custom') { const n = parseInt(document.getElementById('objRecurN_' + horizon).value, 10); if (n > 0) recur = n; }
+      else if (recurSel) recur = parseInt(recurSel, 10);
       const { error } = await sb.from('patient_objectives').insert({
         patient_id: objCurrentPatient, horizon, label,
         target_date: dateEl.value || null,
+        recur_interval_days: recur,
       });
       if (error) { toast('Erreur : ' + error.message, 'error'); return; }
       input.value = ''; dateEl.value = '';
+      document.getElementById('objRecur_' + horizon).value = '';
+      document.getElementById('objRecurCustomWrap_' + horizon).style.display = 'none';
+      document.getElementById('objRecurN_' + horizon).value = '';
       toast('Objectif ajouté.', 'success');
       loadObjectivesAdmin(objCurrentPatient);
     };

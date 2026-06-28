@@ -328,18 +328,29 @@
     });
 
     // ── OBJECTIFS (patient) ───────────────────────────────
+    const objLocalDate = (d = new Date()) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    const objRecurLabel = (n) => !n ? '' : (n === 1 ? 'Chaque jour' : n === 7 ? 'Chaque semaine' : 'Aux ' + n + ' jours');
+
     async function loadObjectives() {
       const wrap = document.getElementById('objectifsContent');
       if (!wrap) return;
-      const { data, error } = await supabase.from('patient_objectives')
-        .select('*').eq('patient_id', _userId).order('sort_order').order('created_at');
+      const todayStr = objLocalDate();
+      const weekAgoStr = objLocalDate(new Date(Date.now() - 6 * 86400000));
+      const [{ data, error }, { data: comps }] = await Promise.all([
+        supabase.from('patient_objectives').select('*').eq('patient_id', _userId).order('sort_order').order('created_at'),
+        supabase.from('objective_completions').select('objective_id, completed_on').eq('patient_id', _userId).gte('completed_on', weekAgoStr),
+      ]);
       if (error) { wrap.innerHTML = `<div class="state-wrap"><p class="state-title">Erreur de chargement</p></div>`; return; }
       const objs = data || [];
+      const compByObj = {};
+      (comps || []).forEach(c => { (compByObj[c.objective_id] = compByObj[c.objective_id] || []).push(c.completed_on); });
+      const doneToday = (o) => o.recur_interval_days ? (compByObj[o.id] || []).includes(todayStr) : o.is_done;
+      const weekCount = (o) => (compByObj[o.id] || []).length;
       if (!objs.length) {
         wrap.innerHTML = `<div class="state-wrap"><div class="state-icon" style="font-size:2.5rem">🎯</div><p class="state-title">Vos objectifs arrivent bientôt</p><p class="state-text">Votre professionnel n'a pas encore défini d'objectifs. Ils apparaîtront ici pour vous accompagner vers votre rétablissement.</p></div>`;
         return;
       }
-      const total = objs.length, done = objs.filter(o => o.is_done).length;
+      const total = objs.length, done = objs.filter(doneToday).length;
       const pct = Math.round(done / total * 100);
       const groups = {
         court: { icon:'🎯', title:'Court terme', color:'#0d9488', bg:'#ecfdf5' },
@@ -378,7 +389,7 @@
         const list = objs.filter(o => o.horizon === h);
         if (!list.length) continue;
         const g = groups[h];
-        const hDone = list.filter(o => o.is_done).length;
+        const hDone = list.filter(doneToday).length;
         html += `<div style="margin-bottom:1.5rem">
           <div style="display:flex;align-items:center;gap:.5rem;margin:0 0 .7rem">
             <span style="font-size:1.2rem">${g.icon}</span>
@@ -386,7 +397,19 @@
             <span style="margin-left:auto;font-size:.78rem;font-weight:600;color:${g.color};background:${g.bg};border-radius:100px;padding:.15rem .6rem">${hDone}/${list.length}</span>
           </div>`;
         html += list.map(o => {
-          const d = o.is_done;
+          const rec = o.recur_interval_days;
+          const d = doneToday(o);
+          if (rec) {
+            const wc = weekCount(o);
+            return `<label style="display:flex;align-items:flex-start;gap:.8rem;background:${d?'#f0fdf4':'#fff'};border:1px solid ${d?'#bbf7d0':'#dbe4f0'};border-left:4px solid ${d?'#16a34a':g.color};border-radius:12px;padding:.9rem 1rem;margin-bottom:.55rem;cursor:pointer;transition:background .2s">
+              <input type="checkbox" ${d?'checked':''} onchange="toggleObjectiveDay('${o.id}', this.checked)" style="width:22px;height:22px;margin-top:.05rem;flex-shrink:0;cursor:pointer;accent-color:#16a34a">
+              <span style="flex:1">
+                <span style="color:#1e293b;font-weight:600;font-size:1rem">${esc(o.label)}</span>
+                <span style="background:#e6f1fb;color:#2468D6;font-size:.72rem;font-weight:700;padding:.1rem .45rem;border-radius:6px;margin-left:.4rem;white-space:nowrap">🔁 ${objRecurLabel(rec)}</span>
+                <br><small style="color:${d?'#16a34a':'#64748b'};font-weight:${d?'700':'400'}">${d ? '✓ Fait aujourd\'hui !' : 'À faire aujourd\'hui'}${wc ? ` · ✓ ${wc} fois ces 7 jours` : ''}</small>
+              </span>
+            </label>`;
+          }
           return `<label style="display:flex;align-items:flex-start;gap:.8rem;background:${d?'#f0fdf4':'#fff'};border:1px solid ${d?'#bbf7d0':'#dbe4f0'};border-left:4px solid ${d?'#16a34a':g.color};border-radius:12px;padding:.9rem 1rem;margin-bottom:.55rem;cursor:pointer;transition:background .2s">
             <input type="checkbox" ${d?'checked':''} onchange="toggleObjective('${o.id}', this.checked)" style="width:22px;height:22px;margin-top:.05rem;flex-shrink:0;cursor:pointer;accent-color:#16a34a">
             <span style="flex:1">
@@ -405,6 +428,19 @@
       const { error } = await supabase.from('patient_objectives')
         .update({ is_done: done, done_at: done ? new Date().toISOString() : null }).eq('id', id);
       if (error) { toast('Erreur, réessayez.', 'error'); return; }
+      loadObjectives();
+    };
+
+    // Objectif récurrent : marquer / démarquer « fait aujourd'hui »
+    window.toggleObjectiveDay = async (id, done) => {
+      const todayStr = objLocalDate();
+      if (done) {
+        const { error } = await supabase.from('objective_completions')
+          .insert({ objective_id: id, patient_id: _userId, completed_on: todayStr });
+        if (error && !/duplicate|unique/i.test(error.message || '')) { toast('Erreur, réessayez.', 'error'); return; }
+      } else {
+        await supabase.from('objective_completions').delete().eq('objective_id', id).eq('completed_on', todayStr);
+      }
       loadObjectives();
     };
 
