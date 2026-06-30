@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Coach par comparaison (POC) · Neurodisk</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root { --navy:#1B2B6B; --blue:#2468D6; --green:#0f8a48; --amber:#d97706; --red:#c0392b; }
+  body { font-family: 'Segoe UI', system-ui, Arial, sans-serif; background:#0c1430; color:#fff; min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; }
+  header { padding: calc(.7rem + env(safe-area-inset-top)) 1rem .7rem; display:flex; align-items:center; gap:.6rem; background:var(--navy); }
+  header strong { font-size:1rem; font-weight:600; }
+  header .tag { margin-left:auto; font-size:.7rem; background:rgba(255,255,255,.15); padding:.2rem .5rem; border-radius:6px; }
+  .stage { position:relative; flex:1; background:#000; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+  video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+  canvas { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+  .hud { position:absolute; inset:0; pointer-events:none; display:flex; flex-direction:column; justify-content:space-between; padding:1rem; }
+  .topbar { display:flex; gap:.6rem; align-items:flex-start; }
+  .score-box { background:rgba(0,0,0,.55); backdrop-filter:blur(6px); border-radius:16px; padding:.55rem 1rem; text-align:center; min-width:84px; }
+  .score-box .n { font-size:2.4rem; font-weight:800; line-height:1; }
+  .score-box .l { font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; opacity:.8; }
+  .count-box { background:rgba(0,0,0,.55); backdrop-filter:blur(6px); border-radius:16px; padding:.55rem 1rem; text-align:center; }
+  .count-box .n { font-size:2.4rem; font-weight:800; line-height:1; }
+  .count-box .l { font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; opacity:.8; }
+  .rec-dot { margin-left:auto; display:none; align-items:center; gap:.4rem; background:rgba(192,57,43,.85); padding:.4rem .7rem; border-radius:100px; font-size:.8rem; font-weight:700; }
+  .rec-dot i { width:10px; height:10px; border-radius:50%; background:#fff; animation:blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity:.2; } }
+  .cue { align-self:center; font-size:1.25rem; font-weight:700; padding:.55rem 1.2rem; border-radius:100px; background:rgba(0,0,0,.6); transition:all .2s; text-align:center; }
+  .cue.good { background:var(--green); }
+  .cue.warn { background:var(--amber); }
+  .controls { display:flex; gap:.6rem; padding:.8rem 1rem calc(.8rem + env(safe-area-inset-bottom)); background:var(--navy); flex-wrap:wrap; }
+  button { font:inherit; cursor:pointer; border:none; border-radius:12px; padding:.9rem 1rem; font-weight:600; color:#fff; background:rgba(255,255,255,.14); flex:1; min-width:120px; }
+  button.primary { background:var(--blue); }
+  button.rec { background:var(--red); }
+  button:disabled { opacity:.4; }
+  .overlay { position:absolute; inset:0; background:rgba(8,16,40,.94); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem; gap:1rem; z-index:5; overflow-y:auto; }
+  .overlay h2 { font-size:1.2rem; }
+  .overlay p { opacity:.85; font-size:.92rem; max-width:360px; line-height:1.5; }
+  .overlay ul { text-align:left; font-size:.88rem; opacity:.9; line-height:1.7; max-width:360px; }
+  .modes { display:flex; gap:.7rem; flex-wrap:wrap; justify-content:center; }
+  .mode-btn { flex:0 0 auto; padding:1rem 1.4rem; border-radius:14px; background:rgba(255,255,255,.1); border:1.5px solid rgba(255,255,255,.18); display:flex; flex-direction:column; align-items:center; gap:.3rem; min-width:150px; }
+  .mode-btn .ic { font-size:1.6rem; }
+  .mode-btn .t { font-weight:700; font-size:.95rem; }
+  .mode-btn .s { font-size:.74rem; opacity:.75; }
+  .mode-btn.is-on { border-color:var(--blue); background:rgba(36,104,214,.25); }
+  .badge-priv { font-size:.78rem; opacity:.85; background:rgba(255,255,255,.1); padding:.5rem .8rem; border-radius:10px; max-width:360px; }
+  .countdown { position:absolute; inset:0; display:none; align-items:center; justify-content:center; font-size:8rem; font-weight:900; z-index:6; text-shadow:0 4px 30px rgba(0,0,0,.6); }
+  .spin { width:38px; height:38px; border:3px solid rgba(255,255,255,.25); border-top-color:#fff; border-radius:50%; animation:s 1s linear infinite; }
+  @keyframes s { to { transform:rotate(360deg); } }
+  .ref-status { font-size:.8rem; opacity:.8; }
+  .toggle-row { display:flex; gap:.5rem; align-items:center; font-size:.85rem; }
+</style>
+</head>
+<body>
+  <header>
+    <strong>Coach — comparaison à la démo</strong>
+    <span class="tag">PROTOTYPE</span>
+  </header>
+
+  <div class="stage">
+    <video id="video" playsinline muted></video>
+    <canvas id="canvas"></canvas>
+
+    <div class="hud">
+      <div class="topbar">
+        <div class="score-box" id="scoreBox" style="display:none"><div class="n" id="score">—</div><div class="l">ressemblance</div></div>
+        <div class="count-box" id="countBox" style="display:none"><div class="n" id="count">0</div><div class="l">répétitions</div></div>
+        <div class="rec-dot" id="recDot"><i></i> REC <span id="recTime">0.0s</span></div>
+      </div>
+      <div class="cue" id="cue">Choisis un mode pour commencer</div>
+      <div></div>
+    </div>
+
+    <div class="countdown" id="countdown"></div>
+
+    <!-- Écran d'accueil -->
+    <div class="overlay" id="overlay">
+      <h2>Coach par comparaison</h2>
+      <div class="badge-priv">🔒 Tout se passe sur ton appareil. Aucune vidéo n'est enregistrée ni envoyée — seuls les angles du squelette sont mesurés.</div>
+      <p>Deux étapes : <strong>1)</strong> le clinicien enregistre une démo de référence. <strong>2)</strong> le patient s'exerce et suit le « fantôme » de la démo.</p>
+      <div class="modes">
+        <button class="mode-btn" id="modeRecord">
+          <span class="ic">🎬</span><span class="t">Enregistrer une démo</span><span class="s">Clinicien — capture la référence</span>
+        </button>
+        <button class="mode-btn" id="modePractice">
+          <span class="ic">🏃</span><span class="t">S'exercer</span><span class="s">Patient — suit le fantôme</span>
+        </button>
+      </div>
+      <p class="ref-status" id="refStatus">Aucune démo enregistrée pour l'instant.</p>
+      <div class="toggle-row" id="exportRow" style="display:none">
+        <button id="btnExport" style="flex:0 0 auto;padding:.5rem 1rem;font-size:.8rem">⬇️ Exporter JSON</button>
+        <button id="btnImport" style="flex:0 0 auto;padding:.5rem 1rem;font-size:.8rem">⬆️ Importer JSON</button>
+        <input type="file" id="fileImport" accept="application/json" style="display:none">
+      </div>
+      <p id="status" style="font-size:.8rem;opacity:.7"></p>
+    </div>
+  </div>
+
+  <div class="controls" id="controls" style="display:none">
+    <button id="btnFlip">🔄 Caméra</button>
+    <button id="btnAction" class="primary">—</button>
+    <button id="btnHome">⌂ Accueil</button>
+  </div>
+
+<script type="module">
+  import { FilesetResolver, PoseLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+  // ── Constantes prototype ──────────────────────────────
+  const REF_KEY   = 'coach_demo_ref_v1';   // localStorage (1 exercice pour le POC)
+  const REC_FPS   = 12;                     // images/s capturées pour la démo
+  const SCORE_OK  = 82;                     // % ressemblance « bien »
+  const DEV_TH    = 18;                     // ° d'écart avant de corriger une articulation
+  const SPEAK_GAP = 2600;                   // ms min entre deux consignes vocales
+
+  // 8 angles articulaires (triplets de landmarks MediaPipe)
+  const JOINTS = {
+    LE: [11,13,15], RE: [12,14,16],   // coudes
+    LS: [13,11,23], RS: [14,12,24],   // épaules
+    LH: [11,23,25], RH: [12,24,26],   // hanches
+    LK: [23,25,27], RK: [24,26,28],   // genoux
+  };
+  // Lexique de correction : part = nom, more = consigne si l'angle doit AUGMENTER, less = si DIMINUER
+  const LEXICON = {
+    LE: { part:'le bras gauche',  more:'Tends le bras gauche',  less:'Plie le bras gauche'  },
+    RE: { part:'le bras droit',   more:'Tends le bras droit',   less:'Plie le bras droit'   },
+    LS: { part:"l'épaule gauche", more:'Monte le bras gauche',  less:'Baisse le bras gauche'},
+    RS: { part:"l'épaule droite", more:'Monte le bras droit',   less:'Baisse le bras droit' },
+    LH: { part:'la hanche gauche',more:'Ouvre la hanche gauche',less:'Penche-toi plus à gauche'},
+    RH: { part:'la hanche droite',more:'Ouvre la hanche droite',less:'Penche-toi plus à droite'},
+    LK: { part:'le genou gauche', more:'Tends la jambe gauche', less:'Plie le genou gauche' },
+    RK: { part:'le genou droit',  more:'Tends la jambe droite', less:'Plie le genou droit'  },
+  };
+
+  // ── Éléments ──────────────────────────────────────────
+  const video=document.getElementById('video'), canvas=document.getElementById('canvas'), ctx=canvas.getContext('2d');
+  const overlay=document.getElementById('overlay'), controls=document.getElementById('controls');
+  const elCue=document.getElementById('cue'), elScore=document.getElementById('score'), elCount=document.getElementById('count');
+  const scoreBox=document.getElementById('scoreBox'), countBox=document.getElementById('countBox');
+  const recDot=document.getElementById('recDot'), recTime=document.getElementById('recTime');
+  const status=document.getElementById('status'), refStatus=document.getElementById('refStatus');
+  const countdownEl=document.getElementById('countdown'), btnAction=document.getElementById('btnAction');
+
+  let landmarker=null, stream=null, facing='user', running=false;
+  let mode=null;                 // 'record' | 'practice'
+  let recording=false, recFrames=[], recStartT=0, lastRecT=0;
+  let reference=null, driverKey=null, driverMin=0, driverMax=0;
+  let count=0, repState='lo', lastSpeak=0, lastCueTxt='';
+
+  // ── Maths ─────────────────────────────────────────────
+  function angle(a,b,c){
+    const ab={x:a.x-b.x,y:a.y-b.y}, cb={x:c.x-b.x,y:c.y-b.y};
+    const dot=ab.x*cb.x+ab.y*cb.y, m=Math.hypot(ab.x,ab.y)*Math.hypot(cb.x,cb.y)||1e-6;
+    return Math.acos(Math.max(-1,Math.min(1,dot/m)))*180/Math.PI;
+  }
+  function jointAngles(lms){
+    const out={};
+    for(const k in JOINTS){ const [a,b,c]=JOINTS[k]; out[k]=angle(lms[a],lms[b],lms[c]); }
+    return out;
+  }
+  // Normalise le squelette : origine = milieu des hanches, échelle = longueur du tronc
+  function normalize(lms){
+    const midHip={x:(lms[23].x+lms[24].x)/2, y:(lms[23].y+lms[24].y)/2};
+    const midSh ={x:(lms[11].x+lms[12].x)/2, y:(lms[11].y+lms[12].y)/2};
+    const torso=Math.hypot(midSh.x-midHip.x, midSh.y-midHip.y)||1e-6;
+    return lms.map(p=>({x:(p.x-midHip.x)/torso, y:(p.y-midHip.y)/torso}));
+  }
+  function bodyVisible(lms){
+    const key=[11,12,23,24,25,26];
+    return key.every(i=>lms[i] && lms[i].visibility>0.4);
+  }
+
+  // ── Voix ──────────────────────────────────────────────
+  let frVoice=null;
+  function pickVoice(){
+    const vs=speechSynthesis.getVoices();
+    frVoice=vs.find(v=>/fr-CA/i.test(v.lang)) || vs.find(v=>/^fr/i.test(v.lang)) || null;
+  }
+  speechSynthesis.onvoiceschanged=pickVoice; pickVoice();
+  function speak(txt){
+    const now=performance.now();
+    if(txt===lastCueTxt && now-lastSpeak<SPEAK_GAP) return;
+    if(now-lastSpeak<1200) return;
+    lastSpeak=now; lastCueTxt=txt;
+    try{ const u=new SpeechSynthesisUtterance(txt); u.lang='fr-CA'; if(frVoice)u.voice=frVoice; u.rate=1.05; speechSynthesis.cancel(); speechSynthesis.speak(u);}catch{}
+  }
+
+  function setCue(text,cls){ elCue.textContent=text; elCue.className='cue'+(cls?' '+cls:''); }
+
+  // ── Modèle & caméra ───────────────────────────────────
+  async function loadModel(){
+    status.textContent='Chargement du modèle…';
+    const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+    landmarker=await PoseLandmarker.createFromOptions(vision,{
+      baseOptions:{ modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task", delegate:"GPU" },
+      runningMode:"VIDEO", numPoses:1,
+    });
+  }
+  async function startCamera(){
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+    stream=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:facing, width:{ideal:1280}, height:{ideal:720} }, audio:false });
+    video.srcObject=stream; await video.play();
+  }
+
+  // ── Boucle ────────────────────────────────────────────
+  function loop(){
+    if(!running) return;
+    if(video.readyState>=2){
+      canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+      const res=landmarker.detectForVideo(video,performance.now());
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      const lms=res.landmarks && res.landmarks[0];
+      if(lms){ mode==='record' ? onRecordFrame(lms) : onPracticeFrame(lms); }
+      else setCue('Place-toi dans le cadre','warn');
+    }
+    requestAnimationFrame(loop);
+  }
+
+  // Squelette
+  const BONES=[[11,13],[13,15],[12,14],[14,16],[11,12],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28]];
+  function drawSkeleton(lms,color,r){
+    ctx.lineWidth=4; ctx.strokeStyle=color;
+    BONES.forEach(([a,b])=>{ ctx.beginPath(); ctx.moveTo(lms[a].x*canvas.width,lms[a].y*canvas.height); ctx.lineTo(lms[b].x*canvas.width,lms[b].y*canvas.height); ctx.stroke(); });
+    ctx.fillStyle=color;
+    [11,12,13,14,15,16,23,24,25,26,27,28].forEach(i=>{ ctx.beginPath(); ctx.arc(lms[i].x*canvas.width,lms[i].y*canvas.height,r,0,7); ctx.fill(); });
+  }
+  // Dessine le fantôme de référence reprojeté sur la position/taille du patient
+  function drawGhost(refNorm,liveLms){
+    const midHip={x:(liveLms[23].x+liveLms[24].x)/2, y:(liveLms[23].y+liveLms[24].y)/2};
+    const midSh ={x:(liveLms[11].x+liveLms[12].x)/2, y:(liveLms[11].y+liveLms[12].y)/2};
+    const torso=Math.hypot(midSh.x-midHip.x, midSh.y-midHip.y)||1e-6;
+    const proj=refNorm.map(p=>({x:midHip.x+p.x*torso, y:midHip.y+p.y*torso}));
+    ctx.save(); ctx.globalAlpha=.55; drawSkeleton(proj,'rgba(255,255,255,.9)',5); ctx.restore();
+  }
+
+  // ── Mode ENREGISTREMENT ───────────────────────────────
+  function onRecordFrame(lms){
+    drawSkeleton(lms,'rgba(36,104,214,.95)',6);
+    if(!bodyVisible(lms)){ setCue('On doit voir tout ton corps','warn'); return; }
+    if(!recording){ setCue('Prêt — appuie sur Enregistrer','good'); return; }
+    const now=performance.now();
+    recTime.textContent=((now-recStartT)/1000).toFixed(1)+'s';
+    if(now-lastRecT >= 1000/REC_FPS){
+      lastRecT=now;
+      recFrames.push({ a:jointAngles(lms), n:normalize(lms).map(p=>({x:+p.x.toFixed(3),y:+p.y.toFixed(3)})) });
+    }
+    setCue('Enregistrement… fais 1–2 répétitions propres','');
+  }
+
+  function startRecording(){
+    recFrames=[]; recording=true; recStartT=lastRecT=performance.now();
+    recDot.style.display='flex'; btnAction.textContent='⏹ Terminer'; btnAction.className='rec';
+  }
+  function stopRecording(){
+    recording=false; recDot.style.display='none';
+    btnAction.textContent='⏺ Enregistrer'; btnAction.className='primary';
+    if(recFrames.length<8){ setCue('Trop court — recommence','warn'); return; }
+    // Choisir l'articulation « moteur » = variance maximale
+    let best=null,bestVar=-1;
+    for(const k in JOINTS){
+      const vals=recFrames.map(f=>f.a[k]); const mean=vals.reduce((s,v)=>s+v,0)/vals.length;
+      const varr=vals.reduce((s,v)=>s+(v-mean)**2,0)/vals.length;
+      if(varr>bestVar){ bestVar=varr; best=k; }
+    }
+    const drvVals=recFrames.map(f=>f.a[best]);
+    reference={ exercise:'poc', fps:REC_FPS, driver:best, dmin:Math.min(...drvVals), dmax:Math.max(...drvVals), frames:recFrames };
+    localStorage.setItem(REF_KEY, JSON.stringify(reference));
+    loadReference();
+    setCue('Démo enregistrée ✓ ('+recFrames.length+' images)','good');
+    speak('Démo enregistrée');
+  }
+
+  // ── Mode PRATIQUE ─────────────────────────────────────
+  function nearestRefFrame(driverVal){
+    let bi=0,bd=Infinity;
+    for(let i=0;i<reference.frames.length;i++){ const d=Math.abs(reference.frames[i].a[driverKey]-driverVal); if(d<bd){bd=d;bi=i;} }
+    return reference.frames[bi];
+  }
+  function onPracticeFrame(lms){
+    if(!bodyVisible(lms)){ drawSkeleton(lms,'rgba(36,104,214,.95)',6); setCue('Recule, on doit te voir en entier','warn'); return; }
+    const ang=jointAngles(lms);
+    const ref=nearestRefFrame(ang[driverKey]);
+    drawGhost(ref.n, lms);                         // fantôme cible
+    drawSkeleton(lms,'rgba(36,104,214,.95)',6);    // patient par-dessus
+
+    // Écart par articulation
+    let worst=null,worstDev=0,sum=0;
+    for(const k in JOINTS){ const d=Math.abs(ang[k]-ref.a[k]); sum+=d; if(d>worstDev){worstDev=d;worst=k;} }
+    const meanDev=sum/8;
+    const score=Math.max(0,Math.round(100-meanDev*2.2));
+    elScore.textContent=score;
+
+    // Comptage de répétitions sur l'articulation moteur
+    const hi=driverMax-(driverMax-driverMin)*0.2, lo=driverMin+(driverMax-driverMin)*0.2;
+    if(repState==='lo' && ang[driverKey]>=hi){ repState='hi'; count++; elCount.textContent=count; navigator.vibrate&&navigator.vibrate(50); }
+    else if(repState==='hi' && ang[driverKey]<=lo){ repState='lo'; }
+
+    // Feedback
+    if(score>=SCORE_OK){ setCue('Parfait, continue 💪','good'); lastCueTxt=''; }
+    else if(worst && worstDev>DEV_TH){
+      const lex=LEXICON[worst];
+      const txt = ang[worst] < ref.a[worst] ? lex.more : lex.less;
+      setCue(txt,'warn'); speak(txt);
+    } else { setCue('Suis le guide blanc',''); }
+  }
+
+  // ── Référence persistée ───────────────────────────────
+  function loadReference(){
+    try{ reference=JSON.parse(localStorage.getItem(REF_KEY)||'null'); }catch{ reference=null; }
+    if(reference){
+      driverKey=reference.driver; driverMin=reference.dmin; driverMax=reference.dmax;
+      refStatus.textContent='✓ Démo en mémoire ('+reference.frames.length+' images, articulation moteur : '+driverKey+').';
+      document.getElementById('exportRow').style.display='flex';
+      document.getElementById('modePractice').style.opacity='1';
+    } else {
+      refStatus.textContent='Aucune démo enregistrée — commence par « Enregistrer une démo ».';
+      document.getElementById('modePractice').style.opacity='.5';
+    }
+  }
+
+  // ── Lancement d'un mode ───────────────────────────────
+  async function enterMode(m){
+    if(m==='practice' && !reference){ setCue('Enregistre d’abord une démo','warn'); status.textContent='Aucune démo en mémoire.'; return; }
+    mode=m;
+    try{
+      btnHome.disabled=true;
+      if(!landmarker) await loadModel();
+      status.textContent='Activation de la caméra…';
+      await startCamera();
+      btnHome.disabled=false;
+      overlay.style.display='none'; controls.style.display='flex'; running=true;
+      scoreBox.style.display = m==='practice'?'block':'none';
+      countBox.style.display = m==='practice'?'block':'none';
+      count=0; repState='lo'; elCount.textContent='0'; lastCueTxt='';
+      if(m==='record'){ btnAction.textContent='⏺ Enregistrer'; btnAction.className='primary'; setCue('Place-toi pour la démo',''); }
+      else { btnAction.textContent='🔊 Voix'; btnAction.className='primary'; setCue('Suis le guide blanc',''); }
+      loop();
+    }catch(err){
+      status.textContent='Erreur : '+err.message+' — autorise la caméra et réessaie.';
+      btnHome.disabled=false; mode=null;
+    }
+  }
+  function goHome(){
+    running=false; recording=false; recDot.style.display='none';
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+    overlay.style.display='flex'; controls.style.display='none';
+    mode=null; loadReference(); setCue('Choisis un mode pour commencer','');
+  }
+
+  // ── Boutons ───────────────────────────────────────────
+  const btnHome=document.getElementById('btnHome');
+  document.getElementById('modeRecord').addEventListener('click',()=>enterMode('record'));
+  document.getElementById('modePractice').addEventListener('click',()=>enterMode('practice'));
+  btnHome.addEventListener('click',goHome);
+  btnAction.addEventListener('click',()=>{
+    if(mode==='record'){ recording?stopRecording():startRecording(); }
+    else { speak('La voix est activée'); }
+  });
+  document.getElementById('btnFlip').addEventListener('click',async()=>{
+    facing=facing==='user'?'environment':'user';
+    const mir=facing==='user'?'scaleX(-1)':'none'; video.style.transform=mir; canvas.style.transform=mir;
+    if(running){ try{ await startCamera(); }catch{} }
+  });
+
+  // Export / Import de la démo (pour la transférer entre appareils pendant le POC)
+  document.getElementById('btnExport').addEventListener('click',()=>{
+    if(!reference) return;
+    const blob=new Blob([JSON.stringify(reference)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='demo-reference.json'; a.click();
+  });
+  document.getElementById('btnImport').addEventListener('click',()=>document.getElementById('fileImport').click());
+  document.getElementById('fileImport').addEventListener('change',e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const rd=new FileReader();
+    rd.onload=()=>{ try{ localStorage.setItem(REF_KEY,rd.result); loadReference(); status.textContent='Démo importée ✓'; }catch{ status.textContent='Fichier invalide.'; } };
+    rd.readAsText(f);
+  });
+
+  loadReference();
+</script>
+</body>
+</html>
