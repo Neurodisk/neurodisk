@@ -456,6 +456,15 @@
     .prog-list-item__name { font-weight: 700; font-size: .9rem; color: var(--text); margin-bottom: .15rem; }
     .prog-list-item__meta { font-size: .77rem; color: var(--muted); }
 
+    /* ── Modal édition programme — onglets ── */
+    .modal-prog-edit__box { max-width: 880px !important; width: 95vw !important; }
+    .modal-prog-edit__tabs { display: flex; border-bottom: 2px solid var(--border); margin: .5rem 0 1rem; }
+    .modal-prog-edit__tab { background: none; border: none; padding: .55rem 1.1rem; font-size: .87rem; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color 150ms, border-color 150ms; }
+    .modal-prog-edit__tab.is-active { color: var(--blue); border-bottom-color: var(--blue); }
+    .modal-prog-edit__tab:hover:not(.is-active) { color: var(--text); }
+    #progEditTabExercices .prog-builder__library { max-height: 370px; }
+    #progEditTabExercices .prog-builder__list { max-height: 370px; overflow-y: auto; }
+
     /* ── Responsive ── */
     @media (max-width: 768px) {
       .layout { grid-template-columns: 1fr; }
@@ -2061,7 +2070,7 @@
 
   <!-- Modal édition programme -->
   <div class="modal-pwd" id="modalProgEdit" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="modal-pwd__box">
+    <div class="modal-pwd__box modal-prog-edit__box">
       <div class="modal-pwd__header">
         <div>
           <h2 class="modal-pwd__title">✏️ Modifier le programme</h2>
@@ -2069,20 +2078,46 @@
         </div>
         <button class="modal-pwd__close" id="modalProgEditClose" aria-label="Fermer">✕</button>
       </div>
+      <!-- Onglets -->
+      <div class="modal-prog-edit__tabs">
+        <button class="modal-prog-edit__tab is-active" data-tab="info">Informations</button>
+        <button class="modal-prog-edit__tab" data-tab="exercices">Exercices</button>
+      </div>
       <div id="alertProgEdit" class="alert"></div>
-      <div class="field" style="margin-bottom:.75rem">
-        <label for="progEditName">Nom *</label>
-        <input type="text" id="progEditName" placeholder="Nom du programme">
+
+      <!-- Onglet Informations -->
+      <div id="progEditTabInfo">
+        <div class="field" style="margin-bottom:.75rem">
+          <label for="progEditName">Nom *</label>
+          <input type="text" id="progEditName" placeholder="Nom du programme">
+        </div>
+        <div class="field" style="margin-bottom:.75rem">
+          <label for="progEditDesc">Description <span style="font-weight:400;color:var(--muted)">optionnel</span></label>
+          <textarea id="progEditDesc" placeholder="Objectifs, durée recommandée…"></textarea>
+        </div>
+        <div class="field" style="margin-bottom:1.25rem">
+          <label for="progEditSection">Grand titre <span style="font-weight:400;color:var(--muted)">optionnel</span></label>
+          <select id="progEditSection"><option value="">— Aucun grand titre —</option></select>
+        </div>
       </div>
-      <div class="field" style="margin-bottom:.75rem">
-        <label for="progEditDesc">Description <span style="font-weight:400;color:var(--muted)">optionnel</span></label>
-        <textarea id="progEditDesc" placeholder="Objectifs, durée recommandée…"></textarea>
+
+      <!-- Onglet Exercices -->
+      <div id="progEditTabExercices" style="display:none">
+        <input type="search" id="editExSearch" placeholder="🔍 Rechercher un exercice…"
+          style="width:100%;padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:var(--radius);font-size:.85rem;margin-bottom:.75rem;font-family:inherit;outline:none">
+        <div class="prog-builder">
+          <div class="prog-builder__left">
+            <div class="prog-builder__title">Bibliothèque d'exercices</div>
+            <div id="editExLibrary" class="prog-builder__library"></div>
+          </div>
+          <div class="prog-builder__right">
+            <div class="prog-builder__title">Exercices du programme</div>
+            <div id="editProgExList" class="prog-builder__list"></div>
+          </div>
+        </div>
       </div>
-      <div class="field" style="margin-bottom:1.25rem">
-        <label for="progEditSection">Grand titre <span style="font-weight:400;color:var(--muted)">optionnel</span></label>
-        <select id="progEditSection"><option value="">— Aucun grand titre —</option></select>
-      </div>
-      <div style="display:flex;gap:.75rem">
+
+      <div style="display:flex;gap:.75rem;margin-top:1.25rem">
         <button class="btn btn--primary" id="btnProgEditSave">Enregistrer</button>
         <button class="btn btn--ghost" id="btnProgEditCancel">Annuler</button>
       </div>
@@ -5928,16 +5963,136 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     document.getElementById('progPatientFilter').addEventListener('change', renderProgrammesList);
 
     // ── Modifier un programme ─────────────────────────────
-    let editingProgId = null;
+    let editingProgId      = null;
+    let editProgSelectedEx = [];
+    let editDragSrcEl      = null;
 
-    window.openProgEditModal = (id) => {
+    // Commutation des onglets du modal
+    document.querySelectorAll('.modal-prog-edit__tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.modal-prog-edit__tab').forEach(t => t.classList.remove('is-active'));
+        tab.classList.add('is-active');
+        const which = tab.dataset.tab;
+        document.getElementById('progEditTabInfo').style.display       = which === 'info'      ? '' : 'none';
+        document.getElementById('progEditTabExercices').style.display  = which === 'exercices' ? '' : 'none';
+        if (which === 'exercices') {
+          renderEditExLibrary(document.getElementById('editExSearch').value);
+          renderEditProgExList();
+        }
+      });
+    });
+
+    document.getElementById('editExSearch').addEventListener('input', e => renderEditExLibrary(e.target.value));
+
+    function renderEditExLibrary(search = '') {
+      const container = document.getElementById('editExLibrary');
+      const addedIds  = new Set(editProgSelectedEx.map(e => e.id));
+      const q = search.toLowerCase();
+      const filtered = allExercisesLib.filter(ex =>
+        !addedIds.has(ex.id) &&
+        (!q || ex.title.toLowerCase().includes(q) || (ex.muscle_group||'').toLowerCase().includes(q))
+      );
+      if (!filtered.length) {
+        container.innerHTML = `<p style="color:var(--muted);font-size:.82rem;padding:.5rem">Aucun exercice trouvé.</p>`;
+        return;
+      }
+      const COND = Object.fromEntries(allConditions.map(c => [c.id, c.label]));
+      container.innerHTML = filtered.map(ex => {
+        const condBadges = (ex.condition_ids || []).map(cid =>
+          `<span style="font-size:.7rem;background:#e8f1fb;color:#185FA5;border-radius:4px;padding:.1rem .4rem">${esc(COND[cid] || cid)}</span>`
+        ).join(' ');
+        return `<div class="ex-lib-item" data-id="${ex.id}">
+          <div>
+            <div class="ex-lib-item__name">${esc(ex.title)}</div>
+            ${ex.muscle_group ? `<div class="ex-lib-item__sub">💪 ${esc(ex.muscle_group)}</div>` : ''}
+            ${condBadges ? `<div style="margin-top:.25rem;display:flex;flex-wrap:wrap;gap:.25rem">${condBadges}</div>` : ''}
+          </div>
+          <button class="ex-lib-btn" onclick="addExToEditProg('${ex.id}')" title="Ajouter">+</button>
+        </div>`;
+      }).join('');
+    }
+
+    window.addExToEditProg = id => {
+      const ex = allExercisesLib.find(e => e.id === id);
+      if (!ex || editProgSelectedEx.find(e => e.id === id)) return;
+      editProgSelectedEx.push({ id: ex.id, title: ex.title, muscle_group: ex.muscle_group, sets:'', reps:'', rest_sec:'', frequency:'', notes:'' });
+      renderEditProgExList();
+      renderEditExLibrary(document.getElementById('editExSearch').value);
+    };
+
+    function renderEditProgExList() {
+      const container = document.getElementById('editProgExList');
+      if (!editProgSelectedEx.length) {
+        container.innerHTML = `<p class="prog-builder__empty">Ajoutez des exercices depuis la bibliothèque →</p>`;
+        return;
+      }
+      container.innerHTML = editProgSelectedEx.map((ex, i) => `
+        <div class="prog-ex-item" draggable="true" data-idx="${i}">
+          <div class="prog-ex-item__header">
+            <span class="prog-ex-item__handle" title="Glisser pour réordonner">⠿</span>
+            <span class="prog-ex-item__name">${esc(ex.title)}</span>
+            <button class="prog-ex-item__remove" onclick="removeExFromEditProg(${i})" title="Retirer">✕</button>
+          </div>
+          <div class="prog-ex-item__params">
+            <div class="prog-ex-item__param"><label>Séries</label><input type="number" min="1" placeholder="3" value="${esc(ex.sets)}" onchange="updateEditExParam(${i},'sets',this.value)"></div>
+            <div class="prog-ex-item__param"><label>Répétitions</label><input type="text" placeholder="12" value="${esc(ex.reps)}" onchange="updateEditExParam(${i},'reps',this.value)"></div>
+            <div class="prog-ex-item__param"><label>Repos (sec)</label><input type="number" min="0" placeholder="60" value="${esc(ex.rest_sec)}" onchange="updateEditExParam(${i},'rest_sec',this.value)"></div>
+            <div class="prog-ex-item__param"><label>Fréquence</label><input type="text" placeholder="3×/sem" value="${esc(ex.frequency)}" onchange="updateEditExParam(${i},'frequency',this.value)"></div>
+          </div>
+          <div class="prog-ex-item__notes"><label>Note pour le patient</label><input type="text" placeholder="Instructions spécifiques…" value="${esc(ex.notes)}" onchange="updateEditExParam(${i},'notes',this.value)"></div>
+        </div>`).join('');
+
+      container.querySelectorAll('.prog-ex-item').forEach(item => {
+        item.addEventListener('dragstart', e => {
+          editDragSrcEl = item; item.classList.add('is-dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        item.addEventListener('dragend', () => {
+          item.classList.remove('is-dragging');
+          container.querySelectorAll('.prog-ex-item').forEach(i => i.classList.remove('drag-over'));
+        });
+        item.addEventListener('dragover', e => {
+          e.preventDefault();
+          if (item !== editDragSrcEl) {
+            container.querySelectorAll('.prog-ex-item').forEach(i => i.classList.remove('drag-over'));
+            item.classList.add('drag-over');
+          }
+        });
+        item.addEventListener('drop', e => {
+          e.preventDefault();
+          if (item === editDragSrcEl) return;
+          const from = parseInt(editDragSrcEl.dataset.idx);
+          const to   = parseInt(item.dataset.idx);
+          const [moved] = editProgSelectedEx.splice(from, 1);
+          editProgSelectedEx.splice(to, 0, moved);
+          renderEditProgExList();
+        });
+      });
+    }
+
+    window.removeExFromEditProg = idx => {
+      editProgSelectedEx.splice(idx, 1);
+      renderEditProgExList();
+      renderEditExLibrary(document.getElementById('editExSearch').value);
+    };
+    window.updateEditExParam = (idx, field, val) => { editProgSelectedEx[idx][field] = val; };
+
+    window.openProgEditModal = async (id) => {
       const p = allProgrammes.find(x => x.id === id);
       if (!p) return;
       editingProgId = id;
+      editProgSelectedEx = [];
+
+      // Revenir à l'onglet Informations
+      document.querySelectorAll('.modal-prog-edit__tab').forEach(t => t.classList.remove('is-active'));
+      document.querySelector('.modal-prog-edit__tab[data-tab="info"]').classList.add('is-active');
+      document.getElementById('progEditTabInfo').style.display      = '';
+      document.getElementById('progEditTabExercices').style.display = 'none';
+      document.getElementById('editExSearch').value = '';
+
       document.getElementById('progEditName').value    = p.name || '';
       document.getElementById('progEditDesc').value    = p.description || '';
       document.getElementById('modalProgPatientName').textContent = p.patient?.full_name || p.patient?.email || '';
-      // Peupler le select des grands titres
       const sel = document.getElementById('progEditSection');
       sel.innerHTML = `<option value="">— Aucun grand titre —</option>` +
         allSections.map(s => `<option value="${s.id}" ${s.id === p.section_id ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
@@ -5945,12 +6100,29 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       document.getElementById('modalProgEdit').setAttribute('aria-hidden', 'false');
       document.getElementById('modalProgEdit').style.display = 'flex';
       document.getElementById('progEditName').focus();
+
+      // Charger les exercices existants du programme
+      const { data: exRows } = await sb.from('patient_exercises')
+        .select('exercise_id, sets, reps, rest_sec, frequency, notes, sort_order, exercise:exercises(id, title, muscle_group)')
+        .eq('programme_id', id)
+        .order('sort_order');
+      editProgSelectedEx = (exRows || []).map(r => ({
+        id:           r.exercise?.id || r.exercise_id,
+        title:        r.exercise?.title || '',
+        muscle_group: r.exercise?.muscle_group || '',
+        sets:         r.sets ?? '',
+        reps:         r.reps ?? '',
+        rest_sec:     r.rest_sec ?? '',
+        frequency:    r.frequency ?? '',
+        notes:        r.notes ?? '',
+      }));
     };
 
     const closeProgEditModal = () => {
       document.getElementById('modalProgEdit').setAttribute('aria-hidden', 'true');
       document.getElementById('modalProgEdit').style.display = 'none';
       editingProgId = null;
+      editProgSelectedEx = [];
     };
     document.getElementById('modalProgEditClose').addEventListener('click', closeProgEditModal);
     document.getElementById('btnProgEditCancel').addEventListener('click', closeProgEditModal);
@@ -5962,12 +6134,47 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       const sectionId = document.getElementById('progEditSection').value || null;
       const btn = document.getElementById('btnProgEditSave');
       btn.disabled = true; btn.textContent = '…';
-      const { error } = await sb.from('programmes').update({ name, description: desc, section_id: sectionId }).eq('id', editingProgId);
-      btn.disabled = false; btn.textContent = 'Enregistrer';
-      if (error) { toast('Erreur : ' + error.message, 'error'); return; }
-      toast('Programme mis à jour.', 'success');
-      closeProgEditModal();
-      await loadProgrammes();
+
+      try {
+        const { error: infoErr } = await sb.from('programmes')
+          .update({ name, description: desc, section_id: sectionId })
+          .eq('id', editingProgId);
+        if (infoErr) throw infoErr;
+
+        // Récupérer patient_id pour les lignes patient_exercises
+        const prog = allProgrammes.find(x => x.id === editingProgId);
+        const patId = prog?.patient_id;
+
+        // Remplacer tous les exercices du programme
+        const { error: delErr } = await sb.from('patient_exercises').delete().eq('programme_id', editingProgId);
+        if (delErr) throw delErr;
+
+        if (editProgSelectedEx.length) {
+          const { data: { user } } = await sb.auth.getUser();
+          const rows = editProgSelectedEx.map((ex, i) => ({
+            patient_id:   patId,
+            exercise_id:  ex.id,
+            programme_id: editingProgId,
+            sets:         parseInt(ex.sets)  || null,
+            reps:         ex.reps            || null,
+            rest_sec:     parseInt(ex.rest_sec) || null,
+            frequency:    ex.frequency       || null,
+            notes:        ex.notes           || null,
+            sort_order:   i,
+            assigned_by:  user.id,
+          }));
+          const { error: insErr } = await sb.from('patient_exercises').insert(rows);
+          if (insErr) throw insErr;
+        }
+
+        toast('Programme mis à jour.', 'success');
+        closeProgEditModal();
+        await loadProgrammes();
+      } catch (err) {
+        toast('Erreur : ' + err.message, 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Enregistrer';
+      }
     });
 
     window.deleteProgramme = async (id, name, btn) => {
