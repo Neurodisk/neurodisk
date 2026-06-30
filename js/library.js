@@ -1068,6 +1068,7 @@
     let allProgrammes   = [];
     let activeProgramme = null;
     let programmeData   = null;
+    let poseRefIds      = new Set(); // exercices avec démo coach
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) currentUserId = session.user.id;
@@ -1210,6 +1211,10 @@
         const exIds = (data || []).map(pe => pe.exercise?.id).filter(Boolean);
         const { data: logs }    = exIds.length ? await supabase.from('exercise_logs').select('exercise_id').in('exercise_id', exIds).gte('completed_at', todayStart.toISOString()) : { data: [] };
         const { data: allLogs } = exIds.length ? await supabase.from('exercise_logs').select('exercise_id').in('exercise_id', exIds) : { data: [] };
+
+        // Exercices ayant une démo coach (pour afficher le bouton « Filme-toi »)
+        const { data: refs } = exIds.length ? await supabase.from('exercise_pose_refs').select('exercise_id').in('exercise_id', exIds) : { data: [] };
+        poseRefIds = new Set((refs||[]).map(r => r.exercise_id));
 
         const completedToday = new Set((logs||[]).map(l => l.exercise_id));
         const logCounts = {};
@@ -1420,12 +1425,21 @@
                 <div class="ex-modal__param-value">${esc(p.value)}</div>
               </div>`).join('')}
           </div>` : ''}
-        ${pe.notes ? `<div class="ex-modal__note"><strong>📝 Note du professionnel</strong>${esc(pe.notes)}</div>` : ''}`;
+        ${pe.notes ? `<div class="ex-modal__note"><strong>📝 Note du professionnel</strong>${esc(pe.notes)}</div>` : ''}
+        ${poseRefIds.has(ex.id) ? `
+          <button class="btn-filme-toi" onclick="openCoachPractice('${esc(ex.id)}')">
+            🎥 Filme-toi pour être corrigé
+          </button>
+          <p class="ex-modal__filme-hint">Ta caméra reste sur ton appareil — rien n'est enregistré ni envoyé.</p>` : ''}`;
 
       exModalOverlay.classList.add('is-open');
       exModalOverlay.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
     }
+
+    window.openCoachPractice = (exId) => {
+      window.open(`tools/coach-demo.html?exercise=${encodeURIComponent(exId)}&mode=practice`, '_blank');
+    };
 
     let exModalClearTimer = null;
     function closeExModal() {

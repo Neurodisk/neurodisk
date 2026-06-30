@@ -104,13 +104,26 @@
 
 <script type="module">
   import { FilesetResolver, PoseLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-  // ── Constantes prototype ──────────────────────────────
-  const REF_KEY   = 'coach_demo_ref_v1';   // localStorage (1 exercice pour le POC)
+  // ── Supabase (session partagée avec l'app, même origine) ──
+  const sb = createClient(
+    'https://jqxykxkikvrgwnajhhbi.supabase.co',
+    'sb_publishable_t1EUH4wn9vtNBC7pUNbKOA_OhFfWsEi',
+    { auth:{ persistSession:true, autoRefreshToken:true } }
+  );
+
+  // ── Paramètres d'URL : ?exercise=<id>&mode=record|practice ──
+  const params     = new URLSearchParams(location.search);
+  const exerciseId = params.get('exercise');   // null = mode POC (localStorage)
+  const forcedMode = params.get('mode');        // 'record' | 'practice' | null
+
+  // ── Constantes ────────────────────────────────────────
+  const REF_KEY   = 'coach_demo_ref_v1';   // localStorage (repli mode POC sans exercice)
   const REC_FPS   = 12;                     // images/s capturées pour la démo
   const SCORE_OK  = 82;                     // % ressemblance « bien »
   const DEV_TH    = 18;                     // ° d'écart avant de corriger une articulation
-  const SPEAK_GAP = 2600;                   // ms min entre deux consignes vocales
+  const SPEAK_GAP = 15000;                  // ms min entre deux consignes vocales (une consigne / 15 s)
 
   // 8 angles articulaires (triplets de landmarks MediaPipe)
   const JOINTS = {
@@ -178,8 +191,7 @@
   speechSynthesis.onvoiceschanged=pickVoice; pickVoice();
   function speak(txt){
     const now=performance.now();
-    if(txt===lastCueTxt && now-lastSpeak<SPEAK_GAP) return;
-    if(now-lastSpeak<1200) return;
+    if(now-lastSpeak<SPEAK_GAP) return;   // une consigne vocale toutes les 15 s max
     lastSpeak=now; lastCueTxt=txt;
     try{ const u=new SpeechSynthesisUtterance(txt); u.lang='fr-CA'; if(frVoice)u.voice=frVoice; u.rate=1.05; speechSynthesis.cancel(); speechSynthesis.speak(u);}catch{}
   }
@@ -250,7 +262,7 @@
     recFrames=[]; recording=true; recStartT=lastRecT=performance.now();
     recDot.style.display='flex'; btnAction.textContent='⏹ Terminer'; btnAction.className='rec';
   }
-  function stopRecording(){
+  async function stopRecording(){
     recording=false; recDot.style.display='none';
     btnAction.textContent='⏺ Enregistrer'; btnAction.className='primary';
     if(recFrames.length<8){ setCue('Trop court — recommence','warn'); return; }
@@ -262,11 +274,24 @@
       if(varr>bestVar){ bestVar=varr; best=k; }
     }
     const drvVals=recFrames.map(f=>f.a[best]);
-    reference={ exercise:'poc', fps:REC_FPS, driver:best, dmin:Math.min(...drvVals), dmax:Math.max(...drvVals), frames:recFrames };
-    localStorage.setItem(REF_KEY, JSON.stringify(reference));
-    loadReference();
-    setCue('Démo enregistrée ✓ ('+recFrames.length+' images)','good');
-    speak('Démo enregistrée');
+    reference={ exercise:exerciseId||'poc', fps:REC_FPS, driver:best, dmin:Math.min(...drvVals), dmax:Math.max(...drvVals), frames:recFrames };
+    driverKey=best; driverMin=reference.dmin; driverMax=reference.dmax;
+    setCue('Enregistrement de la démo…','');
+    const ok = await saveReference(reference);
+    if(ok){ setCue('Démo enregistrée ✓ ('+recFrames.length+' images)','good'); speak('Démo enregistrée'); }
+    else { setCue('Échec de la sauvegarde — réessaie','warn'); }
+  }
+
+  // Sauvegarde : Supabase si un exercice est ciblé, sinon localStorage (mode POC)
+  async function saveReference(ref){
+    if(!exerciseId){ localStorage.setItem(REF_KEY, JSON.stringify(ref)); return true; }
+    try{
+      const { data:{ user } } = await sb.auth.getUser();
+      const { error } = await sb.from('exercise_pose_refs')
+        .upsert({ exercise_id:exerciseId, data:ref, created_by:user?.id||null, updated_at:new Date().toISOString() }, { onConflict:'exercise_id' });
+      if(error) throw error;
+      return true;
+    }catch(e){ status.textContent='Erreur sauvegarde : '+e.message; return false; }
   }
 
   // ── Mode PRATIQUE ─────────────────────────────────────
@@ -304,15 +329,26 @@
   }
 
   // ── Référence persistée ───────────────────────────────
-  function loadReference(){
-    try{ reference=JSON.parse(localStorage.getItem(REF_KEY)||'null'); }catch{ reference=null; }
+  async function loadReference(){
+    reference=null;
+    if(exerciseId){
+      try{
+        const { data, error } = await sb.from('exercise_pose_refs').select('data').eq('exercise_id', exerciseId).maybeSingle();
+        if(error) throw error;
+        reference = data ? data.data : null;
+      }catch(e){ status.textContent='Erreur de chargement : '+e.message; }
+    } else {
+      try{ reference=JSON.parse(localStorage.getItem(REF_KEY)||'null'); }catch{ reference=null; }
+    }
     if(reference){
       driverKey=reference.driver; driverMin=reference.dmin; driverMax=reference.dmax;
-      refStatus.textContent='✓ Démo en mémoire ('+reference.frames.length+' images, articulation moteur : '+driverKey+').';
-      document.getElementById('exportRow').style.display='flex';
+      refStatus.textContent='✓ Démo prête ('+reference.frames.length+' images, articulation moteur : '+driverKey+').';
+      document.getElementById('exportRow').style.display = exerciseId ? 'none' : 'flex';
       document.getElementById('modePractice').style.opacity='1';
     } else {
-      refStatus.textContent='Aucune démo enregistrée — commence par « Enregistrer une démo ».';
+      refStatus.textContent = exerciseId
+        ? 'Aucune démo pour cet exercice — le clinicien doit d’abord en enregistrer une.'
+        : 'Aucune démo enregistrée — commence par « Enregistrer une démo ».';
       document.getElementById('modePractice').style.opacity='.5';
     }
   }
@@ -375,7 +411,23 @@
     rd.readAsText(f);
   });
 
-  loadReference();
+  // ── Initialisation selon les paramètres d'URL ─────────
+  async function init(){
+    // Mode imposé : ne montrer que le bouton pertinent
+    if(forcedMode==='record'){ document.getElementById('modePractice').style.display='none'; }
+    else if(forcedMode==='practice'){ document.getElementById('modeRecord').style.display='none'; }
+
+    // Nom de l'exercice dans l'en-tête
+    if(exerciseId){
+      document.getElementById('exportRow').style.display='none';
+      try{
+        const { data } = await sb.from('exercises').select('title').eq('id', exerciseId).maybeSingle();
+        if(data?.title){ document.querySelector('header strong').textContent='Coach — '+data.title; document.title='Coach — '+data.title; }
+      }catch{}
+    }
+    await loadReference();
+  }
+  init();
 </script>
 </body>
 </html>

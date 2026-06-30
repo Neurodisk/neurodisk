@@ -484,6 +484,12 @@
     .ex-modal__note { background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 0 10px 10px 0; padding: .85rem 1.1rem; font-size: 1rem; color: #92400e; line-height: 1.6; }
     .ex-modal__note strong { display: block; font-size: .875rem; font-weight: 500; color: #b45309; margin-bottom: .3rem; }
 
+    /* Bouton « Filme-toi » — coach par caméra */
+    .btn-filme-toi { display: flex; align-items: center; justify-content: center; gap: .5rem; width: 100%; margin-top: 1.25rem; padding: 1rem 1.25rem; font-size: 1.1rem; font-weight: 600; color: #fff; background: linear-gradient(135deg, #6d28d9, #4f46e5); border: none; border-radius: 14px; cursor: pointer; box-shadow: 0 4px 14px rgba(79,70,229,.3); transition: transform 120ms, box-shadow 120ms; }
+    .btn-filme-toi:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(79,70,229,.4); }
+    .btn-filme-toi:active { transform: translateY(0); }
+    .ex-modal__filme-hint { margin: .5rem 0 0; font-size: .82rem; color: #6b7280; text-align: center; }
+
     /* Photos multiples dans le modal */
     .ex-modal__photos { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: 2px; }
     .ex-modal__photo-thumb {

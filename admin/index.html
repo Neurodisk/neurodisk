@@ -6187,6 +6187,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     };
 
     // ── Charger les exercices ─────────────────────────────
+    let poseRefIds = new Set(); // exercices ayant une démo coach enregistrée
     async function loadExercises() {
       const { data, error } = await sb.from('exercises')
         .select('*, conditions:exercise_conditions(condition_id)')
@@ -6196,8 +6197,15 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         ...ex,
         condition_ids: (ex.conditions || []).map(c => c.condition_id),
       }));
+      const { data: refs } = await sb.from('exercise_pose_refs').select('exercise_id');
+      poseRefIds = new Set((refs || []).map(r => r.exercise_id));
       renderExercisesTable();
     }
+
+    // Ouvre l'enregistreur de démo coach (caméra MediaPipe) pour un exercice
+    window.openCoachRecorder = (id) => {
+      window.open(`../tools/coach-demo.html?exercise=${encodeURIComponent(id)}&mode=record`, '_blank');
+    };
 
     function renderExercisesTable() {
       // ancienne table — plus utilisée directement
@@ -6219,10 +6227,12 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
           <div class="ex-lib-card__badges">
             ${ex.muscle_group ? `<span class="badge" style="background:#e8f1fb;color:#185FA5">${esc(ex.muscle_group)}</span>` : ''}
             ${(ex.video_url || ex.bunny_video_id) ? `<span class="badge" style="background:#e6f7ef;color:#0f8a48">▶ Vidéo</span>` : ''}
+            ${poseRefIds.has(ex.id) ? `<span class="badge" style="background:#ede9fe;color:#6d28d9">🎥 Démo coach</span>` : ''}
             ${(ex.condition_ids||[]).map(cid => { const COND2 = Object.fromEntries(allConditions.map(c=>[c.id,c.label])); return `<span class="badge" style="background:#fff3cd;color:#856404">${esc(COND2[cid]||cid)}</span>`; }).join('')}
           </div>
           <div class="ex-lib-card__actions">
             <button class="btn btn--primary btn--sm" onclick="openExEditModal('${ex.id}')">✏️ Modifier</button>
+            <button class="btn btn--ghost btn--sm" onclick="openCoachRecorder('${ex.id}')" title="Filmer une démo de référence pour le coach caméra">🎬 ${poseRefIds.has(ex.id) ? 'Refaire la démo' : 'Démo coach'}</button>
             <button class="btn btn--danger btn--sm" onclick="deleteExercise('${ex.id}', this)">Supprimer</button>
           </div>
         </div>`;
