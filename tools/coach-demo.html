@@ -49,10 +49,14 @@
   @keyframes s { to { transform:rotate(360deg); } }
   .ref-status { font-size:.8rem; opacity:.8; }
   .toggle-row { display:flex; gap:.5rem; align-items:center; font-size:.85rem; }
+  .hdr-logo { height:22px; width:auto; background:#fff; padding:3px 7px; border-radius:7px; flex:0 0 auto; }
+  .cam-logo { position:absolute; bottom:1rem; right:1rem; height:30px; width:auto; background:rgba(255,255,255,.88); padding:4px 9px; border-radius:9px; box-shadow:0 2px 8px rgba(0,0,0,.35); pointer-events:none; z-index:4; }
+  .overlay-logo { height:40px; width:auto; background:#fff; padding:6px 12px; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,.3); }
 </style>
 </head>
 <body>
   <header>
+    <img class="hdr-logo" src="/assets/logo-neurodisk.png" alt="Neurodisk">
     <strong>Coach — comparaison à la démo</strong>
     <span class="tag">PROTOTYPE</span>
   </header>
@@ -60,6 +64,7 @@
   <div class="stage">
     <video id="video" playsinline muted></video>
     <canvas id="canvas"></canvas>
+    <img class="cam-logo" src="/assets/logo-neurodisk.png" alt="Neurodisk">
 
     <div class="hud">
       <div class="topbar">
@@ -75,6 +80,7 @@
 
     <!-- Écran d'accueil -->
     <div class="overlay" id="overlay">
+      <img class="overlay-logo" src="/assets/logo-neurodisk.png" alt="Neurodisk">
       <h2>Coach par comparaison</h2>
       <div class="badge-priv">🔒 Tout se passe sur ton appareil. Aucune vidéo n'est enregistrée ni envoyée — seuls les angles du squelette sont mesurés.</div>
       <p>Deux étapes : <strong>1)</strong> le clinicien enregistre une démo de référence. <strong>2)</strong> le patient s'exerce et suit le « fantôme » de la démo.</p>
