@@ -401,7 +401,7 @@
     .modal-edit__type-badge--word  { background: #dbeafe; color: #1e40af; }
 
     /* ── Constructeur de programme ── */
-    .prog-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem; }
+    .prog-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
     .prog-action-btn { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1.5rem; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; gap: .3rem; text-align: left; transition: border-color 150ms, box-shadow 150ms; width: 100%; }
     .prog-action-btn:hover { border-color: var(--blue); box-shadow: 0 4px 16px rgba(24,95,165,.12); }
     .prog-action-btn .prog-action-icon { font-size: 1.75rem; margin-bottom: .2rem; }
@@ -1152,6 +1152,11 @@
               <strong>Créer un exercice</strong>
               <span>Ajouter à la bibliothèque</span>
             </button>
+            <button class="prog-action-btn" id="btnGoTemplates">
+              <div class="prog-action-icon">⚡</div>
+              <strong>Templates R12 / R24</strong>
+              <span>Programme probant selon le profil</span>
+            </button>
           </div>
           <div class="section-title">Grands titres <span style="font-weight:400;color:var(--muted);font-size:.85rem">— regroupent les programmes chez le patient</span></div>
           <div class="card" style="margin-bottom:1.5rem">
@@ -1255,6 +1260,31 @@
               <button class="btn btn--ghost" id="btnProgBackStep">← Retour</button>
               <button class="btn btn--primary" id="btnSaveProg">✓ Créer le programme</button>
             </div>
+          </div>
+        </div>
+
+        <!-- ── Vue : Templates R12 / R24 ── -->
+        <div id="viewTemplates" style="display:none">
+          <button class="btn-back-prog" id="btnBackFromTemplates">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Retour
+          </button>
+          <div class="section-title">Générer un programme R12 / R24</div>
+          <p style="color:var(--muted);font-size:.85rem;margin-bottom:1.25rem">
+            Programme fondé sur les données probantes selon le <strong>profil mécanique</strong> du patient (déduit de sa condition). R12 = phase fondamentale, R24 = progression. 3 exercices — ajustables ensuite.
+          </p>
+          <div class="card">
+            <div id="alertTemplates" class="alert"></div>
+            <div class="field" style="max-width:420px;margin-bottom:1rem">
+              <label for="tplPatient">Patient *</label>
+              <select id="tplPatient"><option value="">— Sélectionner un patient —</option></select>
+            </div>
+            <div class="field" style="max-width:420px;margin-bottom:1rem">
+              <label for="tplProfile">Profil mécanique</label>
+              <select id="tplProfile"></select>
+              <p id="tplProfileHint" style="font-size:.78rem;color:var(--muted);margin:.35rem 0 0"></p>
+            </div>
+            <div id="tplPreview" style="margin-top:1rem"></div>
           </div>
         </div>
 
@@ -2395,6 +2425,7 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
     import { PROM_DEFS, PROM_LIST, renderPromForm, collectProm, renderPromChart } from '/js/proms.js?v=1';
     import { NEURODISK_CORE, directionalPatternLabel } from '/js/assessments.js?v=3';
+    import { TEMPLATE_PROFILES, PROGRAM_TEMPLATES, profileForConditions, profileLabel, normalizeTitle } from '/js/program-templates.js?v=1';
     import { buildRapportBlob } from '/js/rapport.js?v=1';
 
     const SUPABASE_URL      = 'https://jqxykxkikvrgwnajhhbi.supabase.co';
@@ -5568,10 +5599,111 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
     // ── Navigation entre vues ─────────────────────────────
     function showProgView(id) {
-      ['viewProgMain','viewCreateProg','viewCreateEx','viewExercisesList'].forEach(v => {
+      ['viewProgMain','viewCreateProg','viewCreateEx','viewExercisesList','viewTemplates'].forEach(v => {
         document.getElementById(v).style.display = v === id ? '' : 'none';
       });
     }
+
+    // ── Templates R12 / R24 ───────────────────────────────
+    document.getElementById('btnBackFromTemplates').addEventListener('click', () => showProgView('viewProgMain'));
+    document.getElementById('btnGoTemplates').addEventListener('click', async () => {
+      showProgView('viewTemplates');
+      await initTemplatesView();
+    });
+
+    async function initTemplatesView() {
+      if (!allPatients.length) await loadPatients();
+      if (!allExercisesLib.length) await loadExercises();
+      const selP = document.getElementById('tplPatient');
+      const pts = allPatients.filter(p => !p.is_admin && !p.is_professional);
+      selP.innerHTML = `<option value="">— Sélectionner un patient —</option>` +
+        pts.map(p => `<option value="${esc(p.id)}">${esc(p.full_name || p.email)}</option>`).join('');
+      const selPr = document.getElementById('tplProfile');
+      selPr.innerHTML = TEMPLATE_PROFILES.map(pr => `<option value="${pr.code}">${esc(pr.label)}</option>`).join('');
+      document.getElementById('tplPreview').innerHTML = '';
+      document.getElementById('tplProfileHint').textContent = '';
+      setAlert(document.getElementById('alertTemplates'), '', '');
+
+      selP.onchange = async () => {
+        const pid = selP.value;
+        if (!pid) { document.getElementById('tplProfileHint').textContent = ''; return; }
+        const { data } = await sb.from('patient_conditions').select('condition_id').eq('patient_id', pid);
+        const condIds = (data || []).map(c => c.condition_id);
+        const auto = profileForConditions(condIds);
+        selPr.value = auto;
+        document.getElementById('tplProfileHint').textContent = condIds.length
+          ? `Profil déduit des conditions du patient (${condIds.join(', ')}) — modifiable.`
+          : 'Aucune condition enregistrée pour ce patient — profil universel par défaut.';
+        renderTemplatePreview();
+      };
+      selPr.onchange = renderTemplatePreview;
+    }
+
+    function renderTemplatePreview() {
+      const wrap = document.getElementById('tplPreview');
+      const profile = document.getElementById('tplProfile').value;
+      const tpl = PROGRAM_TEMPLATES[profile];
+      if (!tpl) { wrap.innerHTML = ''; return; }
+      const phaseCard = (phase) => {
+        const t = tpl[phase];
+        return `<div class="card" style="margin-bottom:1rem;border-left:4px solid var(--blue)">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:.5rem">
+            <strong>${esc(t.name)}</strong>
+            <button class="btn btn--primary btn--sm" onclick="generateTemplate('${phase}')">✓ Générer ${phase}</button>
+          </div>
+          <p style="font-size:.8rem;color:var(--muted);margin:0 0 .6rem">${esc(t.rationale)}</p>
+          <ol style="margin:0;padding-left:1.2rem;font-size:.85rem">
+            ${t.exercises.map(e => `<li style="margin-bottom:.3rem"><strong>${esc(e.title)}</strong> — ${e.sets}×${esc(e.reps)}${e.rest_sec ? ', repos ' + e.rest_sec + 's' : ''}, ${esc(e.frequency)}${e.notes ? `<br><span style="color:var(--muted)">${esc(e.notes)}</span>` : ''}</li>`).join('')}
+          </ol>
+        </div>`;
+      };
+      wrap.innerHTML = phaseCard('R12') + phaseCard('R24');
+    }
+
+    window.generateTemplate = async (phase) => {
+      const alert = document.getElementById('alertTemplates');
+      const patId = document.getElementById('tplPatient').value;
+      const profile = document.getElementById('tplProfile').value;
+      if (!patId) { setAlert(alert, 'Sélectionnez d’abord un patient.', 'error'); return; }
+      const t = PROGRAM_TEMPLATES[profile]?.[phase];
+      if (!t) { setAlert(alert, 'Template introuvable.', 'error'); return; }
+
+      // Résoudre les titres d'exercices → ids dans la banque
+      const byTitle = new Map(allExercisesLib.map(ex => [normalizeTitle(ex.title), ex.id]));
+      const resolved = [], missing = [];
+      t.exercises.forEach(e => {
+        const id = byTitle.get(normalizeTitle(e.title));
+        if (id) resolved.push({ ...e, id });
+        else missing.push(e.title);
+      });
+      if (missing.length) {
+        setAlert(alert, `Exercice(s) absent(s) de la banque : ${missing.join(' · ')}. Exécutez la migration 016 ou créez-les, puis réessayez.`, 'error');
+        return;
+      }
+
+      try {
+        const { data: { user } } = await sb.auth.getUser();
+        const { data: prog, error: progErr } = await sb.from('programmes').insert({
+          name: t.name, patient_id: patId, description: t.rationale, created_by: user.id,
+        }).select().single();
+        if (progErr) throw progErr;
+
+        const rows = resolved.map((e, i) => ({
+          patient_id: patId, exercise_id: e.id, programme_id: prog.id,
+          sets: parseInt(e.sets) || null, reps: e.reps || null,
+          rest_sec: parseInt(e.rest_sec) || null, frequency: e.frequency || null,
+          notes: e.notes || null, sort_order: i, assigned_by: user.id,
+        }));
+        const { error: exErr } = await sb.from('patient_exercises').insert(rows);
+        if (exErr) throw exErr;
+
+        toast(`Programme « ${t.name} » créé pour ce patient.`, 'success');
+        setAlert(alert, `✓ Programme ${phase} généré — ajustez-le au besoin dans la liste des programmes.`, 'success');
+        await loadProgrammes();
+      } catch (err) {
+        setAlert(alert, 'Erreur : ' + err.message, 'error');
+      }
+    };
 
     document.getElementById('btnGoCreateProg').addEventListener('click', () => {
       progSelectedEx = [];
