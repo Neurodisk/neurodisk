@@ -1,5 +1,6 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
     import { PROM_DEFS, PROM_LIST, renderPromForm, collectProm, renderPromChart } from '/js/proms.js?v=1';
+    import { NEURODISK_CORE, checkRedFlags, deriveDirectionalPattern, directionalPatternLabel } from '/js/assessments.js?v=1';
 
     const SUPABASE_URL      = 'https://jqxykxkikvrgwnajhhbi.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_t1EUH4wn9vtNBC7pUNbKOA_OhFfWsEi';
@@ -197,7 +198,7 @@
         loadProSurveys(user.id);
       }
 
-      await Promise.all([loadCategories(), loadResources(user.id, isAdmin), loadPatientForms(user.id, isAdmin), loadNextAppointment(user.id), loadProms(user.id)]);
+      await Promise.all([loadCategories(), loadResources(user.id, isAdmin), loadPatientForms(user.id, isAdmin), loadNextAppointment(user.id), loadProms(user.id), loadAssessments(user.id)]);
 
       if (isAdmin || isPro) {
         _chatBindEvents();
@@ -561,6 +562,189 @@
       document.getElementById('promModal').style.display = 'none';
       toast('Merci, votre questionnaire est enregistré.', 'success');
       loadProms(user.id);
+    });
+
+    // ── Bilan Neurodisk (assessments) ──────────────────────
+    let _assessType = null;   // 'initial' | 'suivi'
+    let _assessStep = 'gate'; // 'gate' | 'form'
+    let _assessGateAnswers = {};
+
+    async function loadAssessments(userId) {
+      const wrap = document.getElementById('assessWrap');
+      if (!wrap) return;
+      const { data: rows } = await supabase.from('assessments')
+        .select('id, type, completed_at').eq('patient_id', userId).order('completed_at', { ascending: false });
+      const hasInitial = (rows || []).some(r => r.type === 'initial');
+      const last = rows && rows[0];
+
+      wrap.innerHTML = `
+        <div style="background:#fff;border:1px solid #dbe4f0;border-radius:12px;padding:.9rem 1rem;margin-bottom:.6rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+            <div>
+              <strong>Bilan Neurodisk</strong>
+              <br><small style="color:#667">${last ? 'Dernier bilan : ' + new Date(last.completed_at).toLocaleDateString('fr-CA') : 'Aucun bilan complété'}</small>
+            </div>
+            <button class="nav-btn nav-btn--primary" style="white-space:nowrap" onclick="openAssessment('${hasInitial ? 'suivi' : 'initial'}')">
+              ${hasInitial ? 'Faire une réévaluation' : 'Remplir mon bilan initial'}
+            </button>
+          </div>
+        </div>`;
+      wrap.style.display = 'block';
+    }
+
+    window.openAssessment = (type) => {
+      _assessType = type; _assessStep = 'gate'; _assessGateAnswers = {};
+      document.getElementById('assessModalTitle').textContent = type === 'initial' ? 'Bilan initial — dépistage de sécurité' : 'Réévaluation — dépistage de sécurité';
+      document.getElementById('assessModalMsg').textContent = '';
+      renderGateStep();
+      document.getElementById('btnAssessSubmit').textContent = 'Continuer';
+      document.getElementById('assessModal').style.display = 'flex';
+    };
+
+    function renderGateStep() {
+      const body = document.getElementById('assessModalBody');
+      body.innerHTML = `
+        <p style="font-size:.95rem;color:#475569;margin:0 0 1rem">Avant de continuer, répondez à ces quelques questions de sécurité.</p>
+        ${NEURODISK_CORE.redFlags.map(f => `
+          <label class="assess-check-row">
+            <input type="checkbox" class="assess-check" data-key="${f.key}">${esc(f.label)}
+          </label>`).join('')}`;
+    }
+
+    function renderMainForm() {
+      const N = NEURODISK_CORE;
+      const body = document.getElementById('assessModalBody');
+      const evaSlider = (it) => `
+        <div class="assess-eva-label"><span>${esc(it.label)}</span><span class="assess-eva-value" id="val_${it.key}">0</span></div>
+        <input type="range" min="${it.min}" max="${it.max}" value="0" class="assess-eva-slider" data-key="${it.key}"
+          oninput="document.getElementById('val_${it.key}').textContent=this.value">`;
+      const triggerFieldset = (it, i) => `
+        <fieldset class="assess-item"><legend>${esc(it.label)}</legend>
+          ${it.scale
+            ? it.scale.map((s, v) => `<label class="assess-radio"><input type="radio" name="${it.key}" value="${v}">${esc(s)}</label>`).join('')
+            : N.triggerScale.map(s => `<label class="assess-radio"><input type="radio" name="${it.key}" value="${s.value}">${esc(s.label)}</label>`).join('')}
+        </fieldset>`;
+
+      body.innerHTML = `
+        <div class="assess-section-title">Douleur</div>
+        ${N.pain.map(evaSlider).join('')}
+
+        <div class="assess-section-title">Localisation et irradiation</div>
+        ${N.location.map(it => it.type === 'check'
+          ? `<label class="assess-check-row"><input type="checkbox" class="assess-check" data-key="${it.key}">${esc(it.label)}</label>`
+          : `<div style="margin-bottom:.6rem"><label style="font-size:.9rem">${esc(it.label)}</label><input type="text" class="assess-text-input assess-text" data-key="${it.key}"></div>`
+        ).join('')}
+
+        <div class="assess-section-title">Déclencheurs et provocations</div>
+        ${Object.values(N.triggers).map(g => `
+          <div class="assess-trigger-group">
+            <div class="assess-trigger-group__title">${esc(g.title)}</div>
+            ${g.items.map(triggerFieldset).join('')}
+          </div>`).join('')}
+
+        <div class="assess-section-title">Marche</div>
+        <div style="margin-bottom:.6rem"><label style="font-size:.9rem">${esc(N.walkingAndPattern[0].label)}</label>
+          <input type="number" min="0" class="assess-text-input assess-num" data-key="walk_minutes"></div>
+        <fieldset class="assess-item"><legend>${esc(N.walkingAndPattern[1].label)}</legend>
+          <label class="assess-radio"><input type="radio" name="relief_sit_flex" value="true">Oui</label>
+          <label class="assess-radio"><input type="radio" name="relief_sit_flex" value="false">Non</label>
+        </fieldset>
+
+        <div class="assess-section-title">Sommeil</div>
+        ${N.sleep.map(it => `<div style="margin-bottom:.6rem"><label style="font-size:.9rem">${esc(it.label)}</label><input type="text" class="assess-text-input assess-text" data-key="${it.key}"></div>`).join('')}
+
+        <div class="assess-section-title">Vos activités importantes</div>
+        <p style="font-size:.88rem;color:#667;margin:0 0 .6rem">Nommez jusqu'à 3 activités limitées par la douleur et cotez chacune de 0 (aucune difficulté) à 10 (incapable).</p>
+        ${[1, 2, 3].map(i => `
+          <div style="margin-bottom:.8rem">
+            <input type="text" class="assess-text-input assess-text" data-key="act${i}_name" placeholder="Activité ${i}">
+            <div class="assess-eva-label" style="margin-top:.4rem"><span>Difficulté</span><span class="assess-eva-value" id="val_act${i}_score">0</span></div>
+            <input type="range" min="0" max="10" value="0" class="assess-eva-slider" data-key="act${i}_score"
+              oninput="document.getElementById('val_act${i}_score').textContent=this.value">
+          </div>`).join('')}
+
+        ${_assessType === 'suivi' ? `
+          <div class="assess-section-title">${esc(N.pgic.label)}</div>
+          <fieldset class="assess-item">
+            ${N.pgic.options.map(o => `<label class="assess-radio"><input type="radio" name="pgic" value="${esc(o)}">${esc(o)}</label>`).join('')}
+          </fieldset>` : ''}`;
+    }
+
+    function collectAssessForm(mountEl) {
+      const answers = {};
+      mountEl.querySelectorAll('.assess-eva-slider').forEach(el => { answers[el.dataset.key] = Number(el.value); });
+      mountEl.querySelectorAll('.assess-check').forEach(el => { answers[el.dataset.key] = el.checked; });
+      mountEl.querySelectorAll('.assess-text').forEach(el => { if (el.value.trim()) answers[el.dataset.key] = el.value.trim(); });
+      mountEl.querySelectorAll('.assess-num').forEach(el => { if (el.value !== '') answers[el.dataset.key] = Number(el.value); });
+      const radioNames = new Set([...mountEl.querySelectorAll('input[type=radio]')].map(r => r.name));
+      radioNames.forEach(name => {
+        const sel = mountEl.querySelector(`input[name="${name}"]:checked`);
+        if (sel) answers[name] = sel.value === 'true' ? true : (sel.value === 'false' ? false : (isNaN(Number(sel.value)) || sel.value === '' ? sel.value : Number(sel.value)));
+      });
+      return answers;
+    }
+
+    document.getElementById('btnAssessCancel')?.addEventListener('click', () => {
+      document.getElementById('assessModal').style.display = 'none';
+    });
+    document.getElementById('btnRedFlagOk')?.addEventListener('click', () => {
+      document.getElementById('redFlagModal').style.display = 'none';
+    });
+
+    document.getElementById('btnAssessSubmit')?.addEventListener('click', async () => {
+      const body = document.getElementById('assessModalBody');
+      const msg  = document.getElementById('assessModalMsg');
+      const btn  = document.getElementById('btnAssessSubmit');
+
+      if (_assessStep === 'gate') {
+        _assessGateAnswers = collectAssessForm(body);
+        const flags = checkRedFlags(_assessGateAnswers);
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (flags.length) {
+          btn.disabled = true; btn.textContent = '…';
+          const { data: assessment, error: aErr } = await supabase.from('assessments')
+            .insert({ patient_id: user.id, type: _assessType, completed_at: new Date().toISOString() }).select().single();
+          btn.disabled = false; btn.textContent = 'Continuer';
+          if (aErr) { msg.textContent = 'Erreur : ' + aErr.message; return; }
+          const respRows = Object.entries(_assessGateAnswers).map(([item_key, value]) => ({ assessment_id: assessment.id, instrument: 'neurodisk_core', item_key, value }));
+          await supabase.from('assessment_responses').insert(respRows);
+          await supabase.from('red_flag_alerts').insert(flags.map(flag_key => ({ patient_id: user.id, assessment_id: assessment.id, flag_key })));
+          document.getElementById('assessModal').style.display = 'none';
+          document.getElementById('redFlagModal').style.display = 'flex';
+          loadAssessments(user.id);
+          return;
+        }
+
+        _assessStep = 'form';
+        document.getElementById('assessModalTitle').textContent = _assessType === 'initial' ? 'Bilan initial' : 'Réévaluation';
+        renderMainForm();
+        btn.textContent = 'Envoyer mon bilan';
+        return;
+      }
+
+      // _assessStep === 'form'
+      const mainAnswers = collectAssessForm(body);
+      const answers = { ..._assessGateAnswers, ...mainAnswers };
+      const pattern = deriveDirectionalPattern(answers);
+
+      btn.disabled = true; btn.textContent = '…';
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: assessment, error: aErr } = await supabase.from('assessments')
+        .insert({ patient_id: user.id, type: _assessType, completed_at: new Date().toISOString() }).select().single();
+      if (aErr) { btn.disabled = false; btn.textContent = 'Envoyer mon bilan'; msg.textContent = 'Erreur : ' + aErr.message; return; }
+
+      const respRows = Object.entries(answers).map(([item_key, value]) => ({ assessment_id: assessment.id, instrument: 'neurodisk_core', item_key, value }));
+      await supabase.from('assessment_responses').insert(respRows);
+      await supabase.from('assessment_scores').insert({
+        assessment_id: assessment.id, instrument: 'neurodisk_core', raw_score: null, normalized_score: null,
+        subscores: { directional_pattern: pattern },
+      });
+
+      btn.disabled = false; btn.textContent = 'Envoyer mon bilan';
+      document.getElementById('assessModal').style.display = 'none';
+      toast('Merci, votre bilan est enregistré.', 'success');
+      loadAssessments(user.id);
     });
 
     async function loadResources(userId, isAdmin = false) {

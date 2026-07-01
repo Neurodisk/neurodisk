@@ -1713,6 +1713,9 @@
         <p style="color:var(--muted);font-size:.85rem;margin-bottom:1.25rem">
           Assignez des questionnaires de résultats validés (ODI, NDI, douleur, PSFS). Le patient les remplit à intervalles ; le score et la courbe d'évolution s'affichent ici et côté patient.
         </p>
+
+        <div id="redFlagAlertsWrap"></div>
+
         <div class="card">
           <div class="field" style="max-width:420px">
             <label for="promPatientSelect">Patient</label>
@@ -1720,6 +1723,9 @@
           </div>
         </div>
         <div id="promEditorWrap" style="display:none"></div>
+
+        <div class="section-title" style="margin-top:1.5rem">Bilans Neurodisk (tronc commun)</div>
+        <div id="assessAdminWrap"><p style="color:var(--muted);font-size:.85rem">Sélectionnez un patient ci-dessus.</p></div>
       </section>
 
       <!-- ════════════════════════════════════ ADHÉRENCE ══ -->
@@ -2388,6 +2394,7 @@
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
     import { PROM_DEFS, PROM_LIST, renderPromForm, collectProm, renderPromChart } from '/js/proms.js?v=1';
+    import { NEURODISK_CORE, directionalPatternLabel } from '/js/assessments.js?v=1';
     import { buildRapportBlob } from '/js/rapport.js?v=1';
 
     const SUPABASE_URL      = 'https://jqxykxkikvrgwnajhhbi.supabase.co';
@@ -7544,8 +7551,69 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       sel.onchange = () => {
         const pid = sel.value || null;
         document.getElementById('promEditorWrap').style.display = pid ? '' : 'none';
-        if (pid) loadPromsAdmin(pid);
+        if (pid) { loadPromsAdmin(pid); loadAssessmentsAdmin(pid); }
+        else document.getElementById('assessAdminWrap').innerHTML = `<p style="color:var(--muted);font-size:.85rem">Sélectionnez un patient ci-dessus.</p>`;
       };
+      loadRedFlagAlerts();
+    }
+
+    // ══════════════════════════════════════════════════════
+    // Drapeaux rouges (dépistage sécurité, tous patients)
+    // ══════════════════════════════════════════════════════
+    async function loadRedFlagAlerts() {
+      const wrap = document.getElementById('redFlagAlertsWrap');
+      const { data, error } = await sb.from('red_flag_alerts')
+        .select('id, flag_key, created_at, patient:profiles!patient_id(full_name, email)')
+        .is('acknowledged_at', null).order('created_at', { ascending: false });
+      if (error || !data || !data.length) { wrap.innerHTML = ''; return; }
+      const FLAG_LABELS = Object.fromEntries(NEURODISK_CORE.redFlags.map(f => [f.key, f.label]));
+      wrap.innerHTML = `
+        <div class="card" style="background:#fef2f2;border-color:#fca5a5;margin-bottom:1.25rem">
+          <div style="font-weight:700;color:#b91c1c;margin-bottom:.6rem">⚠️ Drapeaux rouges à traiter (${data.length})</div>
+          ${data.map(a => `
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;padding:.5rem 0;border-top:1px solid #fecaca">
+              <div>
+                <strong>${esc(a.patient?.full_name || a.patient?.email || '—')}</strong>
+                <br><small style="color:#7f1d1d">${esc(FLAG_LABELS[a.flag_key] || a.flag_key)} — ${fmtDate(a.created_at)}</small>
+              </div>
+              <button class="btn btn--ghost btn--sm" onclick="acknowledgeRedFlag('${a.id}')">✓ Acquitter</button>
+            </div>`).join('')}
+        </div>`;
+    }
+
+    window.acknowledgeRedFlag = async (id) => {
+      const { data: { user } } = await sb.auth.getUser();
+      const { error } = await sb.from('red_flag_alerts').update({ acknowledged_at: new Date().toISOString(), acknowledged_by: user.id }).eq('id', id);
+      if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+      toast('Alerte acquittée.', 'success');
+      loadRedFlagAlerts();
+    };
+
+    // ══════════════════════════════════════════════════════
+    // Bilans Neurodisk (tronc commun) par patient
+    // ══════════════════════════════════════════════════════
+    async function loadAssessmentsAdmin(patientId) {
+      const wrap = document.getElementById('assessAdminWrap');
+      wrap.innerHTML = `<div class="empty-state">Chargement…</div>`;
+      const { data: rows, error } = await sb.from('assessments')
+        .select('id, type, completed_at, assessment_scores(subscores), assessment_responses(item_key, value)')
+        .eq('patient_id', patientId).order('completed_at', { ascending: false });
+      if (error) { wrap.innerHTML = `<p style="color:#c0392b;font-size:.85rem">Erreur : ${esc(error.message)}</p>`; return; }
+      if (!rows || !rows.length) { wrap.innerHTML = `<p style="color:var(--muted);font-size:.85rem">Aucun bilan complété par ce patient.</p>`; return; }
+
+      wrap.innerHTML = rows.map(r => {
+        const pattern = (r.assessment_scores || []).find(s => s.subscores?.directional_pattern)?.subscores?.directional_pattern;
+        const responses = Object.fromEntries((r.assessment_responses || []).map(x => [x.item_key, x.value]));
+        const pgic = responses.pgic;
+        return `<div class="card" style="margin-bottom:.7rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+            <strong>${r.type === 'initial' ? 'Bilan initial' : 'Réévaluation'}</strong>
+            <span style="color:var(--muted);font-size:.82rem">${fmtDate(r.completed_at)}</span>
+          </div>
+          ${pattern ? `<div style="margin-top:.4rem;font-size:.85rem"><strong>Patron directionnel :</strong> ${esc(directionalPatternLabel(pattern))}</div>` : ''}
+          ${pgic ? `<div style="margin-top:.2rem;font-size:.85rem"><strong>Impression globale de changement :</strong> ${esc(pgic)}</div>` : ''}
+        </div>`;
+      }).join('');
     }
 
     async function loadPromsAdmin(patientId) {

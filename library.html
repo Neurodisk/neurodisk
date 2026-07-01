@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/library.css?v=14">
+  <link rel="stylesheet" href="/css/library.css?v=15">
   <!-- PWA -->
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#1B2B6B">
@@ -93,6 +93,32 @@
         <button id="btnPromSubmit" style="flex:1;padding:.7rem;background:#1B2B6B;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">Envoyer</button>
         <button id="btnPromCancel" style="padding:.7rem 1rem;background:#f0f0f0;border:none;border-radius:8px;cursor:pointer">Annuler</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Bilan Neurodisk (évaluation initiale + réévaluations) — patient -->
+  <div id="assessWrap" style="display:none;padding:1rem 1.5rem 0"></div>
+
+  <!-- Modal de remplissage du bilan Neurodisk -->
+  <div id="assessModal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,.45);padding:1rem">
+    <div style="background:#fff;border-radius:16px;max-width:640px;width:100%;max-height:92vh;overflow:auto;padding:1.5rem;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <h2 id="assessModalTitle" style="margin:0 0 1rem;font-size:1.1rem;color:#1B2B6B">Bilan Neurodisk</h2>
+      <div id="assessModalBody"></div>
+      <p id="assessModalMsg" style="font-size:.83rem;color:#c0392b;min-height:1.1em;margin:.4rem 0"></p>
+      <div style="display:flex;gap:.6rem;margin-top:.5rem">
+        <button id="btnAssessSubmit" style="flex:1;padding:.9rem;font-size:1rem;background:#1B2B6B;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">Envoyer</button>
+        <button id="btnAssessCancel" style="padding:.9rem 1.1rem;font-size:1rem;background:#f0f0f0;border:none;border-radius:8px;cursor:pointer">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Écran d'orientation (drapeau rouge détecté) -->
+  <div id="redFlagModal" style="display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;background:rgba(0,0,0,.6);padding:1rem">
+    <div style="background:#fff;border-radius:16px;max-width:480px;width:100%;padding:1.75rem;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+      <div style="font-size:2.5rem;margin-bottom:.5rem">⚠️</div>
+      <h2 style="margin:0 0 .75rem;font-size:1.2rem;color:#b91c1c">Consultez rapidement</h2>
+      <p style="font-size:1.05rem;line-height:1.6;color:#1e293b;margin:0 0 1.25rem">D'après vos réponses, nous vous recommandons de <strong>consulter un médecin ou de vous rendre à l'urgence sans tarder</strong>. Votre clinicien a été avisé.</p>
+      <button id="btnRedFlagOk" style="width:100%;padding:.9rem;font-size:1rem;background:#1B2B6B;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">J'ai compris</button>
     </div>
   </div>
 
@@ -410,6 +436,6 @@
     </div>
   </div>
 
-  <script type="module" src="/js/library.js?v=40"></script>
+  <script type="module" src="/js/library.js?v=41"></script>
 </body>
 </html>
