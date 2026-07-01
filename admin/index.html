@@ -7596,13 +7596,17 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       const wrap = document.getElementById('assessAdminWrap');
       wrap.innerHTML = `<div class="empty-state">Chargement…</div>`;
       const { data: rows, error } = await sb.from('assessments')
-        .select('id, type, completed_at, assessment_scores(subscores), assessment_responses(item_key, value)')
+        .select('id, type, completed_at, assessment_scores(instrument, raw_score, subscores), assessment_responses(item_key, value)')
         .eq('patient_id', patientId).order('completed_at', { ascending: false });
       if (error) { wrap.innerHTML = `<p style="color:#c0392b;font-size:.85rem">Erreur : ${esc(error.message)}</p>`; return; }
       if (!rows || !rows.length) { wrap.innerHTML = `<p style="color:var(--muted);font-size:.85rem">Aucun bilan complété par ce patient.</p>`; return; }
 
+      const RISK_LABELS = { faible: 'faible', moyen: 'moyen', eleve: 'élevé' };
       wrap.innerHTML = rows.map(r => {
-        const pattern = (r.assessment_scores || []).find(s => s.subscores?.directional_pattern)?.subscores?.directional_pattern;
+        const scores = r.assessment_scores || [];
+        const pattern = scores.find(s => s.subscores?.directional_pattern)?.subscores?.directional_pattern;
+        const qbpds = scores.find(s => s.instrument === 'qbpds');
+        const startback = scores.find(s => s.instrument === 'startback');
         const responses = Object.fromEntries((r.assessment_responses || []).map(x => [x.item_key, x.value]));
         const pgic = responses.pgic;
         return `<div class="card" style="margin-bottom:.7rem">
@@ -7612,6 +7616,8 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
           </div>
           ${pattern ? `<div style="margin-top:.4rem;font-size:.85rem"><strong>Patron directionnel :</strong> ${esc(directionalPatternLabel(pattern))}</div>` : ''}
           ${pgic ? `<div style="margin-top:.2rem;font-size:.85rem"><strong>Impression globale de changement :</strong> ${esc(pgic)}</div>` : ''}
+          ${qbpds ? `<div style="margin-top:.2rem;font-size:.85rem"><strong>QBPDS :</strong> ${qbpds.raw_score}/100</div>` : ''}
+          ${startback ? `<div style="margin-top:.2rem;font-size:.85rem"><strong>STarT Back :</strong> ${startback.raw_score}/9 (sous-échelle psychosociale ${startback.subscores?.psychosocial ?? '—'}/5) — risque ${esc(RISK_LABELS[startback.subscores?.risk] || '—')}</div>` : ''}
         </div>`;
       }).join('');
     }

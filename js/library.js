@@ -1,6 +1,9 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
     import { PROM_DEFS, PROM_LIST, renderPromForm, collectProm, renderPromChart } from '/js/proms.js?v=1';
-    import { NEURODISK_CORE, checkRedFlags, deriveDirectionalPattern, directionalPatternLabel } from '/js/assessments.js?v=3';
+    import { NEURODISK_CORE, QBPDS, STARTBACK, checkRedFlags, deriveDirectionalPattern, directionalPatternLabel, scoreQBPDS, scoreStartBack, renderPlaceholderScale, collectPlaceholderScale } from '/js/assessments.js?v=3';
+
+    // Conditions pour lesquelles le module lombaire (QBPDS + STarT Back) s'ajoute au bilan
+    const LOMBAR_CONDITIONS = ['hernie_discale', 'sciatique', 'radiculopathie', 'stenose_foraminale', 'stenose_spinale', 'arthrose_lombaire', 'spondylolyse', 'spondylolisthesis'];
 
     const SUPABASE_URL      = 'https://jqxykxkikvrgwnajhhbi.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_t1EUH4wn9vtNBC7pUNbKOA_OhFfWsEi';
@@ -592,13 +595,19 @@
       wrap.style.display = 'block';
     }
 
-    window.openAssessment = (type) => {
+    let _assessLombarConditionId = null; // condition lombaire du patient (ou null), déclenche le module QBPDS+STarT Back
+
+    window.openAssessment = async (type) => {
       _assessType = type; _assessStep = 'gate'; _assessGateAnswers = {};
       document.getElementById('assessModalTitle').textContent = type === 'initial' ? 'Bilan initial — dépistage de sécurité' : 'Réévaluation — dépistage de sécurité';
       document.getElementById('assessModalMsg').textContent = '';
       renderGateStep();
       document.getElementById('btnAssessSubmit').textContent = 'Continuer';
       document.getElementById('assessModal').style.display = 'flex';
+
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: conds } = await supabase.from('patient_conditions').select('condition_id').eq('patient_id', user.id);
+      _assessLombarConditionId = (conds || []).map(c => c.condition_id).find(id => LOMBAR_CONDITIONS.includes(id)) || null;
     };
 
     function renderGateStep() {
@@ -663,11 +672,22 @@
               oninput="document.getElementById('val_act${i}_score').textContent=this.value">
           </div>`).join('')}
 
+        ${_assessLombarConditionId ? `
+          <div class="assess-section-title">${esc(QBPDS.name)}</div>
+          <div id="qbpdsMount"></div>
+          <div class="assess-section-title">${esc(STARTBACK.name)}</div>
+          <div id="startbackMount"></div>` : ''}
+
         ${_assessType === 'suivi' ? `
           <div class="assess-section-title">${esc(N.pgic.label)}</div>
           <fieldset class="assess-item">
             ${N.pgic.options.map(o => `<label class="assess-radio"><input type="radio" name="pgic" value="${esc(o)}">${esc(o)}</label>`).join('')}
           </fieldset>` : ''}`;
+
+      if (_assessLombarConditionId) {
+        renderPlaceholderScale(QBPDS, document.getElementById('qbpdsMount'));
+        renderPlaceholderScale(STARTBACK, document.getElementById('startbackMount'));
+      }
     }
 
     function collectAssessForm(mountEl) {
@@ -676,7 +696,9 @@
       mountEl.querySelectorAll('.assess-check').forEach(el => { answers[el.dataset.key] = el.checked; });
       mountEl.querySelectorAll('.assess-text').forEach(el => { if (el.value.trim()) answers[el.dataset.key] = el.value.trim(); });
       mountEl.querySelectorAll('.assess-num').forEach(el => { if (el.value !== '') answers[el.dataset.key] = Number(el.value); });
-      const radioNames = new Set([...mountEl.querySelectorAll('input[type=radio]')].map(r => r.name));
+      // Exclut les radios "a_*" : elles appartiennent aux sous-formulaires QBPDS/STarT Back
+      // (collectées séparément par collectPlaceholderScale), pas au tronc commun.
+      const radioNames = new Set([...mountEl.querySelectorAll('input[type=radio]')].map(r => r.name).filter(n => !n.startsWith('a_')));
       radioNames.forEach(name => {
         const sel = mountEl.querySelector(`input[name="${name}"]:checked`);
         if (sel) answers[name] = sel.value === 'true' ? true : (sel.value === 'false' ? false : (isNaN(Number(sel.value)) || sel.value === '' ? sel.value : Number(sel.value)));
@@ -728,10 +750,16 @@
       const answers = { ..._assessGateAnswers, ...mainAnswers };
       const pattern = deriveDirectionalPattern(answers);
 
+      let qbpdsAnswers = null, startbackAnswers = null;
+      if (_assessLombarConditionId) {
+        qbpdsAnswers     = collectPlaceholderScale(QBPDS, document.getElementById('qbpdsMount'));
+        startbackAnswers = collectPlaceholderScale(STARTBACK, document.getElementById('startbackMount'));
+      }
+
       btn.disabled = true; btn.textContent = '…';
       const { data: { user } } = await supabase.auth.getUser();
       const { data: assessment, error: aErr } = await supabase.from('assessments')
-        .insert({ patient_id: user.id, type: _assessType, completed_at: new Date().toISOString() }).select().single();
+        .insert({ patient_id: user.id, type: _assessType, condition_id: _assessLombarConditionId, completed_at: new Date().toISOString() }).select().single();
       if (aErr) { btn.disabled = false; btn.textContent = 'Envoyer mon bilan'; msg.textContent = 'Erreur : ' + aErr.message; return; }
 
       const respRows = Object.entries(answers).map(([item_key, value]) => ({ assessment_id: assessment.id, instrument: 'neurodisk_core', item_key, value }));
@@ -740,6 +768,22 @@
         assessment_id: assessment.id, instrument: 'neurodisk_core', raw_score: null, normalized_score: null,
         subscores: { directional_pattern: pattern },
       });
+
+      if (qbpdsAnswers) {
+        const qRows = Object.entries(qbpdsAnswers).map(([item_key, value]) => ({ assessment_id: assessment.id, instrument: 'qbpds', item_key, value }));
+        await supabase.from('assessment_responses').insert(qRows);
+        const qScore = scoreQBPDS(qbpdsAnswers);
+        await supabase.from('assessment_scores').insert({ assessment_id: assessment.id, instrument: 'qbpds', raw_score: qScore.score, normalized_score: qScore.score });
+      }
+      if (startbackAnswers) {
+        const sRows = Object.entries(startbackAnswers).map(([item_key, value]) => ({ assessment_id: assessment.id, instrument: 'startback', item_key, value }));
+        await supabase.from('assessment_responses').insert(sRows);
+        const sScore = scoreStartBack(startbackAnswers);
+        await supabase.from('assessment_scores').insert({
+          assessment_id: assessment.id, instrument: 'startback', raw_score: sScore.score, normalized_score: sScore.score,
+          subscores: { psychosocial: sScore.psychosocial, risk: sScore.risk },
+        });
+      }
 
       btn.disabled = false; btn.textContent = 'Envoyer mon bilan';
       document.getElementById('assessModal').style.display = 'none';
