@@ -91,16 +91,36 @@ export const NEURODISK_CORE = {
 };
 
 // ---- QBPDS — Échelle de Québec (lombaire) ------------------
-// ⚠️ Texte des 20 items = PLACEHOLDER. Insérer la version FR officielle
-// validée avant mise en production. Ne pas reformuler.
+// Version française officielle adaptée (WorkSafeNB, 2006-08-03),
+// modifiée de The Québec Back Pain Disability Scale (Kopec et al.,
+// Spine 1995;20(3):341-352). Échelle de réponse partagée par les 20 items.
 export const QBPDS = {
   code: 'qbpds', name: 'Échelle de Québec (QBPDS)', short: 'QBPDS — lombaire',
   unit: '/100', max: 100, mcid: 17.5, betterHigh: false,
-  items: Array.from({ length: 20 }, (_, i) => ({
-    key: `q${i + 1}`,
-    label: PH,
-    options: [0, 1, 2, 3, 4, 5], // 0 = aucune difficulté … 5 = incapable
-  })),
+  scale: ['Aucune difficulté', 'Très peu difficile', 'Un peu difficile', 'Difficile', 'Très difficile', 'Incapable'],
+  intro: 'Avez-vous de la difficulté aujourd’hui à accomplir les activités suivantes à cause de votre blessure ou de votre condition ?',
+  items: [
+    'Sortir du lit',
+    'Dormir toute la nuit',
+    'Vous retourner dans le lit',
+    'Vous promener en voiture',
+    'Rester debout durant 20 à 30 minutes',
+    'Rester assis sur une chaise durant plusieurs heures',
+    'Monter un seul étage à pied',
+    'Faire plusieurs coins de rue à pied (300 à 400 mètres)',
+    'Marcher plusieurs milles',
+    'Atteindre des objets sur des tablettes assez élevées',
+    'Lancer une balle',
+    'Courir un coin de rue (à peu près 100 mètres)',
+    'Sortir des aliments du réfrigérateur',
+    'Faire votre lit',
+    'Mettre vos bas (collants)',
+    'Vous pencher pour laver la baignoire',
+    'Déplacer une chaise',
+    'Tirer ou pousser des portes lourdes',
+    'Transporter deux sacs d’épicerie',
+    'Soulever et transporter une grosse valise',
+  ].map((label, i) => ({ key: `q${i + 1}`, label })),
 };
 
 // ---- STarT Back Screening Tool (pronostic, lombaire) -------

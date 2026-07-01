@@ -81,9 +81,10 @@ export function scoreAssessmentInstrument(code, answers) {
   return { score: null, max: null };
 }
 
-// ── Rendu du formulaire — QBPDS / STarT Back (placeholders) ────
+// ── Rendu du formulaire — QBPDS / STarT Back ────────────────────
 export function renderPlaceholderScale(def, mountEl) {
-  mountEl.innerHTML = def.items.map((it, i) => {
+  const intro = def.intro ? `<p style="font-size:.9rem;color:#475569;margin:0 0 1rem">${esc(def.intro)}</p>` : '';
+  mountEl.innerHTML = intro + def.items.map((it, i) => {
     if (it.type === 'bothersome') {
       return `<fieldset class="assess-item">
         <legend>${i + 1}. ${esc(it.label)}</legend>
@@ -97,10 +98,10 @@ export function renderPlaceholderScale(def, mountEl) {
         <label class="assess-radio"><input type="radio" name="a_${it.key}" value="false">Non</label>
       </fieldset>`;
     }
-    // QBPDS : échelle 0-5
+    // QBPDS : échelle partagée à 6 niveaux (def.scale)
     return `<fieldset class="assess-item">
       <legend>${i + 1}. ${esc(it.label)}</legend>
-      ${it.options.map(o => `<label class="assess-radio"><input type="radio" name="a_${it.key}" value="${o}">${o}</label>`).join('')}
+      ${def.scale.map((label, v) => `<label class="assess-radio"><input type="radio" name="a_${it.key}" value="${v}">${esc(label)}</label>`).join('')}
     </fieldset>`;
   }).join('');
 }
