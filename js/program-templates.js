@@ -18,10 +18,10 @@
 
 // Routage condition → profil (première correspondance l'emporte)
 export const TEMPLATE_PROFILES = [
-  { code: 'lombaire_extension', label: 'Lombaire — biais extension (McKenzie)',       conditions: ['hernie_discale', 'radiculopathie', 'sciatique'] },
+  { code: 'lombaire_extension', label: 'Lombaire — biais extension (McKenzie)',       conditions: ['hernie_discale', 'radiculopathie', 'sciatique', 'protrusion_discale_lombaire'] },
   { code: 'lombaire_flexion',   label: 'Lombaire — biais flexion / décompression',    conditions: ['stenose_foraminale', 'stenose_spinale', 'spondylolisthesis'] },
-  { code: 'lombaire_neutre',    label: 'Lombaire — stabilisation (neutre)',           conditions: ['spondylolyse', 'arthrose_lombaire'] },
-  { code: 'cervical',           label: 'Cervical',                                    conditions: ['arthrose_cervicale'] },
+  { code: 'lombaire_neutre',    label: 'Lombaire — stabilisation (neutre)',           conditions: ['spondylolyse', 'arthrose_lombaire', 'discopathie_degenerative_lombaire', 'syndrome_facettaire', 'dysfonction_sacro_iliaque'] },
+  { code: 'cervical',           label: 'Cervical',                                    conditions: ['arthrose_cervicale', 'radiculopathie_cervicale', 'hernie_discale_cervicale', 'discopathie_degenerative_cervicale', 'protrusion_discale_cervicale', 'cephalee_cervicogenique'] },
   { code: 'universel',          label: 'Universel / trousse de départ',               conditions: ['trousse_depart', 'autre'] },
 ];
 
