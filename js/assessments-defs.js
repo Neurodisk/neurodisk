@@ -124,15 +124,29 @@ export const QBPDS = {
 };
 
 // ---- STarT Back Screening Tool (pronostic, lombaire) -------
-// ⚠️ Texte des 9 items = PLACEHOLDER. Insérer la version FR officielle
-// validée avant mise en production.
+// ⚠️ TRADUCTION DE TRAVAIL NON VALIDÉE — traduite par l'IA à partir de
+// l'original anglais (© Keele University, 01/08/07), à la demande du
+// clinicien responsable. Une échelle clinique traduite informellement
+// n'a pas la même validité psychométrique garantie que l'original ou
+// qu'une traduction validée par étude transculturelle. Les scores/seuils
+// de risque (voir scoreStartBack) restent ceux de l'outil original.
+// Afficher translationNotice partout où cet instrument est utilisé.
 export const STARTBACK = {
   code: 'startback', name: 'STarT Back Screening Tool', short: 'STarT Back — pronostic',
   max: 9, betterHigh: false,
+  translationNotice: 'Traduction de travail non validée scientifiquement (original : © Keele University). À utiliser avec prudence clinique jusqu’à validation transculturelle formelle.',
+  intro: 'En pensant aux 2 dernières semaines, indiquez votre réponse aux questions suivantes :',
   items: [
-    ...Array.from({ length: 8 }, (_, i) => ({ key: `sb${i + 1}`, label: PH, type: 'yesno', psychosocial: i >= 4 })),
-    { key: 'sb9', label: PH, type: 'bothersome', psychosocial: true,
-      options: ['Pas du tout', 'Un peu', 'Modérément', 'Assez', 'Extrêmement'] }, // score=1 si "Assez" ou "Extrêmement"
+    { key: 'sb1', label: 'Ma douleur au dos s’est propagée dans une ou les deux jambes à un moment donné au cours des 2 dernières semaines', type: 'yesno', psychosocial: false },
+    { key: 'sb2', label: 'J’ai eu de la douleur à l’épaule ou au cou à un moment donné au cours des 2 dernières semaines', type: 'yesno', psychosocial: false },
+    { key: 'sb3', label: 'Je n’ai marché que de courtes distances à cause de ma douleur au dos', type: 'yesno', psychosocial: false },
+    { key: 'sb4', label: 'Au cours des 2 dernières semaines, je me suis habillé(e) plus lentement que d’habitude à cause de ma douleur au dos', type: 'yesno', psychosocial: false },
+    { key: 'sb5', label: 'Ce n’est pas vraiment sécuritaire pour une personne ayant une condition comme la mienne d’être physiquement active', type: 'yesno', psychosocial: true },
+    { key: 'sb6', label: 'Des pensées inquiétantes m’ont traversé l’esprit très souvent', type: 'yesno', psychosocial: true },
+    { key: 'sb7', label: 'J’ai l’impression que ma douleur au dos est terrible et qu’elle ne s’améliorera jamais', type: 'yesno', psychosocial: true },
+    { key: 'sb8', label: 'En général, je n’ai pas pris plaisir à toutes les choses que j’appréciais habituellement', type: 'yesno', psychosocial: true },
+    { key: 'sb9', label: 'Globalement, à quel point votre douleur au dos vous a-t-elle dérangé(e) au cours des 2 dernières semaines ?', type: 'bothersome', psychosocial: true,
+      options: ['Pas du tout', 'Un peu', 'Modérément', 'Beaucoup', 'Extrêmement'] }, // score=1 si "Beaucoup" ou "Extrêmement" (= Very much / Extremely)
   ],
 };
 

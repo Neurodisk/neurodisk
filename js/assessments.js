@@ -5,7 +5,7 @@
 //   Persistance : tables assessments / assessment_responses /
 //   assessment_scores / red_flag_alerts (migration 028).
 // ============================================================
-import { ASSESSMENT_DEFS, NEURODISK_CORE, QBPDS, STARTBACK } from './assessments-defs.js?v=1';
+import { ASSESSMENT_DEFS, NEURODISK_CORE, QBPDS, STARTBACK } from './assessments-defs.js?v=2';
 
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -62,7 +62,7 @@ export function scoreStartBack(answers) {
     nTotal++;
     let point = 0;
     if (it.type === 'yesno') point = (v === true || v === 'true' || v === 1 || v === '1') ? 1 : 0;
-    else if (it.type === 'bothersome') point = (['Assez', 'Extrêmement'].includes(v)) ? 1 : 0;
+    else if (it.type === 'bothersome') point = (['Beaucoup', 'Extrêmement'].includes(v)) ? 1 : 0;
     total += point;
     if (it.psychosocial) { nPsych++; psych += point; }
   });
@@ -83,8 +83,10 @@ export function scoreAssessmentInstrument(code, answers) {
 
 // ── Rendu du formulaire — QBPDS / STarT Back ────────────────────
 export function renderPlaceholderScale(def, mountEl) {
+  const notice = def.translationNotice
+    ? `<div style="background:#fffbeb;border-left:4px solid #f59e0b;border-radius:0 8px 8px 0;padding:.7rem .9rem;font-size:.82rem;color:#92400e;margin-bottom:1rem">⚠️ ${esc(def.translationNotice)}</div>` : '';
   const intro = def.intro ? `<p style="font-size:.9rem;color:#475569;margin:0 0 1rem">${esc(def.intro)}</p>` : '';
-  mountEl.innerHTML = intro + def.items.map((it, i) => {
+  mountEl.innerHTML = notice + intro + def.items.map((it, i) => {
     if (it.type === 'bothersome') {
       return `<fieldset class="assess-item">
         <legend>${i + 1}. ${esc(it.label)}</legend>
