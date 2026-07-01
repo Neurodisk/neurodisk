@@ -1,6 +1,6 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
     import { PROM_DEFS, PROM_LIST, renderPromForm, collectProm, renderPromChart } from '/js/proms.js?v=1';
-    import { NEURODISK_CORE, checkRedFlags, deriveDirectionalPattern, directionalPatternLabel } from '/js/assessments.js?v=2';
+    import { NEURODISK_CORE, checkRedFlags, deriveDirectionalPattern, directionalPatternLabel } from '/js/assessments.js?v=3';
 
     const SUPABASE_URL      = 'https://jqxykxkikvrgwnajhhbi.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_t1EUH4wn9vtNBC7pUNbKOA_OhFfWsEi';
