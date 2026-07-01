@@ -149,6 +149,87 @@ export const PROGRAM_TEMPLATES = {
   },
 };
 
+// ── Sélection multi-conditions (sur-mesure par tags) ──────────
+// Conditions qui CONTRE-INDIQUENT la mise en charge en extension.
+export const EXTENSION_CONTRA = ['stenose_foraminale', 'stenose_spinale', 'spondylolisthesis', 'spondylolyse'];
+// Conditions à préférence directionnelle en extension (McKenzie).
+export const EXTENSION_PREF = ['hernie_discale', 'radiculopathie', 'sciatique', 'protrusion_discale_lombaire'];
+
+export function conditionRegion(id) {
+  if (/cervical|cephalee/.test(id)) return 'cervical';
+  if (id === 'trousse_depart' || id === 'autre') return 'universel';
+  return 'lombaire';
+}
+function mgRegion(mg = '') { return /cervical|scapulaire|thoracique|trap|omoplate|m[ée]dian|cubital/i.test(mg) ? 'cervical' : 'lombaire'; }
+function isExtensionLoading(mg = '') { return /extension \(mckenzie\)|extension douce|renforcement lombaire/i.test(mg); }
+function phaseCategory(mg = '') {
+  if (/renforcement|gainage|fonctionnel|proprioception/i.test(mg)) return 'progression';
+  if (/mobilit|stabilisation|contr[ôo]le|d[ée]compression|neurodynamique|d[ée]tente|extension douce|a[ée]robie/i.test(mg)) return 'foundational';
+  return 'other';
+}
+// Dosage curé (depuis les templates) indexé par titre normalisé, pour une phase donnée.
+function curatedDosage(phase) {
+  const map = new Map();
+  Object.values(PROGRAM_TEMPLATES).forEach(prof => prof[phase].exercises.forEach(e => map.set(normalizeTitle(e.title), e)));
+  return map;
+}
+
+// Choisit jusqu'à 3 exercices adaptés à PLUSIEURS conditions.
+// `exercises` = banque client (chaque item : { id, title, muscle_group, condition_ids }).
+export function selectAdaptedExercises({ selectedConditions, phase, exercises }) {
+  const sel = selectedConditions || [];
+  const warnings = [];
+  const regions = new Set(sel.map(conditionRegion));
+  const hasExtPref = sel.some(c => EXTENSION_PREF.includes(c));
+  const hasExtContra = sel.some(c => EXTENSION_CONTRA.includes(c));
+  const excludeExtension = hasExtContra; // sécurité : extension retirée si une condition la contre-indique
+  if (hasExtPref && hasExtContra) {
+    warnings.push('Conditions à biais opposés détectées (extension vs flexion/décompression). Les exercices d’extension ont été exclus : programme neutre sécuritaire.');
+  }
+
+  let pool = exercises.filter(ex => (ex.condition_ids || []).some(c => sel.includes(c)));
+  if (excludeExtension) pool = pool.filter(ex => !isExtensionLoading(ex.muscle_group));
+  if (!pool.length) return { picks: [], warnings: ['Aucun exercice taggé pour ces conditions dans la banque.'] };
+
+  const dosage = curatedDosage(phase);
+  const target = phase === 'R24' ? 'progression' : 'foundational';
+  const coverageOf = ex => (ex.condition_ids || []).filter(c => sel.includes(c)).length;
+  const score = ex => {
+    const pc = phaseCategory(ex.muscle_group);
+    const phaseBonus = pc === target ? 3 : (pc === 'other' ? 0 : -2);
+    const curatedBonus = dosage.has(normalizeTitle(ex.title)) ? 1 : 0;
+    return coverageOf(ex) * 10 + phaseBonus + curatedBonus;
+  };
+  const ranked = pool.slice().sort((a, b) => score(b) - score(a));
+
+  let picks = [];
+  if (regions.has('cervical') && regions.has('lombaire')) {
+    const cerv = ranked.filter(ex => mgRegion(ex.muscle_group) === 'cervical');
+    const lomb = ranked.filter(ex => mgRegion(ex.muscle_group) === 'lombaire');
+    if (cerv[0]) picks.push(cerv[0]);
+    if (lomb[0]) picks.push(lomb[0]);
+    for (const ex of ranked) { if (picks.length >= 3) break; if (!picks.includes(ex)) picks.push(ex); }
+  } else {
+    picks = ranked.slice(0, 3);
+  }
+  picks = picks.slice(0, 3);
+
+  const out = picks.map(ex => {
+    const d = dosage.get(normalizeTitle(ex.title));
+    return {
+      id: ex.id, title: ex.title, muscle_group: ex.muscle_group,
+      sets: d ? d.sets : (phase === 'R24' ? 3 : 2),
+      reps: d ? d.reps : '',
+      rest_sec: d ? d.rest_sec : (phase === 'R24' ? 45 : 30),
+      frequency: d ? d.frequency : (phase === 'R24' ? '1×/jour' : '2×/jour'),
+      notes: d ? d.notes : '',
+      coverage: coverageOf(ex),
+    };
+  });
+  if (out.length < 3) warnings.push(`Seulement ${out.length} exercice(s) approprié(s) pour cette combinaison à cette phase — complétez manuellement au besoin.`);
+  return { picks: out, warnings };
+}
+
 // Normalise un titre pour un appariement robuste (accents/apostrophes/casse)
 export function normalizeTitle(t) {
   return String(t || '')

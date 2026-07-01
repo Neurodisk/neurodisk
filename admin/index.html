@@ -1271,7 +1271,7 @@
           </button>
           <div class="section-title">Générer un programme R12 / R24</div>
           <p style="color:var(--muted);font-size:.85rem;margin-bottom:1.25rem">
-            Programme fondé sur les données probantes selon le <strong>profil mécanique</strong> du patient (déduit de sa condition). R12 = phase fondamentale, R24 = progression. 3 exercices — ajustables ensuite.
+            Programme fondé sur les données probantes, <strong>adapté aux conditions du patient</strong>. R12 = phase fondamentale, R24 = progression. Coche une ou plusieurs conditions : le programme priorise les exercices appropriés à toutes. 3 exercices — ajustables ensuite.
           </p>
           <div class="card">
             <div id="alertTemplates" class="alert"></div>
@@ -1279,10 +1279,9 @@
               <label for="tplPatient">Patient *</label>
               <select id="tplPatient"><option value="">— Sélectionner un patient —</option></select>
             </div>
-            <div class="field" style="max-width:420px;margin-bottom:1rem">
-              <label for="tplProfile">Profil mécanique</label>
-              <select id="tplProfile"></select>
-              <p id="tplProfileHint" style="font-size:.78rem;color:var(--muted);margin:.35rem 0 0"></p>
+            <div class="field" style="margin-bottom:1rem">
+              <label>Conditions à couvrir <span style="font-weight:400;color:var(--muted)">— pré-cochées depuis le dossier</span></label>
+              <div id="tplConditions" class="access-checks" style="max-height:180px"></div>
             </div>
             <div id="tplPreview" style="margin-top:1rem"></div>
           </div>
@@ -2425,7 +2424,7 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
     import { PROM_DEFS, PROM_LIST, renderPromForm, collectProm, renderPromChart } from '/js/proms.js?v=1';
     import { NEURODISK_CORE, directionalPatternLabel } from '/js/assessments.js?v=3';
-    import { TEMPLATE_PROFILES, PROGRAM_TEMPLATES, profileForConditions, profileLabel, normalizeTitle } from '/js/program-templates.js?v=2';
+    import { TEMPLATE_PROFILES, PROGRAM_TEMPLATES, profileForConditions, profileLabel, normalizeTitle, selectAdaptedExercises, conditionRegion } from '/js/program-templates.js?v=3';
     import { buildRapportBlob } from '/js/rapport.js?v=1';
 
     const SUPABASE_URL      = 'https://jqxykxkikvrgwnajhhbi.supabase.co';
@@ -5611,50 +5610,78 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       await initTemplatesView();
     });
 
+    let tplCondList = []; // conditions (id,label) pour la vue templates
+
     async function initTemplatesView() {
       if (!allPatients.length) await loadPatients();
       if (!allExercisesLib.length) await loadExercises();
+      if (!tplCondList.length) {
+        const { data } = await sb.from('conditions').select('id, label').order('sort_order');
+        tplCondList = data || [];
+      }
       const selP = document.getElementById('tplPatient');
       const pts = allPatients.filter(p => !p.is_admin && !p.is_professional);
       selP.innerHTML = `<option value="">— Sélectionner un patient —</option>` +
         pts.map(p => `<option value="${esc(p.id)}">${esc(p.full_name || p.email)}</option>`).join('');
-      const selPr = document.getElementById('tplProfile');
-      selPr.innerHTML = TEMPLATE_PROFILES.map(pr => `<option value="${pr.code}">${esc(pr.label)}</option>`).join('');
-      document.getElementById('tplPreview').innerHTML = '';
-      document.getElementById('tplProfileHint').textContent = '';
+      renderTplConditions([]);
+      document.getElementById('tplPreview').innerHTML = `<p style="color:var(--muted);font-size:.85rem">Sélectionnez un patient (ses conditions se cocheront), puis prévisualisez.</p>`;
       setAlert(document.getElementById('alertTemplates'), '', '');
 
       selP.onchange = async () => {
         const pid = selP.value;
-        if (!pid) { document.getElementById('tplProfileHint').textContent = ''; return; }
-        const { data } = await sb.from('patient_conditions').select('condition_id').eq('patient_id', pid);
-        const condIds = (data || []).map(c => c.condition_id);
-        const auto = profileForConditions(condIds);
-        selPr.value = auto;
-        document.getElementById('tplProfileHint').textContent = condIds.length
-          ? `Profil déduit des conditions du patient (${condIds.join(', ')}) — modifiable.`
-          : 'Aucune condition enregistrée pour ce patient — profil universel par défaut.';
+        let checked = [];
+        if (pid) {
+          const { data } = await sb.from('patient_conditions').select('condition_id').eq('patient_id', pid);
+          checked = (data || []).map(c => c.condition_id);
+        }
+        renderTplConditions(checked);
         renderTemplatePreview();
       };
-      selPr.onchange = renderTemplatePreview;
+    }
+
+    function renderTplConditions(checkedIds) {
+      const wrap = document.getElementById('tplConditions');
+      const set = new Set(checkedIds);
+      wrap.innerHTML = tplCondList.map(c =>
+        `<label style="display:flex;align-items:center;gap:.4rem;font-size:.84rem;cursor:pointer"><input type="checkbox" class="tpl-cond" value="${esc(c.id)}" ${set.has(c.id) ? 'checked' : ''}> ${esc(c.label)}</label>`
+      ).join('');
+      wrap.querySelectorAll('.tpl-cond').forEach(cb => cb.addEventListener('change', renderTemplatePreview));
+    }
+
+    const selectedTplConditions = () => [...document.querySelectorAll('#tplConditions .tpl-cond:checked')].map(c => c.value);
+
+    // Curé si une seule condition (ou toutes du même profil), sinon sur-mesure par tags.
+    function computeTplProgram(selected, phase) {
+      const profiles = new Set(selected.map(c => profileForConditions([c])));
+      if (selected.length && profiles.size === 1) {
+        const code = [...profiles][0];
+        const t = PROGRAM_TEMPLATES[code][phase];
+        return { name: t.name, rationale: t.rationale, picks: t.exercises.map(e => ({ ...e })), warnings: [], mode: 'Template curé — ' + profileLabel(code) };
+      }
+      const r = selectAdaptedExercises({ selectedConditions: selected, phase, exercises: allExercisesLib });
+      return {
+        name: `Programme ${phase} — adapté (${selected.length} condition${selected.length > 1 ? 's' : ''})`,
+        rationale: 'Programme sur-mesure : exercices priorisés selon les conditions cochées.',
+        picks: r.picks, warnings: r.warnings, mode: 'Sur-mesure par tags',
+      };
     }
 
     function renderTemplatePreview() {
       const wrap = document.getElementById('tplPreview');
-      const profile = document.getElementById('tplProfile').value;
-      const tpl = PROGRAM_TEMPLATES[profile];
-      if (!tpl) { wrap.innerHTML = ''; return; }
+      const selected = selectedTplConditions();
+      if (!selected.length) { wrap.innerHTML = `<p style="color:var(--muted);font-size:.85rem">Cochez au moins une condition pour prévisualiser le programme.</p>`; return; }
       const phaseCard = (phase) => {
-        const t = tpl[phase];
+        const p = computeTplProgram(selected, phase);
         return `<div class="card" style="margin-bottom:1rem;border-left:4px solid var(--blue)">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:.5rem">
-            <strong>${esc(t.name)}</strong>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:.4rem">
+            <strong>${esc(p.name)}</strong>
             <button class="btn btn--primary btn--sm" onclick="generateTemplate('${phase}')">✓ Générer ${phase}</button>
           </div>
-          <p style="font-size:.8rem;color:var(--muted);margin:0 0 .6rem">${esc(t.rationale)}</p>
-          <ol style="margin:0;padding-left:1.2rem;font-size:.85rem">
-            ${t.exercises.map(e => `<li style="margin-bottom:.3rem"><strong>${esc(e.title)}</strong> — ${e.sets}×${esc(e.reps)}${e.rest_sec ? ', repos ' + e.rest_sec + 's' : ''}, ${esc(e.frequency)}${e.notes ? `<br><span style="color:var(--muted)">${esc(e.notes)}</span>` : ''}</li>`).join('')}
-          </ol>
+          <p style="font-size:.75rem;color:var(--muted);margin:0 0 .5rem">${esc(p.mode)}</p>
+          ${p.warnings.map(w => `<div class="alert alert--error is-visible" style="margin:.3rem 0">⚠️ ${esc(w)}</div>`).join('')}
+          ${p.picks.length ? `<ol style="margin:0;padding-left:1.2rem;font-size:.85rem">
+            ${p.picks.map(e => `<li style="margin-bottom:.35rem"><strong>${esc(e.title)}</strong>${e.coverage > 1 ? ` <span style="font-size:.7rem;background:#e8f1fb;color:#185FA5;border-radius:4px;padding:.05rem .35rem">${e.coverage} conditions</span>` : ''}<br><span style="color:var(--muted)">${e.sets}×${esc(e.reps || '—')}${e.rest_sec ? ', repos ' + e.rest_sec + 's' : ''}, ${esc(e.frequency || '—')}</span></li>`).join('')}
+          </ol>` : `<p style="color:#c0392b;font-size:.85rem">Aucun exercice adapté trouvé — vérifiez les tags de la banque.</p>`}
         </div>`;
       };
       wrap.innerHTML = phaseCard('R12') + phaseCard('R24');
@@ -5663,28 +5690,24 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     window.generateTemplate = async (phase) => {
       const alert = document.getElementById('alertTemplates');
       const patId = document.getElementById('tplPatient').value;
-      const profile = document.getElementById('tplProfile').value;
+      const selected = selectedTplConditions();
       if (!patId) { setAlert(alert, 'Sélectionnez d’abord un patient.', 'error'); return; }
-      const t = PROGRAM_TEMPLATES[profile]?.[phase];
-      if (!t) { setAlert(alert, 'Template introuvable.', 'error'); return; }
+      if (!selected.length) { setAlert(alert, 'Cochez au moins une condition.', 'error'); return; }
+      const p = computeTplProgram(selected, phase);
+      if (!p.picks.length) { setAlert(alert, 'Aucun exercice adapté à générer.', 'error'); return; }
 
-      // Résoudre les titres d'exercices → ids dans la banque
       const byTitle = new Map(allExercisesLib.map(ex => [normalizeTitle(ex.title), ex.id]));
       const resolved = [], missing = [];
-      t.exercises.forEach(e => {
-        const id = byTitle.get(normalizeTitle(e.title));
-        if (id) resolved.push({ ...e, id });
-        else missing.push(e.title);
+      p.picks.forEach(e => {
+        const id = e.id || byTitle.get(normalizeTitle(e.title));
+        if (id) resolved.push({ ...e, id }); else missing.push(e.title);
       });
-      if (missing.length) {
-        setAlert(alert, `Exercice(s) absent(s) de la banque : ${missing.join(' · ')}. Exécutez la migration 016 ou créez-les, puis réessayez.`, 'error');
-        return;
-      }
+      if (missing.length) { setAlert(alert, `Exercice(s) absent(s) de la banque : ${missing.join(' · ')}.`, 'error'); return; }
 
       try {
         const { data: { user } } = await sb.auth.getUser();
         const { data: prog, error: progErr } = await sb.from('programmes').insert({
-          name: t.name, patient_id: patId, description: t.rationale, created_by: user.id,
+          name: p.name, patient_id: patId, description: p.rationale || null, created_by: user.id,
         }).select().single();
         if (progErr) throw progErr;
 
@@ -5697,8 +5720,8 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         const { error: exErr } = await sb.from('patient_exercises').insert(rows);
         if (exErr) throw exErr;
 
-        toast(`Programme « ${t.name} » créé pour ce patient.`, 'success');
-        setAlert(alert, `✓ Programme ${phase} généré — ajustez-le au besoin dans la liste des programmes.`, 'success');
+        toast(`Programme « ${p.name} » créé.`, 'success');
+        setAlert(alert, `✓ Programme ${phase} généré (${resolved.length} exercices) — ajustez-le au besoin dans la liste des programmes.`, 'success');
         await loadProgrammes();
       } catch (err) {
         setAlert(alert, 'Erreur : ' + err.message, 'error');
