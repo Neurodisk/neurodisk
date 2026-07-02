@@ -710,6 +710,7 @@
       <a class="sidebar__link sidebar__sub" data-section="proms" data-perm="proms" href="#">
         <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
         Questionnaires
+        <span id="redFlagSidebarBadge" style="display:none;margin-left:auto;background:#dc2626;color:#fff;font-size:.7rem;font-weight:700;min-width:18px;height:18px;border-radius:9px;padding:0 5px;align-items:center;justify-content:center"></span>
       </a>
       <a class="sidebar__link sidebar__sub" data-section="adherence" data-perm="programme" href="#">
         <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
@@ -2423,7 +2424,7 @@
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
     import { PROM_DEFS, PROM_LIST, renderPromForm, collectProm, renderPromChart } from '/js/proms.js?v=1';
-    import { NEURODISK_CORE, directionalPatternLabel } from '/js/assessments.js?v=3';
+    import { NEURODISK_CORE, directionalPatternLabel, renderAssessmentChart, ASSESS_CHART_DEFS, buildScoreSerie, buildPainSerie } from '/js/assessments.js?v=4';
     import { TEMPLATE_PROFILES, PROGRAM_TEMPLATES, profileForConditions, profileLabel, normalizeTitle, selectAdaptedExercises, conditionRegion } from '/js/program-templates.js?v=4';
     import { buildRapportBlob } from '/js/rapport.js?v=1';
 
@@ -2996,6 +2997,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
         // 4. Chat professionnel
         initChat(session.user.id, profile.full_name || profile.email);
+
+        // 5. Badge drapeaux rouges (sidebar) + temps réel
+        initRedFlagBadge();
 
       } catch (err) {
         hideLoader();
@@ -7742,7 +7746,31 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       if (error) { toast('Erreur : ' + error.message, 'error'); return; }
       toast('Alerte acquittée.', 'success');
       loadRedFlagAlerts();
+      updateRedFlagBadge();
     };
+
+    // ── Badge drapeaux rouges (sidebar) + temps réel ──────
+    async function updateRedFlagBadge() {
+      const badge = document.getElementById('redFlagSidebarBadge');
+      if (!badge) return;
+      const { count } = await sb.from('red_flag_alerts')
+        .select('id', { count: 'exact', head: true }).is('acknowledged_at', null);
+      const n = count || 0;
+      badge.textContent = n;
+      badge.style.display = n ? 'inline-flex' : 'none';
+    }
+
+    let redFlagChannel = null;
+    function initRedFlagBadge() {
+      updateRedFlagBadge();
+      if (redFlagChannel) return;
+      redFlagChannel = sb.channel('red-flag-alerts')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'red_flag_alerts' }, () => {
+          updateRedFlagBadge();
+          if (document.getElementById('sec-proms')?.classList.contains('is-active')) loadRedFlagAlerts();
+        })
+        .subscribe();
+    }
 
     // ══════════════════════════════════════════════════════
     // Bilans Neurodisk (tronc commun) par patient
@@ -7756,8 +7784,15 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       if (error) { wrap.innerHTML = `<p style="color:#c0392b;font-size:.85rem">Erreur : ${esc(error.message)}</p>`; return; }
       if (!rows || !rows.length) { wrap.innerHTML = `<p style="color:var(--muted);font-size:.85rem">Aucun bilan complété par ce patient.</p>`; return; }
 
+      // Courbes d'évolution (douleur EVA 7j, QBPDS, STarT Back)
+      const asc = rows.slice().sort((a, b) => new Date(a.completed_at) - new Date(b.completed_at));
+      const charts = renderAssessmentChart(ASSESS_CHART_DEFS.pain, buildPainSerie(asc))
+        + renderAssessmentChart(ASSESS_CHART_DEFS.qbpds, buildScoreSerie(asc, 'qbpds'))
+        + renderAssessmentChart(ASSESS_CHART_DEFS.startback, buildScoreSerie(asc, 'startback'));
+      const chartsCard = charts ? `<div class="card" style="margin-bottom:1rem">${charts}</div>` : '';
+
       const RISK_LABELS = { faible: 'faible', moyen: 'moyen', eleve: 'élevé' };
-      wrap.innerHTML = rows.map(r => {
+      wrap.innerHTML = chartsCard + rows.map(r => {
         const scores = r.assessment_scores || [];
         const pattern = scores.find(s => s.subscores?.directional_pattern)?.subscores?.directional_pattern;
         const qbpds = scores.find(s => s.instrument === 'qbpds');

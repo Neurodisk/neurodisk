@@ -1,6 +1,6 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
     import { PROM_DEFS, PROM_LIST, renderPromForm, collectProm, renderPromChart } from '/js/proms.js?v=1';
-    import { NEURODISK_CORE, QBPDS, STARTBACK, checkRedFlags, deriveDirectionalPattern, directionalPatternLabel, scoreQBPDS, scoreStartBack, renderPlaceholderScale, collectPlaceholderScale } from '/js/assessments.js?v=3';
+    import { NEURODISK_CORE, QBPDS, STARTBACK, checkRedFlags, deriveDirectionalPattern, directionalPatternLabel, scoreQBPDS, scoreStartBack, renderPlaceholderScale, collectPlaceholderScale, renderAssessmentChart, ASSESS_CHART_DEFS, buildPainSerie } from '/js/assessments.js?v=4';
 
     // Conditions pour lesquelles le module lombaire (QBPDS + STarT Back) s'ajoute au bilan
     const LOMBAR_CONDITIONS = ['hernie_discale', 'sciatique', 'radiculopathie', 'stenose_foraminale', 'stenose_spinale', 'arthrose_lombaire', 'spondylolyse', 'spondylolisthesis'];
@@ -576,9 +576,14 @@
       const wrap = document.getElementById('assessWrap');
       if (!wrap) return;
       const { data: rows } = await supabase.from('assessments')
-        .select('id, type, completed_at').eq('patient_id', userId).order('completed_at', { ascending: false });
+        .select('id, type, completed_at, assessment_responses(item_key, value)')
+        .eq('patient_id', userId).order('completed_at', { ascending: false });
       const hasInitial = (rows || []).some(r => r.type === 'initial');
       const last = rows && rows[0];
+
+      // Courbe de douleur moyenne (7 j) dans le temps — motivant pour le patient
+      const asc = (rows || []).slice().sort((a, b) => new Date(a.completed_at) - new Date(b.completed_at));
+      const painChart = renderAssessmentChart(ASSESS_CHART_DEFS.pain, buildPainSerie(asc));
 
       wrap.innerHTML = `
         <div style="background:#fff;border:1px solid #dbe4f0;border-radius:12px;padding:.9rem 1rem;margin-bottom:.6rem">
@@ -591,6 +596,7 @@
               ${hasInitial ? 'Faire une réévaluation' : 'Remplir mon bilan initial'}
             </button>
           </div>
+          ${painChart ? `<div style="margin-top:.6rem;border-top:1px solid #eef2f8;padding-top:.4rem">${painChart}</div>` : ''}
         </div>`;
       wrap.style.display = 'block';
     }

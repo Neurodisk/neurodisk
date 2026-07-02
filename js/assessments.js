@@ -117,4 +117,55 @@ export function collectPlaceholderScale(def, mountEl) {
   return answers;
 }
 
+// ── Courbes d'évolution (SVG, sans dépendance) ────────────────
+export const ASSESS_CHART_DEFS = {
+  pain:      { short: 'Douleur moyenne (7 jours)', unit: '/10',  max: 10,  mcid: 2,    betterHigh: false },
+  qbpds:     { short: 'QBPDS — incapacité lombaire', unit: '/100', max: 100, mcid: 17.5, betterHigh: false },
+  startback: { short: 'STarT Back — risque',        unit: '/9',  max: 9,   mcid: null, betterHigh: false },
+};
+
+export function renderAssessmentChart(def, responses) {
+  const rows = (responses || []).slice()
+    .sort((a, b) => new Date(a.completed_at) - new Date(b.completed_at))
+    .filter(r => r.score !== null && r.score !== undefined && r.score !== '');
+  if (rows.length === 0) return '';
+  const W = 520, H = 170, padL = 38, padR = 16, padT = 16, padB = 30, max = def.max;
+  const xs = i => rows.length === 1 ? (padL + (W - padL - padR) / 2) : padL + i * (W - padL - padR) / (rows.length - 1);
+  const ys = v => padT + (1 - v / max) * (H - padT - padB);
+  const pts = rows.map((r, i) => [xs(i), ys(Number(r.score))]);
+  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const first = Number(rows[0].score), last = Number(rows[rows.length - 1].score);
+  const improved = def.mcid != null && (def.betterHigh ? (last - first) >= def.mcid : (first - last) >= def.mcid);
+  const lineColor = improved ? '#1e8a4c' : '#2563EB';
+  const grid = [0, 0.25, 0.5, 0.75, 1].map(f => {
+    const y = padT + f * (H - padT - padB); const val = Math.round((1 - f) * max);
+    return `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#eef2f8"/><text x="${padL - 6}" y="${y + 3}" text-anchor="end" font-size="9" fill="#94a3b8">${val}</text>`;
+  }).join('');
+  const dots = rows.map((r, i) => {
+    const [x, y] = pts[i]; const dt = new Date(r.completed_at).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' });
+    return `<circle cx="${x}" cy="${y}" r="3.5" fill="${lineColor}"/><text x="${x}" y="${y - 8}" text-anchor="middle" font-size="9" fill="#475569">${r.score}</text><text x="${x}" y="${H - padB + 14}" text-anchor="middle" font-size="9" fill="#94a3b8">${esc(dt)}</text>`;
+  }).join('');
+  const dir = def.betterHigh ? '↑ plus haut = mieux' : '↓ plus bas = mieux';
+  return `<div style="margin:.5rem 0">
+    <div style="font-size:.82rem;font-weight:600;color:#1B2B6B;margin-bottom:.15rem">${esc(def.short)} <span style="font-weight:400;color:#64748b">(${esc(def.unit)})</span></div>
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;font-family:Arial,sans-serif">${grid}<path d="${line}" fill="none" stroke="${lineColor}" stroke-width="2.5"/>${dots}</svg>
+    <div style="font-size:.72rem;color:#64748b">${dir}${def.mcid != null ? ` · seuil important ${def.mcid} ${esc(def.unit)}` : ''}${improved ? ' · <span style="color:#1e8a4c;font-weight:600">amélioration cliniquement significative</span>' : ''}</div>
+  </div>`;
+}
+
+// Construit une série {score, completed_at} pour un instrument, depuis des lignes d'assessments.
+export function buildScoreSerie(assessRows, instrument) {
+  return (assessRows || []).map(r => {
+    const s = (r.assessment_scores || []).find(x => x.instrument === instrument);
+    return (s && s.raw_score != null) ? { score: Number(s.raw_score), completed_at: r.completed_at } : null;
+  }).filter(Boolean);
+}
+// Série de douleur moyenne (7j) depuis les réponses du tronc commun.
+export function buildPainSerie(assessRows) {
+  return (assessRows || []).map(r => {
+    const p = (r.assessment_responses || []).find(x => x.item_key === 'pain_avg7');
+    return (p && p.value != null && p.value !== '') ? { score: Number(p.value), completed_at: r.completed_at } : null;
+  }).filter(Boolean);
+}
+
 export { ASSESSMENT_DEFS, NEURODISK_CORE, QBPDS, STARTBACK };
