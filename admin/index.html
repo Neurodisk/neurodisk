@@ -683,6 +683,10 @@
         <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Patients enregistrés
       </a>
+      <a class="sidebar__link sidebar__sub" data-section="dashboard" data-perm="patients" href="#">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        Tableau de bord
+      </a>
       <a class="sidebar__link sidebar__sub admin-only" data-section="resources" data-audience="patient" data-perm="resources_patient" href="#">
         <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
         Ressources
@@ -1732,6 +1736,24 @@
           </div>
         </div>
 
+      </section>
+
+      <!-- ════════════════════════════ TABLEAU DE BORD ══ -->
+      <section id="sec-dashboard" class="section">
+        <div class="section-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+          Tableau de bord patient
+        </div>
+        <p style="color:var(--muted);font-size:.85rem;margin-bottom:1.25rem">
+          Vue d'ensemble d'un patient : adhérence, évolution (bilan Neurodisk + questionnaires), drapeaux rouges, patron directionnel et dernière impression de changement.
+        </p>
+        <div class="card">
+          <div class="field" style="max-width:420px">
+            <label for="dashPatient">Patient</label>
+            <select id="dashPatient"><option value="">— Sélectionner un patient —</option></select>
+          </div>
+        </div>
+        <div id="dashWrap" style="margin-top:1rem"></div>
       </section>
 
       <!-- ════════════════════════════════════ PROMs ══ -->
@@ -3062,6 +3084,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         } else if (sec === 'objectives') {
           document.getElementById('sec-objectives').classList.add('is-active');
           initObjectivesSection();
+        } else if (sec === 'dashboard') {
+          document.getElementById('sec-dashboard').classList.add('is-active');
+          initDashboard();
         } else if (sec === 'proms') {
           document.getElementById('sec-proms').classList.add('is-active');
           initPromsSection();
@@ -6109,6 +6134,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
           </div>
           <div class="td-actions">
             <button class="btn btn--ghost btn--sm" onclick="openProgEditModal('${p.id}')">✏️ Modifier</button>
+            <button class="btn btn--ghost btn--sm" onclick="printProgramme('${p.id}',this)">🖨️ Imprimer</button>
             <button class="btn btn--danger btn--sm" onclick="deleteProgramme('${p.id}','${esc(p.name)}',this)">Supprimer</button>
           </div>
         </div>`;
@@ -6350,6 +6376,78 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       if (error) { toast('Erreur : ' + error.message, 'error'); btn.disabled=false; btn.textContent='Supprimer'; return; }
       toast('Programme supprimé.', 'success');
       await loadProgrammes();
+    };
+
+    // ── Handout imprimable / PDF (photos + QR vidéo) ──────
+    window.printProgramme = async (progId, btn) => {
+      if (btn) { btn.disabled = true; btn.textContent = '…'; }
+      try {
+        const { data: prog } = await sb.from('programmes')
+          .select('name, description, patient:profiles!patient_id(full_name, email)').eq('id', progId).single();
+        const { data: exs } = await sb.from('patient_exercises')
+          .select('sets, reps, rest_sec, frequency, notes, sort_order, exercise:exercises(title, description, muscle_group, video_url, thumbnail_url, exercise_images(url, sort_order))')
+          .eq('programme_id', progId).order('sort_order');
+
+        const QR = (await import('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/+esm')).default;
+        const makeQR = (url) => { if (!url) return ''; const qr = QR(0, 'M'); qr.addData(url); qr.make(); return qr.createDataURL(4, 4); };
+
+        const origin = location.origin;
+        const patientName = prog?.patient?.full_name || prog?.patient?.email || '';
+        const rows = (exs || []).map((pe, i) => {
+          const ex = pe.exercise || {};
+          const imgs = (ex.exercise_images || []).slice().sort((a, b) => a.sort_order - b.sort_order);
+          const photo = imgs[0]?.url || ex.thumbnail_url || '';
+          const qr = ex.video_url ? makeQR(ex.video_url) : '';
+          const dosage = [pe.sets ? `${pe.sets} série${pe.sets > 1 ? 's' : ''}` : '', pe.reps ? `${esc(pe.reps)} rép.` : '', pe.rest_sec ? `repos ${pe.rest_sec}s` : '', pe.frequency ? esc(pe.frequency) : ''].filter(Boolean).join(' · ');
+          return `<div class="ex">
+            <div class="ex-num">${i + 1}</div>
+            ${photo ? `<img class="ex-photo" src="${esc(photo)}">` : `<div class="ex-photo ph"></div>`}
+            <div class="ex-body">
+              <div class="ex-title">${esc(ex.title || '')}</div>
+              ${ex.muscle_group ? `<div class="ex-mg">${esc(ex.muscle_group)}</div>` : ''}
+              ${dosage ? `<div class="ex-dose">${dosage}</div>` : ''}
+              ${pe.notes ? `<div class="ex-note">📝 ${esc(pe.notes)}</div>` : ''}
+              ${ex.description ? `<div class="ex-desc">${esc(ex.description)}</div>` : ''}
+            </div>
+            ${qr ? `<div class="ex-qr"><img src="${qr}"><span>▶ Vidéo</span></div>` : ''}
+          </div>`;
+        }).join('');
+
+        const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${esc(prog?.name || 'Programme')}</title>
+        <style>
+          *{box-sizing:border-box} body{font-family:Arial,Helvetica,sans-serif;color:#1e293b;margin:0;padding:24px}
+          .hdr{display:flex;align-items:center;gap:14px;border-bottom:3px solid #1B2B6B;padding-bottom:12px;margin-bottom:16px}
+          .hdr img{height:40px} .hdr h1{font-size:18px;color:#1B2B6B;margin:0} .hdr .sub{font-size:12px;color:#64748b;margin-top:2px}
+          .ex{display:flex;gap:14px;align-items:flex-start;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:12px;page-break-inside:avoid}
+          .ex-num{flex:0 0 26px;height:26px;border-radius:50%;background:#1B2B6B;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+          .ex-photo{flex:0 0 110px;width:110px;height:110px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0}
+          .ex-photo.ph{background:#f1f5f9} .ex-body{flex:1;min-width:0}
+          .ex-title{font-weight:700;font-size:15px;color:#1B2B6B} .ex-mg{font-size:12px;color:#64748b}
+          .ex-dose{font-size:13px;font-weight:600;margin:4px 0}
+          .ex-note{font-size:12px;background:#fffbeb;border-left:3px solid #f59e0b;padding:4px 8px;border-radius:0 6px 6px 0;margin:4px 0;color:#92400e}
+          .ex-desc{font-size:11.5px;color:#475569;line-height:1.45;margin-top:4px}
+          .ex-qr{flex:0 0 84px;text-align:center} .ex-qr img{width:80px;height:80px} .ex-qr span{display:block;font-size:10px;color:#64748b}
+          .foot{margin-top:16px;font-size:11px;color:#94a3b8;text-align:center}
+          @media print{ body{padding:0} .noprint{display:none} }
+        </style></head><body>
+          <div class="hdr">
+            <img src="${origin}/assets/logo-neurodisk.png">
+            <div><h1>${esc(prog?.name || "Programme d'exercices")}</h1><div class="sub">${esc(patientName)} · ${new Date().toLocaleDateString('fr-CA')}</div></div>
+          </div>
+          ${prog?.description ? `<p style="font-size:12px;color:#475569;margin:0 0 14px">${esc(prog.description)}</p>` : ''}
+          ${rows || '<p>Aucun exercice dans ce programme.</p>'}
+          <div class="foot">Clinique Neurodisk · Scannez les QR codes pour voir les vidéos de démonstration.</div>
+          <button class="noprint" onclick="window.print()" style="position:fixed;top:12px;right:12px;padding:8px 14px;background:#1B2B6B;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px">🖨️ Imprimer / PDF</button>
+        </body></html>`;
+
+        const w = window.open('', '_blank');
+        if (!w) { toast('Autorisez les fenêtres pop-up pour imprimer.', 'error'); return; }
+        w.document.write(html); w.document.close(); w.focus();
+      } catch (err) {
+        toast('Erreur impression : ' + err.message, 'error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '🖨️ Imprimer'; }
+      }
     };
 
     // ── Charger les exercices ─────────────────────────────
@@ -7770,6 +7868,98 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
           if (document.getElementById('sec-proms')?.classList.contains('is-active')) loadRedFlagAlerts();
         })
         .subscribe();
+    }
+
+    // ══════════════════════════════════════════════════════
+    // TABLEAU DE BORD PATIENT (vue 360 agrégée)
+    // ══════════════════════════════════════════════════════
+    async function initDashboard() {
+      if (!allPatients.length) await loadPatients();
+      if (!tplCondList.length) { const { data } = await sb.from('conditions').select('id, label').order('sort_order'); tplCondList = data || []; }
+      const sel = document.getElementById('dashPatient');
+      const pts = allPatients.filter(p => !p.is_admin && !p.is_professional);
+      sel.innerHTML = `<option value="">— Sélectionner un patient —</option>` +
+        pts.map(p => `<option value="${esc(p.id)}">${esc(p.full_name || p.email)}</option>`).join('');
+      document.getElementById('dashWrap').innerHTML = `<p style="color:var(--muted);font-size:.85rem">Sélectionnez un patient pour voir sa vue d'ensemble.</p>`;
+      sel.onchange = () => { if (sel.value) renderDashboard(sel.value); else document.getElementById('dashWrap').innerHTML = ''; };
+    }
+
+    async function renderDashboard(pid) {
+      const wrap = document.getElementById('dashWrap');
+      wrap.innerHTML = `<div class="empty-state">Chargement…</div>`;
+      const [{ data: conds }, { data: pex }, { data: logs }, { data: proms }, { data: assess }, { data: flags }] = await Promise.all([
+        sb.from('patient_conditions').select('condition_id').eq('patient_id', pid),
+        sb.from('patient_exercises').select('exercise_id').eq('patient_id', pid),
+        sb.from('exercise_logs').select('completed_at').eq('patient_id', pid),
+        sb.from('prom_responses').select('instrument, score, completed_at').eq('patient_id', pid).order('completed_at'),
+        sb.from('assessments').select('type, completed_at, assessment_scores(instrument, raw_score, subscores), assessment_responses(item_key, value)').eq('patient_id', pid).order('completed_at'),
+        sb.from('red_flag_alerts').select('id, flag_key, created_at').eq('patient_id', pid).is('acknowledged_at', null).order('created_at', { ascending: false }),
+      ]);
+
+      // Conditions
+      const condMap = Object.fromEntries(tplCondList.map(c => [c.id, c.label]));
+      const condChips = (conds || []).length
+        ? (conds || []).map(c => `<span class="badge" style="background:#e8f1fb;color:#185FA5">${esc(condMap[c.condition_id] || c.condition_id)}</span>`).join(' ')
+        : `<span style="color:var(--muted);font-size:.82rem">Aucune condition enregistrée</span>`;
+
+      // Adhérence
+      const times = (logs || []).map(l => new Date(l.completed_at).getTime());
+      const now = Date.now();
+      const last = times.length ? Math.max(...times) : null;
+      const daysSince = last != null ? Math.floor((now - last) / 864e5) : null;
+      const count7 = times.filter(t => (now - t) <= 7 * 864e5).length;
+      let status = 'Aucune activité', color = '#94a3b8';
+      if (daysSince != null && daysSince <= 3) { status = 'Actif'; color = '#1e8a4c'; }
+      else if (daysSince != null && daysSince <= 7) { status = 'À risque'; color = '#b8860b'; }
+      else if (daysSince != null) { status = 'Décroché'; color = '#c0392b'; }
+      const assignedCount = (pex || []).length;
+
+      // Courbes bilan + PROMs
+      const asc = (assess || []).slice().sort((a, b) => new Date(a.completed_at) - new Date(b.completed_at));
+      const bilanCharts = renderAssessmentChart(ASSESS_CHART_DEFS.pain, buildPainSerie(asc))
+        + renderAssessmentChart(ASSESS_CHART_DEFS.qbpds, buildScoreSerie(asc, 'qbpds'))
+        + renderAssessmentChart(ASSESS_CHART_DEFS.startback, buildScoreSerie(asc, 'startback'));
+      const promByInstr = {}; (proms || []).forEach(r => { (promByInstr[r.instrument] = promByInstr[r.instrument] || []).push(r); });
+      const promCharts = Object.keys(promByInstr).map(code => renderPromChart(code, promByInstr[code])).join('');
+
+      // Dernier PGIC + patron directionnel
+      const lastSuivi = [...asc].reverse().find(r => r.type === 'suivi');
+      const pgic = lastSuivi ? (lastSuivi.assessment_responses || []).find(x => x.item_key === 'pgic')?.value : null;
+      const lastAssess = asc[asc.length - 1];
+      const pattern = lastAssess ? (lastAssess.assessment_scores || []).find(s => s.subscores?.directional_pattern)?.subscores?.directional_pattern : null;
+
+      // Drapeaux rouges
+      const FLAG_LABELS = Object.fromEntries(NEURODISK_CORE.redFlags.map(f => [f.key, f.label]));
+      const flagsHtml = (flags || []).length ? `
+        <div class="card" style="background:#fef2f2;border-color:#fca5a5;margin-bottom:1rem">
+          <div style="font-weight:700;color:#b91c1c;margin-bottom:.4rem">⚠️ Drapeaux rouges à traiter (${flags.length})</div>
+          ${flags.map(a => `<div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;font-size:.85rem;padding:.3rem 0;border-top:1px solid #fecaca">
+            <span style="color:#7f1d1d">${esc(FLAG_LABELS[a.flag_key] || a.flag_key)} — ${fmtDate(a.created_at)}</span>
+            <button class="btn btn--ghost btn--sm" onclick="acknowledgeRedFlag('${a.id}')">✓ Acquitter</button>
+          </div>`).join('')}
+        </div>` : '';
+
+      const metric = (label, value, sub, valColor) => `
+        <div style="min-width:140px">
+          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)">${label}</div>
+          <div style="font-weight:700;font-size:1.05rem;color:${valColor || 'var(--text)'}">${value}</div>
+          ${sub ? `<div style="font-size:.76rem;color:var(--muted)">${sub}</div>` : ''}
+        </div>`;
+
+      wrap.innerHTML = `
+        ${flagsHtml}
+        <div class="card" style="margin-bottom:1rem">
+          <div style="display:flex;flex-wrap:wrap;gap:1.75rem;align-items:flex-start">
+            ${metric('Adhérence', status, `${count7} séance(s)/7j${daysSince != null ? ` · dernière il y a ${daysSince} j` : ''}${assignedCount ? ` · ${assignedCount} ex. assignés` : ''}`, color)}
+            ${pattern ? metric('Patron directionnel', esc(directionalPatternLabel(pattern).split(' (')[0]), directionalPatternLabel(pattern).split(' (')[1]?.replace(')', '') || '') : ''}
+            ${pgic ? metric('Dernière impression (PGIC)', esc(pgic), lastSuivi ? fmtDate(lastSuivi.completed_at) : '') : ''}
+          </div>
+          <div style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.35rem">${condChips}</div>
+        </div>
+        ${bilanCharts ? `<div class="card" style="margin-bottom:1rem"><div style="font-weight:700;color:#1B2B6B;margin-bottom:.4rem">Évolution — Bilan Neurodisk</div>${bilanCharts}</div>` : ''}
+        ${promCharts ? `<div class="card" style="margin-bottom:1rem"><div style="font-weight:700;color:#1B2B6B;margin-bottom:.4rem">Évolution — Questionnaires (PROMs)</div>${promCharts}</div>` : ''}
+        ${!bilanCharts && !promCharts ? `<p style="color:var(--muted);font-size:.85rem">Aucune donnée d'évolution enregistrée pour l'instant.</p>` : ''}
+      `;
     }
 
     // ══════════════════════════════════════════════════════
