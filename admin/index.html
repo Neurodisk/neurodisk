@@ -1891,6 +1891,19 @@
           <label>Conditions appropriées <span style="font-weight:400;color:var(--muted)">optionnel</span></label>
           <div class="access-checks" id="exEditConditions" style="max-height:130px"></div>
         </div>
+        <div class="field" style="grid-column:1/-1">
+          <label>Photos <span style="font-weight:400;color:var(--muted)">la 1re sert de vignette</span></label>
+          <div class="drop-zone" id="exEditDropZone" tabindex="0" role="button" aria-label="Zone photos" style="padding:.9rem">
+            <div class="drop-zone__icon">🖼️</div>
+            <p class="drop-zone__label"><strong>Glissez des photos ici</strong> ou cliquez pour choisir<br><span style="font-size:.75rem">JPG, PNG, WebP — plusieurs à la fois</span></p>
+          </div>
+          <input type="file" id="exEditFileInput" accept="image/*" multiple style="display:none">
+          <div id="exEditImagesGrid" class="images-preview-grid" style="display:none"></div>
+          <div class="upload-progress" id="exEditUploadProgress" style="display:none">
+            <div class="upload-progress__track"><div class="upload-progress__bar" id="exEditUploadBar"></div></div>
+            <p class="upload-progress__status" id="exEditUploadStatus">Upload en cours…</p>
+          </div>
+        </div>
       </div>
       <div style="display:flex;gap:.75rem;margin-top:1.25rem">
         <button class="btn btn--primary" id="btnExEditSave">Enregistrer</button>
@@ -6516,8 +6529,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
     // ── Modal édition exercice ────────────────────────────
     let exEditId = null;
+    let exEditImages = []; // photos de l'exercice en cours d'édition
 
-    window.openExEditModal = (id) => {
+    window.openExEditModal = async (id) => {
       const ex = allExercisesLib.find(e => e.id === id);
       if (!ex) return;
       exEditId = id;
@@ -6526,9 +6540,61 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       document.getElementById('exEditMuscle').value = ex.muscle_group || '';
       renderAccessChecks('exEditConditions', 'exEditCond', ex.condition_ids || []);
       setAlert(document.getElementById('alertExEdit'), '', '');
+      // Réinitialiser + charger les photos existantes
+      exEditImages = [];
+      document.getElementById('exEditUploadProgress').style.display = 'none';
+      renderExEditImages();
       document.getElementById('modalExEdit').classList.add('is-open');
       document.getElementById('exEditTitle').focus();
+      const { data: imgs } = await sb.from('exercise_images').select('url, sort_order').eq('exercise_id', id).order('sort_order');
+      exEditImages = (imgs || []).map((im, i) => ({ url: im.url, sort_order: i }));
+      renderExEditImages();
     };
+
+    function renderExEditImages() {
+      const grid = document.getElementById('exEditImagesGrid');
+      if (!exEditImages.length) { grid.style.display = 'none'; grid.innerHTML = ''; return; }
+      grid.style.display = 'grid';
+      grid.innerHTML = exEditImages.map((img, i) => `
+        <div class="image-preview-item">
+          <img src="${esc(img.url)}" alt="Photo ${i + 1}" loading="lazy">
+          ${i === 0 ? '<span class="image-preview-item__badge">Vignette</span>' : ''}
+          <button class="image-preview-item__remove" onclick="removeExEditImg(${i})" title="Supprimer">✕</button>
+        </div>`).join('');
+    }
+    window.removeExEditImg = idx => { exEditImages.splice(idx, 1); exEditImages.forEach((im, i) => im.sort_order = i); renderExEditImages(); };
+
+    async function uploadExEditImages(files) {
+      const prog = document.getElementById('exEditUploadProgress');
+      const bar = document.getElementById('exEditUploadBar');
+      const stat = document.getElementById('exEditUploadStatus');
+      prog.style.display = 'block'; let done = 0;
+      bar.style.width = '0%'; stat.textContent = `0 / ${files.length} photo(s)…`; stat.className = 'upload-progress__status';
+      for (const file of files) {
+        try {
+          const safe = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+          const name = `${Date.now()}-${Math.random().toString(36).slice(2)}-${safe}`;
+          const { data, error } = await sb.storage.from('images').upload(name, file, { contentType: file.type, upsert: false });
+          if (error) throw error;
+          const { data: { publicUrl } } = sb.storage.from('images').getPublicUrl(data.path);
+          exEditImages.push({ url: publicUrl, sort_order: exEditImages.length }); done++;
+          bar.style.width = Math.round(done / files.length * 100) + '%'; stat.textContent = `${done} / ${files.length} photo(s)…`;
+        } catch (err) { toast(`Erreur "${file.name}" : ${err.message}`, 'error'); }
+      }
+      bar.style.width = '100%'; stat.textContent = `✅ ${done} photo(s) ajoutée(s)`; stat.className = 'upload-progress__status is-done';
+      renderExEditImages(); document.getElementById('exEditFileInput').value = '';
+    }
+
+    (() => {
+      const dz = document.getElementById('exEditDropZone');
+      const fi = document.getElementById('exEditFileInput');
+      dz.addEventListener('click', () => fi.click());
+      dz.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fi.click(); });
+      dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('is-over'); });
+      dz.addEventListener('dragleave', () => dz.classList.remove('is-over'));
+      dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('is-over'); const files = Array.from(e.dataTransfer?.files || []).filter(f => f.type.startsWith('image/')); if (files.length) uploadExEditImages(files); else toast('Veuillez déposer des images.', 'error'); });
+      fi.addEventListener('change', e => { const files = Array.from(e.target.files || []).filter(f => f.type.startsWith('image/')); if (files.length) uploadExEditImages(files); });
+    })();
 
     const closeExEditModal = () => {
       document.getElementById('modalExEdit').classList.remove('is-open');
@@ -6553,11 +6619,10 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
       const { error } = await sb.from('exercises').update({
         title, description: desc || null, muscle_group: muscle || null,
+        thumbnail_url: exEditImages[0]?.url || null,
       }).eq('id', exEditId);
 
-      btn.disabled = false; btn.textContent = 'Enregistrer';
-
-      if (error) { setAlert(alertEl, 'Erreur : ' + error.message, 'error'); return; }
+      if (error) { btn.disabled = false; btn.textContent = 'Enregistrer'; setAlert(alertEl, 'Erreur : ' + error.message, 'error'); return; }
 
       // Mettre à jour les conditions : supprimer les anciennes, insérer les nouvelles
       const newConds = [...document.querySelectorAll('#exEditConditions input:checked')].map(c => c.value);
@@ -6566,6 +6631,13 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         await sb.from('exercise_conditions').insert(newConds.map(cid => ({ exercise_id: exEditId, condition_id: cid })));
       }
 
+      // Synchroniser les photos : remplacer exercise_images par la liste courante
+      await sb.from('exercise_images').delete().eq('exercise_id', exEditId);
+      if (exEditImages.length) {
+        await sb.from('exercise_images').insert(exEditImages.map((im, i) => ({ exercise_id: exEditId, url: im.url, sort_order: i })));
+      }
+
+      btn.disabled = false; btn.textContent = 'Enregistrer';
       toast('Exercice mis à jour.', 'success');
       closeExEditModal();
       await loadExercises();
