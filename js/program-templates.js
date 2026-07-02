@@ -162,6 +162,9 @@ export function conditionRegion(id) {
 }
 function mgRegion(mg = '') { return /cervical|scapulaire|thoracique|trap|omoplate|m[ée]dian|cubital/i.test(mg) ? 'cervical' : 'lombaire'; }
 function isExtensionLoading(mg = '') { return /extension \(mckenzie\)|extension douce|renforcement lombaire/i.test(mg); }
+// Exercices avancés (mise en charge, pliométrie, retour au sport) — exclus de la
+// génération R12/R24 : phases tardives, à assigner à la main seulement.
+function isAdvanced(mg = '') { return /avanc|mise en charge|pliom|retour (au sport|[àa] la course)/i.test(mg); }
 function phaseCategory(mg = '') {
   if (/renforcement|gainage|fonctionnel|proprioception/i.test(mg)) return 'progression';
   if (/mobilit|stabilisation|contr[ôo]le|d[ée]compression|neurodynamique|d[ée]tente|extension douce|a[ée]robie/i.test(mg)) return 'foundational';
@@ -188,6 +191,7 @@ export function selectAdaptedExercises({ selectedConditions, phase, exercises })
   }
 
   let pool = exercises.filter(ex => (ex.condition_ids || []).some(c => sel.includes(c)));
+  pool = pool.filter(ex => !isAdvanced(ex.muscle_group)); // R12/R24 = réadaptation, pas de niveau avancé
   if (excludeExtension) pool = pool.filter(ex => !isExtensionLoading(ex.muscle_group));
   if (!pool.length) return { picks: [], warnings: ['Aucun exercice taggé pour ces conditions dans la banque.'] };
 
