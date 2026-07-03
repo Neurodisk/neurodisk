@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/library.css?v=16">
+  <link rel="stylesheet" href="/css/library.css?v=17">
   <!-- PWA -->
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#1B2B6B">
@@ -93,6 +93,29 @@
         <button id="btnPromSubmit" style="flex:1;padding:.7rem;background:#1B2B6B;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">Envoyer</button>
         <button id="btnPromCancel" style="padding:.7rem 1rem;background:#f0f0f0;border:none;border-radius:8px;cursor:pointer">Annuler</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Loi 25 — Consentement à la collecte (bloquant, 1re connexion patient) -->
+  <div id="consentModal" style="display:none;position:fixed;inset:0;z-index:10001;align-items:center;justify-content:center;background:rgba(10,16,40,.75);padding:1rem">
+    <div style="background:#fff;border-radius:16px;max-width:640px;width:100%;max-height:92vh;overflow:auto;padding:2rem;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+      <h2 style="margin:0 0 .5rem;font-size:1.35rem;color:#1B2B6B">🔒 Protection de vos renseignements personnels</h2>
+      <p style="font-size:1rem;color:#475569;margin:0 0 1rem">Avant d'utiliser votre espace, veuillez lire et accepter ce qui suit.</p>
+      <div style="font-size:1.02rem;line-height:1.7;color:#1e293b">
+        <p style="margin:0 0 .8rem"><strong>Quels renseignements ?</strong> Votre identité et vos coordonnées, votre condition et vos résultats cliniques (questionnaires, bilans, douleur), vos programmes d'exercices et leur suivi, ainsi que les messages échangés avec la clinique.</p>
+        <p style="margin:0 0 .8rem"><strong>Pourquoi ?</strong> Uniquement pour votre suivi clinique à la Clinique Neurodisk : personnaliser vos exercices, mesurer votre progression et assurer votre sécurité.</p>
+        <p style="margin:0 0 .8rem"><strong>Qui y a accès ?</strong> Seulement l'équipe clinique autorisée. Vos données sont hébergées au <strong>Canada</strong>, chiffrées, et chaque consultation de votre dossier est journalisée. Elles ne sont jamais vendues ni partagées à des fins commerciales.</p>
+        <p style="margin:0 0 .8rem"><strong>Vos droits.</strong> Vous pouvez en tout temps consulter, faire rectifier ou faire effacer vos renseignements, ou retirer votre consentement, en vous adressant au responsable de la protection des renseignements personnels : <strong>Dr Christian Bergeron (D.C.)</strong>, via la clinique.</p>
+      </div>
+      <label style="display:flex;align-items:flex-start;gap:.7rem;margin:1.25rem 0;font-size:1.02rem;cursor:pointer;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:.9rem 1rem">
+        <input type="checkbox" id="consentCheck" style="width:24px;height:24px;flex-shrink:0;cursor:pointer;margin-top:.1rem">
+        <span>J'ai lu et je <strong>consens</strong> à la collecte et à l'utilisation de mes renseignements personnels aux fins décrites ci-dessus.</span>
+      </label>
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+        <button id="btnConsentAccept" disabled style="flex:1;min-width:200px;padding:1rem;font-size:1.05rem;font-weight:600;background:#1B2B6B;color:#fff;border:none;border-radius:10px;cursor:pointer">J'accepte et je continue</button>
+        <button id="btnConsentDecline" style="padding:1rem 1.2rem;font-size:1rem;background:#f1f5f9;color:#475569;border:none;border-radius:10px;cursor:pointer">Je refuse</button>
+      </div>
+      <p style="font-size:.85rem;color:#94a3b8;margin:.9rem 0 0">Si vous refusez, vous serez déconnecté(e) — contactez la clinique pour discuter de vos options.</p>
     </div>
   </div>
 
@@ -436,6 +459,6 @@
     </div>
   </div>
 
-  <script type="module" src="/js/library.js?v=44"></script>
+  <script type="module" src="/js/library.js?v=45"></script>
 </body>
 </html>

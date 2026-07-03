@@ -490,6 +490,9 @@
     .btn-filme-toi:active { transform: translateY(0); }
     .ex-modal__filme-hint { margin: .5rem 0 0; font-size: .82rem; color: #6b7280; text-align: center; }
 
+    /* Consentement Loi 25 */
+    #btnConsentAccept:disabled { opacity: .45; cursor: not-allowed; }
+
     /* Photos multiples dans le modal */
     .ex-modal__photos { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: 2px; }
     .ex-modal__photo-thumb {

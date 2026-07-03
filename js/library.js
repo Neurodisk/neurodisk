@@ -189,6 +189,9 @@
       _userId  = user.id;
       _isAdmin = isAdmin;
 
+      // Loi 25 — consentement à la collecte (patients seulement), bloquant à la 1re connexion
+      if (!isAdmin && !isPro) checkConsent(user.id);
+
       if (isAdmin && !isPro) document.getElementById('btnAdmin').style.display = 'flex';
       if (isPro) {
         document.getElementById('btnProfessionnel').style.display = 'flex';
@@ -207,6 +210,43 @@
         _chatBindEvents();
         initLibraryChat(user.id, profile.full_name || user.email);
       }
+    }
+
+    // ── Loi 25 : consentement à la collecte (bloquant, versionné) ──
+    const CONSENT_VERSION = '2026-07-v1';
+
+    async function checkConsent(userId) {
+      try {
+        const { data, error } = await supabase.from('consents')
+          .select('id').eq('user_id', userId).eq('version', CONSENT_VERSION).maybeSingle();
+        if (error) return; // table absente (migration non exécutée) : ne pas bloquer le patient
+        if (data) return;  // déjà consenti à cette version
+      } catch { return; }
+
+      const modal = document.getElementById('consentModal');
+      if (!modal) return;
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+
+      document.getElementById('consentCheck').onchange = (e) => {
+        document.getElementById('btnConsentAccept').disabled = !e.target.checked;
+      };
+      document.getElementById('btnConsentAccept').onclick = async () => {
+        const btn = document.getElementById('btnConsentAccept');
+        btn.disabled = true; btn.textContent = '…';
+        const { error } = await supabase.from('consents').insert({ user_id: userId, version: CONSENT_VERSION });
+        if (error && error.code !== '23505') { // 23505 = déjà inséré (double clic) : on laisse passer
+          btn.disabled = false; btn.textContent = "J'accepte et je continue";
+          toast('Erreur : ' + error.message, 'error');
+          return;
+        }
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      };
+      document.getElementById('btnConsentDecline').onclick = async () => {
+        await supabase.auth.signOut();
+        window.location.replace('/');
+      };
     }
 
     async function loadNextAppointment(userId) {
