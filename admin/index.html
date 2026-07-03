@@ -195,7 +195,7 @@
     /* ── Bibliothèque d'exercices ── */
     .ex-lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem; }
     .ex-lib-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; display: flex; flex-direction: column; gap: .75rem; }
-    .ex-lib-card__thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; background: var(--bg); }
+    .ex-lib-card__thumb { width: 100%; aspect-ratio: 4/3; object-fit: contain; border-radius: 8px; background: #eef2f7; padding: .35rem; }
     .ex-lib-card__thumb-placeholder { width: 100%; aspect-ratio: 16/9; border-radius: 8px; background: var(--bg); display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 2rem; }
     .ex-lib-card__title { font-size: .95rem; font-weight: 700; color: var(--text); }
     .ex-lib-card__desc { font-size: .8rem; color: var(--muted); line-height: 1.5; }
@@ -982,7 +982,7 @@
                     <input type="file" id="fileInputThumb" accept="image/*" style="display:none" aria-hidden="true">
                   </label>
                   <div id="thumbPreviewWrap" style="display:none;position:relative">
-                    <img id="thumbPreview" src="" alt="Aperçu" style="width:120px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #ccdaeb">
+                    <img id="thumbPreview" src="" alt="Aperçu" style="width:120px;height:120px;object-fit:contain;border-radius:8px;border:1px solid #ccdaeb;background:#eef2f7;padding:3px">
                     <button type="button" id="btnRemoveThumb" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#e53e3e;color:#fff;border:none;cursor:pointer;font-size:.7rem;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
                   </div>
                   <span id="thumbUploadStatus" style="font-size:.8rem;color:var(--muted);align-self:center"></span>
@@ -2073,7 +2073,7 @@
                 <input type="file" id="fileInputEditThumb" accept="image/*" style="display:none" aria-hidden="true">
               </label>
               <div id="editThumbPreviewWrap" style="display:none;position:relative">
-                <img id="editThumbPreview" src="" alt="Aperçu" style="width:120px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #ccdaeb">
+                <img id="editThumbPreview" src="" alt="Aperçu" style="width:120px;height:120px;object-fit:contain;border-radius:8px;border:1px solid #ccdaeb;background:#eef2f7;padding:3px">
                 <button type="button" id="btnRemoveEditThumb" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#e53e3e;color:#fff;border:none;cursor:pointer;font-size:.7rem;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
               </div>
               <span id="editThumbStatus" style="font-size:.8rem;color:var(--muted);align-self:center"></span>
