@@ -204,7 +204,10 @@
         loadProSurveys(user.id);
       }
 
-      await Promise.all([loadCategories(), loadResources(user.id, isAdmin), loadPatientForms(user.id, isAdmin), loadNextAppointment(user.id), loadProms(user.id), loadAssessments(user.id)]);
+      // Note : loadAssessments (bloc « Bilan Neurodisk ») retiré de la vue patient —
+      // la page patient présente uniquement le programme d'entraînement. Le bilan
+      // et sa saisie restent gérés côté clinicien (admin). Données intactes.
+      await Promise.all([loadCategories(), loadResources(user.id, isAdmin), loadPatientForms(user.id, isAdmin), loadNextAppointment(user.id), loadProms(user.id)]);
 
       if (isAdmin || isPro) {
         _chatBindEvents();
@@ -1361,7 +1364,7 @@
         if (session) {
           const res = await supabase
             .from('programmes')
-            .select('id, name, description, created_at, section_id, section:programme_sections(name, sort_order)')
+            .select('id, name, description, created_at, created_by, section_id, section:programme_sections(name, sort_order)')
             .eq('patient_id', session.user.id)
             .order('created_at', { ascending: false });
           if (res.error) throw res.error;
@@ -1457,9 +1460,14 @@
       // Navigation tabs entre programmes (si > 1)
       renderProgNav(programmeId);
 
-      // Nom du programme
+      // Nom du programme + méta (professionnel, date)
       const titleEl = document.getElementById('progTitle');
       titleEl.innerHTML = `<span class="prog-title__icon">🗂️</span>${esc(activeProgramme?.name || 'Mon programme')}`;
+      const dateEl = document.getElementById('progDate');
+      if (dateEl) dateEl.textContent = activeProgramme?.created_at
+        ? 'Programme du ' + new Date(activeProgramme.created_at).toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' })
+        : '';
+      setProgProf(activeProgramme?.created_by);
 
       const grid = document.getElementById('exerciseGrid');
       grid.innerHTML = `<div class="state-wrap"><div class="spinner"></div></div>`;
@@ -1497,7 +1505,6 @@
         programmeData = { exercises: data || [], completedToday, logCounts };
         Cache.set('prog_' + programmeId, data || []);
         showExercises();
-        renderProgressCalendar();
 
       } catch(e) {
         const cached = Cache.get('prog_' + programmeId);
@@ -1505,7 +1512,6 @@
           programmeData = { exercises: cached, completedToday: new Set(), logCounts: {} };
           if (!navigator.onLine) setOfflineBanner(true);
           showExercises();
-          try { renderProgressCalendar(); } catch {}
         } else {
           grid.innerHTML = `<div class="state-wrap"><p class="state-title">Erreur de chargement</p></div>`;
         }
@@ -1548,34 +1554,73 @@
         return;
       }
 
-      grid.innerHTML = exercises.map(pe =>
-        renderExerciseCard(pe, completedToday.has(pe.exercise?.id), logCounts[pe.exercise?.id] || 0)
+      grid.innerHTML = exercises.map((pe, i) =>
+        renderExerciseCard(pe, completedToday.has(pe.exercise?.id), logCounts[pe.exercise?.id] || 0, i)
       ).join('');
 
-      // Clic sur toute la carte → modal de détail
-      grid.querySelectorAll('.ex-card').forEach(card => {
-        card.addEventListener('click', e => {
-          // Ne pas ouvrir le modal si on clique sur le bouton "compléter"
-          if (e.target.closest('.btn-complete')) return;
-          const peId = card.dataset.peId;
-          const pe = programmeData.exercises.find(p => p.id === peId);
+      // « Voir l'exercice » (image + bouton) → modal de détail
+      grid.querySelectorAll('[data-see]').forEach(el => {
+        el.addEventListener('click', () => {
+          const pe = programmeData.exercises.find(p => p.id === el.dataset.see);
           if (pe) openExerciseModal(pe);
         });
-        card.addEventListener('keydown', e => {
-          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
-        });
       });
 
-      // Bouton compléter
-      grid.querySelectorAll('.btn-complete').forEach(btn => {
-        btn.addEventListener('click', e => { e.stopPropagation(); toggleComplete(btn); });
+      // Case « J'ai fait cet exercice »
+      grid.querySelectorAll('.btn-complete').forEach(cb => {
+        cb.addEventListener('click', e => e.stopPropagation());
+        cb.addEventListener('change', () => toggleComplete(cb));
       });
 
-      // Init carousels
       grid.querySelectorAll('.carousel').forEach(initCarousel);
     }
 
-    function renderExerciseCard(pe, doneToday, totalCount) {
+    // Nom du professionnel (créateur du programme). RLS peut bloquer la lecture
+    // du profil du clinicien → repli sur un libellé générique.
+    const _profCache = {};
+    async function setProgProf(creatorId) {
+      const el = document.getElementById('progProf');
+      if (!el) return;
+      if (!creatorId) { el.textContent = 'Votre professionnel Neurodisk'; return; }
+      if (_profCache[creatorId] !== undefined) { el.textContent = _profCache[creatorId]; return; }
+      try {
+        const { data } = await supabase.from('profiles').select('full_name').eq('id', creatorId).maybeSingle();
+        const name = data?.full_name ? data.full_name : 'Votre professionnel Neurodisk';
+        _profCache[creatorId] = name;
+        el.textContent = name;
+      } catch { el.textContent = 'Votre professionnel Neurodisk'; }
+    }
+
+    // Sépare la description d'un exercice en consignes / précautions.
+    // Format banque : « Consignes : … • Dosage suggéré : … • Précautions : … • À filmer : … »
+    function parseExDesc(d) {
+      if (!d) return { consignes: '', precautions: '' };
+      const grab = (label) => {
+        const m = d.match(new RegExp(label + '\\s*:\\s*([^•]*)'));
+        return m ? m[1].trim().replace(/[•\s]+$/, '').trim() : '';
+      };
+      const consignes = grab('Consignes');
+      const precautions = grab('Précautions');
+      // Pas de format structuré : tout le texte devient les consignes.
+      if (!consignes && !precautions) return { consignes: d.trim(), precautions: '' };
+      return { consignes, precautions };
+    }
+
+    // Dosage lisible : « 2 séries × 12 répétitions — repos 60 s — 1×/jour »
+    function dosageSentence(pe) {
+      const parts = [];
+      // « répétitions » seulement si les reps sont un nombre pur (sinon l'unité est déjà là : « 10 cycles », « 30 s/jambe »)
+      const reps = pe.reps != null ? String(pe.reps).trim() : '';
+      const repsTxt = reps ? (/^\d+$/.test(reps) ? `${esc(reps)} répétitions` : esc(reps)) : '';
+      if (pe.sets && repsTxt) parts.push(`${pe.sets} série${pe.sets > 1 ? 's' : ''} × ${repsTxt}`);
+      else if (pe.sets) parts.push(`${pe.sets} série${pe.sets > 1 ? 's' : ''}`);
+      else if (repsTxt) parts.push(repsTxt);
+      if (pe.rest_sec) parts.push(`repos ${fmtRest(pe.rest_sec)}`);
+      if (pe.frequency) parts.push(esc(pe.frequency));
+      return parts.join(' — ');
+    }
+
+    function renderExerciseCard(pe, doneToday, totalCount, index) {
       const ex       = pe.exercise;
       const hasVideo = !!(ex.video_url || ex.bunny_video_id);
       const images   = (ex.exercise_images || []).sort((a,b) => a.sort_order - b.sort_order);
@@ -1612,21 +1657,31 @@
         pe.frequency? `<div class="ex-param"><span class="ex-param__label">Fréquence</span><span class="ex-param__value">${esc(pe.frequency)}</span></div>` : '',
       ].filter(Boolean).join('');
 
-      return `<div class="ex-card" tabindex="0" data-pe-id="${pe.id}" aria-label="${esc(ex.title)} — appuyer pour les détails">
-        <div class="ex-card__thumb" style="position:relative;">
+      const dosage = dosageSentence(pe);
+      const { consignes, precautions } = parseExDesc(ex.description);
+      const category = ex.muscle_group ? esc(ex.muscle_group) : '';
+
+      return `<article class="prog-ex" data-pe-id="${pe.id}">
+        <div class="prog-ex__num">Exercice ${(index ?? 0) + 1}</div>
+        <button type="button" class="prog-ex__media" data-see="${pe.id}" aria-label="Voir l'exercice ${esc(ex.title)}" style="position:relative;">
           ${thumbContent}
+        </button>
+        <div class="prog-ex__body">
+          <h3 class="prog-ex__name">${esc(ex.title)}</h3>
+          ${category ? `<span class="prog-ex__cat">${category}</span>` : ''}
+          ${dosage ? `<div class="prog-ex__dose"><span class="prog-ex__dose-label">Dosage</span> ${dosage}</div>` : ''}
+          ${pe.notes ? `<div class="prog-ex__pronote"><strong>Note de votre professionnel :</strong> ${esc(pe.notes)}</div>` : ''}
+          ${consignes ? `<div class="prog-ex__block"><h4 class="prog-ex__label">Consignes</h4><p class="prog-ex__text">${esc(consignes)}</p></div>` : ''}
+          ${precautions ? `<div class="prog-ex__watch"><h4 class="prog-ex__watch-title">À surveiller</h4><p class="prog-ex__text">${esc(precautions)}</p></div>` : ''}
+          <div class="prog-ex__actions">
+            <button type="button" class="prog-ex__see-btn" data-see="${pe.id}">Voir l'exercice</button>
+            <label class="prog-ex__done${doneToday ? ' is-done' : ''}">
+              <input type="checkbox" class="btn-complete" data-exercise="${esc(ex.id)}" data-done="${doneToday}" ${doneToday ? 'checked' : ''}>
+              <span>${doneToday ? 'Fait aujourd\'hui' : "J'ai fait cet exercice"}</span>
+            </label>
+          </div>
         </div>
-        <div class="ex-card__body">
-          ${ex.muscle_group ? `<span class="muscle-badge">💪 ${esc(ex.muscle_group)}</span>` : ''}
-          ${!hasVideo ? `<h3 style="font-size:.95rem;font-weight:700;color:var(--text);letter-spacing:-.01em;line-height:1.35">${esc(ex.title)}</h3>` : ''}
-          ${params ? `<div class="ex-params">${params}</div>` : ''}
-          <button class="btn-complete${doneToday?' is-done':''}" data-exercise="${esc(ex.id)}" data-done="${doneToday}">
-            <svg viewBox="0 0 24 24">${doneToday?'<path d="M20 6L9 17l-5-5"/>':'<circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>'}</svg>
-            ${doneToday ? 'Complété aujourd\'hui ✓' : 'Marquer comme complété'}
-          </button>
-          ${totalCount > 0 ? `<p class="ex-streak"><strong>${totalCount}</strong> séance${totalCount>1?'s':''} complétée${totalCount>1?'s':''} au total</p>` : ''}
-        </div>
-      </div>`;
+      </article>`;
     }
 
     // ── Modal de détail exercice ──────────────────────────
@@ -1734,41 +1789,25 @@
       }
     });
 
-    // ── Compléter un exercice ─────────────────────────────
-    async function toggleComplete(btn) {
-      if (!currentUserId) { toast('Session expirée. Rechargez la page.', 'error'); return; }
-      const exerciseId = btn.dataset.exercise;
-      const isDone = btn.dataset.done === 'true';
-      btn.disabled = true;
+    // ── Compléter un exercice (case discrète, alimente l'adhérence) ──
+    async function toggleComplete(cb) {
+      if (!currentUserId) { toast('Session expirée. Rechargez la page.', 'error'); cb.checked = !cb.checked; return; }
+      const exerciseId = cb.dataset.exercise;
+      const label = cb.closest('.prog-ex__done');
+      const span  = label ? label.querySelector('span') : null;
+      cb.disabled = true;
 
-      if (!isDone) {
+      if (cb.checked) {
         const { error } = await supabase.from('exercise_logs').insert({ patient_id: currentUserId, exercise_id: exerciseId });
-        if (!error) {
-          btn.dataset.done = 'true';
-          btn.classList.add('is-done');
-          btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Complété aujourd'hui ✓`;
-          toast('Exercice complété ! 💪', 'success');
-          const streak = btn.parentElement.querySelector('.ex-streak');
-          if (streak) {
-            const n = parseInt(streak.querySelector('strong').textContent) + 1;
-            streak.innerHTML = `<strong>${n}</strong> séance${n>1?'s':''} complétée${n>1?'s':''} au total`;
-          } else {
-            const s = document.createElement('p');
-            s.className = 'ex-streak';
-            s.innerHTML = `<strong>1</strong> séance complétée au total`;
-            btn.after(s);
-          }
-        }
+        if (error) { cb.checked = false; toast('Erreur, réessayez.', 'error'); }
+        else { cb.dataset.done = 'true'; label && label.classList.add('is-done'); if (span) span.textContent = 'Fait aujourd\'hui'; toast('Bien joué ! 💪', 'success'); }
       } else {
         const todayStart = new Date(); todayStart.setHours(0,0,0,0);
         const { error } = await supabase.from('exercise_logs').delete().eq('patient_id', currentUserId).eq('exercise_id', exerciseId).gte('completed_at', todayStart.toISOString());
-        if (!error) {
-          btn.dataset.done = 'false';
-          btn.classList.remove('is-done');
-          btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg> Marquer comme complété`;
-        }
+        if (error) { cb.checked = true; toast('Erreur, réessayez.', 'error'); }
+        else { cb.dataset.done = 'false'; label && label.classList.remove('is-done'); if (span) span.textContent = "J'ai fait cet exercice"; }
       }
-      btn.disabled = false;
+      cb.disabled = false;
     }
 
     function fmtRest(sec) {

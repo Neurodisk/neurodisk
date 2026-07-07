@@ -341,7 +341,7 @@
     .btn-back svg { stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
 
     /* ── GRILLE EXERCICES ── */
-    .exercise-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.5rem; }
+    .exercise-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 1.5rem; }
 
     /* ── NAVIGATION ENTRE PROGRAMMES ── */
     .prog-nav {
@@ -692,15 +692,93 @@
     }
     .tour-tip__next:hover { background: var(--blue-dark); }
 
+    /* ══ PAGE PROGRAMME D'ENTRAÎNEMENT (patient) ══ */
+    .prog-hero { margin-bottom: 1.5rem; }
+    .prog-hero__topline { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+    .prog-hero__logo { height: 40px; width: auto; }
+    .prog-hero__title { font-size: 1.9rem; font-weight: 800; color: var(--navy); line-height: 1.2; letter-spacing: -.02em; margin: 0; }
+    .prog-hero__subtitle { font-size: 1.15rem; color: var(--muted); margin: .35rem 0 0; }
+    .prog-hero__meta { display: flex; flex-wrap: wrap; gap: .4rem 1.25rem; margin-top: .85rem; font-size: 1.02rem; }
+    .prog-hero__prof { font-weight: 700; color: var(--navy); }
+    .prog-hero__prof::before { content: "👤 "; }
+    .prog-hero__date { color: var(--muted); }
+    .prog-hero .prog-title { font-size: 1.35rem; margin-top: 1rem; padding-bottom: .85rem; border-bottom: 2px solid var(--border); }
+
+    /* Bloc d'introduction rassurant */
+    .prog-intro {
+      background: linear-gradient(135deg, #eef4ff, #f4f8ff);
+      border: 1px solid #d6e4ff; border-left: 5px solid var(--blue);
+      border-radius: 14px; padding: 1.15rem 1.35rem; margin-bottom: 1.25rem;
+      font-size: 1.12rem; line-height: 1.65; color: #26364f;
+    }
+
+    /* Comment utiliser votre programme */
+    .prog-howto {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.35rem 1.5rem; margin-bottom: 2rem;
+      box-shadow: 0 1px 3px rgba(20,40,80,.05);
+    }
+    .prog-howto__title { display: flex; align-items: center; gap: .6rem; font-size: 1.2rem; font-weight: 700; color: var(--navy); margin: 0 0 .85rem; }
+    .prog-howto__title svg { color: var(--blue); flex-shrink: 0; }
+    .prog-howto__list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .7rem; }
+    .prog-howto__list li { position: relative; padding-left: 1.9rem; font-size: 1.08rem; line-height: 1.55; color: #26364f; }
+    .prog-howto__list li::before {
+      content: ""; position: absolute; left: 0; top: .35rem;
+      width: 1.15rem; height: 1.15rem; border-radius: 50%;
+      background: #dbeafe url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") center/12px no-repeat;
+    }
+
+    /* ── CARTE EXERCICE (programme) ── */
+    .prog-ex {
+      background: #fff; border: 1px solid #e6ecf5; border-radius: 18px;
+      overflow: hidden; box-shadow: 0 2px 12px rgba(20,40,80,.06);
+      display: flex; flex-direction: column;
+    }
+    .prog-ex__num {
+      background: var(--navy); color: #fff; font-size: .92rem; font-weight: 700;
+      letter-spacing: .02em; padding: .5rem 1.15rem;
+    }
+    .prog-ex__media {
+      display: block; width: 100%; border: none; padding: .5rem;
+      background: #eef2f7; aspect-ratio: 4/3; position: relative; cursor: pointer;
+    }
+    .prog-ex__media img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .prog-ex__body { padding: 1.15rem 1.35rem 1.35rem; display: flex; flex-direction: column; gap: .7rem; }
+    .prog-ex__name { font-size: 1.4rem; font-weight: 700; color: var(--navy); line-height: 1.25; margin: 0; }
+    .prog-ex__cat {
+      align-self: flex-start; background: #eef4ff; color: #185FA5;
+      font-size: .9rem; font-weight: 600; padding: .3rem .8rem; border-radius: 100px;
+    }
+    .prog-ex__dose {
+      background: #f0f7ff; border: 1px solid #d6e4ff; border-radius: 12px;
+      padding: .8rem 1rem; font-size: 1.15rem; font-weight: 700; color: #123a6b;
+    }
+    .prog-ex__dose-label {
+      display: inline-block; font-size: .78rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; color: #2563eb; margin-right: .4rem;
+    }
+    .prog-ex__pronote { background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 0 10px 10px 0; padding: .7rem 1rem; font-size: 1.05rem; line-height: 1.55; color: #7c5200; }
+    .prog-ex__label { font-size: .82rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 .3rem; }
+    .prog-ex__text { font-size: 1.1rem; line-height: 1.6; color: #26364f; margin: 0; }
+    .prog-ex__watch {
+      background: #fef6f5; border: 1px solid #f6d5d1; border-radius: 12px; padding: .8rem 1rem;
+    }
+    .prog-ex__watch-title { font-size: .85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #b23b2e; margin: 0 0 .3rem; }
+    .prog-ex__watch-title::before { content: "⚠ "; }
+    .prog-ex__watch .prog-ex__text { color: #7a2e25; }
+    .prog-ex__actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-top: .35rem; }
+    .prog-ex__see-btn {
+      display: inline-flex; align-items: center; gap: .4rem;
+      background: var(--blue); color: #fff; border: none; border-radius: 12px;
+      padding: .8rem 1.4rem; font-size: 1.05rem; font-weight: 600; cursor: pointer;
+      min-height: 48px; transition: background 150ms;
+    }
+    .prog-ex__see-btn:hover { background: var(--blue-dark); }
+    .prog-ex__done { display: inline-flex; align-items: center; gap: .55rem; font-size: 1rem; color: var(--muted); cursor: pointer; user-select: none; }
+    .prog-ex__done input { width: 26px; height: 26px; accent-color: #0f8a48; cursor: pointer; }
+    .prog-ex__done.is-done { color: #0f8a48; font-weight: 600; }
+
     /* ── BOUTON IMPRIMER ── */
-    .prog-title-row {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 1rem; padding-bottom: 1rem; margin-bottom: 1.75rem;
-      border-bottom: 2px solid var(--border);
-    }
-    .prog-title-row .prog-title {
-      padding-bottom: 0; margin-bottom: 0; border-bottom: none; flex: 1;
-    }
     .btn-print {
       display: inline-flex; align-items: center; gap: .5rem;
       padding: .75rem 1.25rem; border-radius: 100px;
@@ -712,65 +790,42 @@
     .btn-print:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
     .btn-print svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-    /* ── EN-TÊTE D'IMPRESSION (caché à l'écran) ── */
-    .print-header { display: none; }
-
-    /* ── IMPRESSION ── */
+    /* ── IMPRESSION — document patient de clinique ── */
     @media print {
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-      /* Masquer tout ce qui ne sert pas à l'impression */
-      .page-loader, .nav, .hero, .tabs,
-      #tab-bibliotheque,
-      .btn-back, .prog-nav, .btn-print,
+      /* Masquer tout ce qui n'est pas le programme */
+      .page-loader, .nav, .hero, .tabs, .appointment-banner, #appointmentBanner,
+      #promWrap, #proSurveysWrap, #assessWrap, #consentModal,
+      .btn-back, .prog-nav, .btn-print, .prog-hero__topline,
       .modal-overlay, .ex-modal-overlay, .lightbox, .toast-wrap,
-      .btn-complete, .ex-streak, .ex-card__hint,
-      .ex-card__play, .ex-card__overlay { display: none !important; }
+      #libChatBtn, #libChatPanel, #libChatBadge,
+      .prog-ex__actions, .ex-card__hint, .ex-card__play, .ex-card__overlay,
+      .ex-card__title-overlay { display: none !important; }
 
       body { background: #fff; font-family: 'Montserrat', Arial, sans-serif; }
+      .main { padding: 0 1.25rem 1.5rem; max-width: 100%; }
 
-      .main { padding: 0 1.5rem 2rem; max-width: 100%; }
+      /* En-tête */
+      .prog-hero__title { font-size: 1.5rem; }
+      .prog-hero__subtitle { font-size: 1rem; }
+      .prog-hero__meta { font-size: .95rem; }
+      .prog-hero .prog-title { font-size: 1.15rem; }
+      .prog-intro { font-size: 1rem; border-radius: 8px; }
+      .prog-howto { box-shadow: none; page-break-inside: avoid; }
+      .prog-howto__list li { font-size: .98rem; }
 
-      /* En-tête de page */
-      .print-header {
-        display: flex !important; align-items: center;
-        justify-content: space-between;
-        padding: 1.25rem 0 1rem;
-        border-bottom: 2.5px solid #1B2B6B;
-        margin-bottom: 1.5rem;
-      }
-      .print-header__brand {
-        font-size: 1.1rem; font-weight: 800; color: #1B2B6B;
-        letter-spacing: -.02em;
-      }
-      .print-header__date { font-size: .78rem; color: #666; }
-
-      /* Titre du programme */
-      .prog-title-row { padding-bottom: .75rem; margin-bottom: 1.25rem; border-bottom: 1px solid #D8E2F0; }
-      .prog-title { font-size: 1.2rem !important; }
-      .prog-title__icon { width: 34px !important; height: 34px !important; font-size: 1.1rem !important; }
-
-      /* Grille exercices — 2 colonnes sur papier */
-      .exercise-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: .85rem !important;
-      }
-
-      /* Carte exercice */
-      .ex-card {
+      /* Une colonne, cartes entières non coupées */
+      .exercise-grid { grid-template-columns: 1fr !important; gap: 1rem !important; }
+      .prog-ex {
         break-inside: avoid; page-break-inside: avoid;
-        box-shadow: none !important; transform: none !important;
-        border: 1px solid #D8E2F0 !important;
+        box-shadow: none !important; border: 1px solid #cdd9ea !important;
       }
-      .ex-card__thumb { aspect-ratio: 4/3 !important; }
-      .ex-card__title-overlay { font-size: .8rem !important; }
-
-      /* Paramètres */
-      .ex-param { padding: .35rem .55rem !important; }
-      .ex-param__value { font-size: .8rem !important; }
-
-      /* Note pro */
-      .ex-note { font-size: .75rem !important; }
+      .prog-ex__num { background: #1B2B6B !important; }
+      .prog-ex__media { aspect-ratio: auto; max-height: 260px; }
+      .prog-ex__media img { max-height: 240px; }
+      .prog-ex__name { font-size: 1.25rem; }
+      .prog-ex__dose, .prog-ex__text { font-size: 1rem; }
     }
 
     /* ── FOCUS VISIBLE (accessibilité clavier) ── */

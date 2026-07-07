@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/library.css?v=17">
+  <link rel="stylesheet" href="/css/library.css?v=18">
   <!-- PWA -->
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#1B2B6B">
@@ -211,36 +211,50 @@
           Tous les programmes
         </button>
 
-        <!-- Navigation entre programmes (tabs) -->
+        <!-- ── En-tête du programme d'entraînement ── -->
+        <header class="prog-hero">
+          <div class="prog-hero__topline">
+            <img src="/assets/logo-neurodisk.png" class="prog-hero__logo" alt="Neurodisk" onerror="this.style.display='none'">
+            <button class="btn-print" id="btnPrint">
+              <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Imprimer
+            </button>
+          </div>
+          <h1 class="prog-hero__title">Programme d'entraînement adapté Neurodisk</h1>
+          <p class="prog-hero__subtitle">Préparé pour vous par votre professionnel Neurodisk</p>
+          <div class="prog-hero__meta">
+            <span id="progProf" class="prog-hero__prof"></span>
+            <span id="progDate" class="prog-hero__date"></span>
+          </div>
+          <div class="prog-title" id="progTitle"></div>
+        </header>
+
+        <!-- Navigation entre programmes (si plusieurs) -->
         <div class="prog-nav" id="progNav" style="display:none"></div>
 
-        <!-- En-tête visible uniquement à l'impression -->
-        <div class="print-header">
-          <span class="print-header__brand">Neurodisk — Programme d'exercices</span>
-          <span class="print-header__date" id="printDate"></span>
+        <!-- Bloc d'introduction rassurant -->
+        <div class="prog-intro">
+          Votre programme a été conçu pour vous aider à bouger progressivement, renforcer les bonnes zones
+          et améliorer votre confort au quotidien. Faites les exercices lentement, sans forcer,
+          et respectez toujours vos symptômes.
         </div>
 
-        <!-- Nom du programme + bouton imprimer -->
-        <div class="prog-title-row">
-          <div class="prog-title" id="progTitle"></div>
-          <button class="btn-print" id="btnPrint">
-            <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-            Imprimer le programme
-          </button>
+        <!-- Comment utiliser votre programme -->
+        <div class="prog-howto">
+          <h2 class="prog-howto__title">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            Comment utiliser votre programme
+          </h2>
+          <ul class="prog-howto__list">
+            <li>Faites les exercices dans l'ordre présenté.</li>
+            <li>Respectez le dosage indiqué pour chaque exercice.</li>
+            <li>La qualité du mouvement est plus importante que la quantité.</li>
+            <li>Respirez normalement pendant les exercices.</li>
+            <li>Arrêtez l'exercice si la douleur augmente fortement, descend dans la jambe, ou provoque des engourdissements importants.</li>
+          </ul>
         </div>
 
         <div class="exercise-grid" id="exerciseGrid"></div>
-
-        <!-- Calendrier de progression 30 jours -->
-        <div class="prog-calendar" id="progressCalendar" style="display:none">
-          <h3 class="prog-calendar__title">Ma progression — 30 derniers jours</h3>
-          <div class="prog-calendar__legend">
-            <span class="prog-calendar__legend-item"><span class="prog-calendar__dot" data-level="0"></span>Aucun</span>
-            <span class="prog-calendar__legend-item"><span class="prog-calendar__dot" data-level="1"></span>Partiel</span>
-            <span class="prog-calendar__legend-item"><span class="prog-calendar__dot" data-level="2"></span>Complet</span>
-          </div>
-          <div class="prog-calendar__grid" id="calendarGrid"></div>
-        </div>
       </div>
 
     </div>
@@ -459,6 +473,6 @@
     </div>
   </div>
 
-  <script type="module" src="/js/library.js?v=45"></script>
+  <script type="module" src="/js/library.js?v=46"></script>
 </body>
 </html>
