@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/library.css?v=18">
+  <link rel="stylesheet" href="/css/library.css?v=19">
   <!-- PWA -->
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#1B2B6B">
@@ -211,13 +211,63 @@
           Tous les programmes
         </button>
 
+        <!-- ── Page couverture (impression seulement) ── -->
+        <section class="print-cover">
+          <div class="print-cover__band">
+            <img src="/assets/logo-neurodisk.png" class="print-cover__logo" alt="Neurodisk">
+            <div class="print-cover__band-text">
+              <div class="print-cover__eyebrow">Clinique Neurodisk</div>
+              <div class="print-cover__title">Programme d'entraînement adapté</div>
+              <div class="print-cover__subtitle">Plan d'exercices personnalisé</div>
+            </div>
+          </div>
+
+          <div class="print-cover__info">
+            <div class="print-cover__info-row"><span>Patient</span><strong id="printCoverPatient"></strong></div>
+            <div class="print-cover__info-row"><span>Professionnel</span><strong id="printCoverProf"></strong></div>
+            <div class="print-cover__info-row"><span>Date du programme</span><strong id="printCoverDate"></strong></div>
+            <div class="print-cover__info-row"><span>Programme</span><strong id="printCoverName"></strong></div>
+          </div>
+
+          <div class="print-note-box print-cover__clinical">
+            Ce programme a été conçu pour vous aider à bouger progressivement, renforcer les bonnes zones
+            et améliorer votre confort au quotidien.
+          </div>
+
+          <div class="print-cover__section">
+            <h2>Objectifs du programme</h2>
+            <ul id="printCoverObjectives">
+              <li>Améliorer le contrôle du mouvement</li>
+              <li>Renforcer progressivement</li>
+              <li>Réduire les irritations liées aux positions prolongées</li>
+              <li>Favoriser un retour sécuritaire aux activités</li>
+            </ul>
+          </div>
+
+          <div class="print-cover__section">
+            <h2>Avant de commencer</h2>
+            <ul>
+              <li>Faites les exercices lentement.</li>
+              <li>Respectez vos douleurs.</li>
+              <li>Respirez normalement.</li>
+              <li>La qualité du mouvement est plus importante que la quantité.</li>
+              <li>Arrêtez si la douleur augmente fortement, descend dans la jambe, ou provoque des engourdissements importants.</li>
+            </ul>
+          </div>
+
+          <div class="print-footer">
+            <span>Neurodisk — Programme d'entraînement adapté</span>
+            <span id="printCoverFooterDate"></span>
+          </div>
+        </section>
+
         <!-- ── En-tête du programme d'entraînement ── -->
         <header class="prog-hero">
           <div class="prog-hero__topline">
             <img src="/assets/logo-neurodisk.png" class="prog-hero__logo" alt="Neurodisk" onerror="this.style.display='none'">
             <button class="btn-print" id="btnPrint">
               <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-              Imprimer
+              Imprimer mon programme
             </button>
           </div>
           <h1 class="prog-hero__title">Programme d'entraînement adapté Neurodisk</h1>
@@ -473,6 +523,6 @@
     </div>
   </div>
 
-  <script type="module" src="/js/library.js?v=47"></script>
+  <script type="module" src="/js/library.js?v=48"></script>
 </body>
 </html>

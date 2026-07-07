@@ -32,6 +32,7 @@
     let allPatientForms = [];
     let currentView = 'patient'; // 'patient' | 'professional'
     let _userId = null;
+    let _patientName = '';
     let _isAdmin = false;
     const loader = document.getElementById('pageLoader');
 
@@ -186,8 +187,9 @@
       const { data: profile } = await supabase.from('profiles').select('is_admin, is_professional, full_name').eq('id', user.id).single();
       const isAdmin = profile?.is_admin === true;
       const isPro   = profile?.is_professional === true;
-      _userId  = user.id;
-      _isAdmin = isAdmin;
+      _userId      = user.id;
+      _isAdmin     = isAdmin;
+      _patientName = profile?.full_name || user.email || '';
 
       // Loi 25 — consentement à la collecte (patients seulement), bloquant à la 1re connexion
       if (!isAdmin && !isPro) checkConsent(user.id);
@@ -1276,9 +1278,69 @@
       document.getElementById('heroSub').textContent = 'Toutes vos ressources, classées par condition.';
     });
 
-    document.getElementById('btnPrint').addEventListener('click', () => {
+    document.getElementById('btnPrint').addEventListener('click', async () => {
+      await preparePrintCover();
       window.print();
     });
+
+    // Remplit la page couverture imprimable juste avant l'impression.
+    async function preparePrintCover() {
+      const profName = document.getElementById('progProf')?.textContent || 'Votre professionnel Neurodisk';
+      const dateTxt  = activeProgramme?.created_at
+        ? new Date(activeProgramme.created_at).toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' })
+        : new Date().toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' });
+
+      const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+      set('printCoverPatient', _patientName || 'Vous');
+      set('printCoverProf', profName);
+      set('printCoverDate', dateTxt);
+      set('printCoverName', activeProgramme?.name || 'Mon programme');
+      set('printCoverFooterDate', dateTxt);
+
+      // Objectifs réels du patient s'ils existent, sinon la liste générique déjà en place.
+      try {
+        if (_userId) {
+          const { data } = await supabase.from('patient_objectives')
+            .select('label').eq('patient_id', _userId).eq('is_done', false).limit(4);
+          if (data && data.length) {
+            document.getElementById('printCoverObjectives').innerHTML =
+              data.map(o => `<li>${esc(o.label)}</li>`).join('');
+          }
+        }
+      } catch { /* repli sur la liste générique déjà présente */ }
+
+      await generatePrintQrCodes();
+    }
+
+    // Génère les QR codes (impression seulement) vers les vidéos de démo,
+    // uniquement pour les exercices qui en ont une. Généré côté client
+    // (qrcode-generator), aucune donnée envoyée à un tiers.
+    let _qrGenerated = false;
+    async function generatePrintQrCodes() {
+      if (_qrGenerated) return;
+      const nodes = document.querySelectorAll('.print-exercise-qr[data-video-url]');
+      if (!nodes.length) return;
+      try {
+        const mod = await import('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/+esm');
+        const QR = mod.default || mod;
+        nodes.forEach(el => {
+          const url = el.dataset.videoUrl;
+          if (!url) return;
+          const qr = QR(0, 'M');
+          qr.addData(url);
+          qr.make();
+          const img = document.createElement('img');
+          img.src = qr.createDataURL(4, 4);
+          img.alt = 'QR vers la vidéo de démonstration';
+          const label = document.createElement('span');
+          label.textContent = 'Vidéo de démonstration';
+          el.innerHTML = '';
+          el.appendChild(img);
+          el.appendChild(label);
+        });
+        _qrGenerated = true;
+      } catch { /* pas de QR si la génération échoue — le reste de la page s'imprime normalement */ }
+    }
 
     document.getElementById('btnBackProgramme').addEventListener('click', () => {
       document.getElementById('viewExercises').style.display = 'none';
@@ -1446,6 +1508,7 @@
 
     async function openProgramme(programmeId) {
       activeProgramme = allProgrammes.find(p => p.id === programmeId);
+      _qrGenerated = false;
 
       // Masquer la liste, afficher les exercices
       document.getElementById('viewProgrammeSummary').style.display = 'none';
@@ -1671,6 +1734,7 @@
           ${pe.notes ? `<div class="prog-ex__pronote"><strong>Note de votre professionnel :</strong> ${esc(pe.notes)}</div>` : ''}
           ${consignes ? `<div class="prog-ex__block"><h4 class="prog-ex__label">Consignes</h4><p class="prog-ex__text">${esc(consignes)}</p></div>` : ''}
           ${precautions ? `<div class="prog-ex__watch"><h4 class="prog-ex__watch-title">À surveiller</h4><p class="prog-ex__text">${esc(precautions)}</p></div>` : ''}
+          ${ex.video_url ? `<div class="print-exercise-qr" data-video-url="${esc(ex.video_url)}"><span>Vidéo de démonstration</span></div>` : ''}
           <div class="prog-ex__actions">
             <button type="button" class="prog-ex__see-btn" data-see="${pe.id}">Voir l'exercice</button>
             <label class="prog-ex__done${doneToday ? ' is-done' : ''}">
