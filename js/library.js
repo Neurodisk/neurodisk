@@ -1277,8 +1277,6 @@
     });
 
     document.getElementById('btnPrint').addEventListener('click', () => {
-      document.getElementById('printDate').textContent =
-        new Date().toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' });
       window.print();
     });
 
