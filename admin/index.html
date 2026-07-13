@@ -3443,8 +3443,27 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         return;
       }
       btn.disabled = true;
+
+      // 1) Collecter les fichiers téléversés par le patient AVANT l'effacement
+      //    (delete_patient supprimera les lignes chat_messages).
+      let attachPaths = [];
+      try {
+        const { data: msgs } = await sb.from('chat_messages')
+          .select('attachment_url').eq('sender_id', patientId).not('attachment_url', 'is', null);
+        attachPaths = (msgs || []).map(m => m.attachment_url)
+          .filter(u => u && !/^https?:\/\//.test(u)); // chemins privés seulement (pas les anciens URL publics)
+      } catch (e) { console.error('[erase] collecte fichiers', e); }
+
+      // 2) Effacement en base (Loi 25)
       const { error } = await sb.rpc('delete_patient', { p_id: patientId });
       if (error) { toast('Erreur : ' + error.message, 'error'); btn.disabled = false; return; }
+
+      // 3) Effacement des fichiers Storage du patient (droit à l'effacement complet)
+      if (attachPaths.length) {
+        try { await sb.storage.from(PATIENT_BUCKET).remove(attachPaths); }
+        catch (e) { console.error('[erase] suppression fichiers', e); toast('Base effacée, mais échec de suppression de certains fichiers — à vérifier.', 'error'); }
+      }
+
       toast('Patient effacé définitivement.', 'success');
       await loadPatients();
     };
@@ -7354,12 +7373,15 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         lastDate = dateLabel;
         const time = d.toLocaleTimeString('fr-CA', { hour:'2-digit', minute:'2-digit' });
 
+        const attachIcon = `<svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>`;
+        const attachName = esc(m.attachment_url ? m.attachment_url.split('/').pop().replace(/%20/g,' ').slice(0,40) : '');
+        const attachTag = m.attachment_url
+          ? (/^https?:\/\//.test(m.attachment_url)
+              ? `<a class="chat-bubble-attach" href="${esc(m.attachment_url)}" target="_blank" rel="noopener">${attachIcon}${attachName}</a>`
+              : `<a class="chat-bubble-attach" href="#" data-attach-path="${esc(m.attachment_url)}" rel="noopener">${attachIcon}${attachName}</a>`)
+          : '';
         const bubbleContent = m.attachment_url
-          ? `${m.content ? `<div class="chat-bubble${isMe?' is-me':''}">${esc(m.content)}</div>` : ''}
-             <a class="chat-bubble-attach" href="${esc(m.attachment_url)}" target="_blank" rel="noopener">
-               <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-               ${esc(m.attachment_url.split('/').pop().replace(/%20/g,' ').slice(0,40))}
-             </a>`
+          ? `${m.content ? `<div class="chat-bubble${isMe?' is-me':''}">${esc(m.content)}</div>` : ''}${attachTag}`
           : `<div class="chat-bubble${isMe?' is-me':''}">${esc(m.content||'')}</div>`;
 
         return `${sep}<div class="chat-msg-row${isMe?' is-me':''}">
@@ -7371,7 +7393,22 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
           </div>
         </div>`;
       }).join('');
+      bindChatAttachments(list);
       list.scrollTop = list.scrollHeight;
+    }
+
+    // Pièces jointes du chat : lien http (ancien bucket public) ouvert direct ;
+    // sinon chemin dans le bucket privé « patient-files » → URL signée (1 h) à la demande.
+    const PATIENT_BUCKET = 'patient-files';
+    function bindChatAttachments(container) {
+      container.querySelectorAll('a.chat-bubble-attach[data-attach-path]').forEach(a => {
+        a.addEventListener('click', async e => {
+          e.preventDefault();
+          const { data, error } = await sb.storage.from(PATIENT_BUCKET).createSignedUrl(a.dataset.attachPath, 3600);
+          if (error || !data?.signedUrl) { toast('Fichier indisponible.', 'error'); return; }
+          window.open(data.signedUrl, '_blank', 'noopener');
+        });
+      });
     }
 
     async function markChatRead(convId) {
@@ -7424,15 +7461,16 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       btn.disabled = true;
       try {
         const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-        const path = `chat/${Date.now()}-${safeName}`;
-        const { data, error } = await sb.storage.from('PDFS formation').upload(path, file, { upsert:false });
+        // Bucket PRIVÉ, chemin keyé par conversation → accès réservé aux participants (RLS).
+        const path = `chat/${chatCurrentConvId}/${Date.now()}-${safeName}`;
+        const { data, error } = await sb.storage.from(PATIENT_BUCKET).upload(path, file, { upsert:false });
         if (error) throw error;
-        const { data:{ publicUrl } } = sb.storage.from('PDFS formation').getPublicUrl(data.path);
+        // On stocke le CHEMIN (pas une URL publique) ; l'URL signée est générée à l'affichage.
         await sb.from('chat_messages').insert({
           conversation_id: chatCurrentConvId,
           sender_id: chatCurrentUserId,
           content: null,
-          attachment_url: publicUrl,
+          attachment_url: data.path,
           read_by: [chatCurrentUserId],
         });
       } catch (err) { toast('Erreur pièce jointe : ' + err.message, 'error'); }

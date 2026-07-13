@@ -2298,7 +2298,7 @@
         const t=d.toLocaleTimeString('fr-CA',{hour:'2-digit',minute:'2-digit'});
         const body=m.attachment_url
           ?`${m.content?`<div class="lc-bubble${isMe?' me':''}">${_esc(m.content)}</div>`:''}
-            <a class="lc-attach" href="${_esc(m.attachment_url)}" target="_blank" rel="noopener">📎 ${_esc(m.attachment_url.split('/').pop().slice(0,38))}</a>`
+            ${_chatAttachLink(m.attachment_url)}`
           :`<div class="lc-bubble${isMe?' me':''}">${_esc(m.content||'')}</div>`;
         return `${sep}<div class="lc-msg${isMe?' me':''}">
           <div class="lc-av sm" style="${_chatAvStyle(sName)}">${_chatInit(sName)}</div>
@@ -2309,7 +2309,29 @@
           </div>
         </div>`;
       }).join('');
+      _chatBindAttachments(list);
       list.scrollTop=list.scrollHeight;
+    }
+
+    // Pièce jointe : lien http (ancien, bucket public) ouvert directement ;
+    // sinon c'est un chemin dans le bucket privé « patient-files » → URL signée à la demande.
+    const PATIENT_BUCKET = 'patient-files';
+    function _chatAttachLink(ref) {
+      const name = _esc(String(ref).split('/').pop().slice(0,38));
+      if (/^https?:\/\//.test(ref)) {
+        return `<a class="lc-attach" href="${_esc(ref)}" target="_blank" rel="noopener">📎 ${name}</a>`;
+      }
+      return `<a class="lc-attach" href="#" data-attach-path="${_esc(ref)}" rel="noopener">📎 ${name}</a>`;
+    }
+    function _chatBindAttachments(container) {
+      container.querySelectorAll('a.lc-attach[data-attach-path]').forEach(a => {
+        a.addEventListener('click', async e => {
+          e.preventDefault();
+          const { data, error } = await supabase.storage.from(PATIENT_BUCKET).createSignedUrl(a.dataset.attachPath, 3600);
+          if (error || !data?.signedUrl) { toast('Fichier indisponible.', 'error'); return; }
+          window.open(data.signedUrl, '_blank', 'noopener');
+        });
+      });
     }
 
     async function _chatMarkRead(convId) {
@@ -2347,11 +2369,13 @@
       if(!_chatConvId||!file) return;
       try {
         const safe=file.name.replace(/[^a-zA-Z0-9.\-_]/g,'_');
-        const {data,error}=await supabase.storage.from('PDFS formation').upload(`chat/${Date.now()}-${safe}`,file,{upsert:false});
+        // Bucket PRIVÉ, chemin keyé par conversation → accès réservé aux participants (RLS).
+        const path=`chat/${_chatConvId}/${Date.now()}-${safe}`;
+        const {data,error}=await supabase.storage.from(PATIENT_BUCKET).upload(path,file,{upsert:false});
         if(error) throw error;
-        const {data:{publicUrl}}=supabase.storage.from('PDFS formation').getPublicUrl(data.path);
-        await supabase.from('chat_messages').insert({conversation_id:_chatConvId,sender_id:_chatUserId,content:null,attachment_url:publicUrl,read_by:[_chatUserId]});
-      } catch(e) { console.error('[chat attach]',e); }
+        // On stocke le CHEMIN (pas une URL publique) ; l'URL signée est générée à l'affichage.
+        await supabase.from('chat_messages').insert({conversation_id:_chatConvId,sender_id:_chatUserId,content:null,attachment_url:data.path,read_by:[_chatUserId]});
+      } catch(e) { console.error('[chat attach]',e); toast('Erreur pièce jointe : '+e.message,'error'); }
     }
 
     window._chatOpenNewConv = async () => {
