@@ -1018,6 +1018,36 @@
       await supabase.auth.signOut(); window.location.replace('/');
     });
 
+    // ── Confidentialité / demande de suppression (Loi 25) ──
+    const privacyModal = document.getElementById('privacyModal');
+    document.getElementById('btnPrivacy')?.addEventListener('click', () => {
+      document.getElementById('privacyModalMsg').textContent = '';
+      privacyModal.style.display = 'flex';
+    });
+    document.getElementById('btnPrivacyClose')?.addEventListener('click', () => {
+      privacyModal.style.display = 'none';
+    });
+    privacyModal?.addEventListener('click', e => { if (e.target === privacyModal) privacyModal.style.display = 'none'; });
+    document.getElementById('btnPrivacyRequestDeletion')?.addEventListener('click', async () => {
+      const msg = document.getElementById('privacyModalMsg');
+      const btn = document.getElementById('btnPrivacyRequestDeletion');
+      msg.textContent = '';
+      if (!confirm('Confirmer la demande de suppression de votre compte ? Cette action ferme immédiatement votre accès et est irréversible.')) return;
+      btn.disabled = true; btn.textContent = 'Traitement…';
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Session introuvable.');
+        const { error } = await supabase.rpc('request_account_deletion', { p_id: user.id });
+        if (error) throw error;
+        await supabase.auth.signOut();
+        alert('Votre demande a été traitée. Votre compte est maintenant fermé.');
+        window.location.replace('/');
+      } catch (e) {
+        msg.textContent = 'Erreur : ' + e.message;
+        btn.disabled = false; btn.textContent = 'Demander la suppression de mon compte';
+      }
+    });
+
     // ── Sécurité : 2FA (TOTP) pour admins/pros ─────────────
     function setupLibMfa() {
       if (window._libMfaInit) return; window._libMfaInit = true;

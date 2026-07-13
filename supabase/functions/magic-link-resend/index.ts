@@ -41,7 +41,12 @@ const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const RESEND_API_KEY        = Deno.env.get('RESEND_API_KEY')            ?? ''
 
 const RESEND_TEMPLATE_ID = 'd2df0c0d-a49b-40e2-a57e-52b1c4801c29'
-const MAIL_FROM          = 'Clinique Neurodisk <info.neurodisk@gmail.com>'
+// ⚠️ TEMPORAIRE : domaine de test Resend (aucun domaine vérifié encore).
+// Resend restreint l'envoi à l'adresse du COMPTE Resend uniquement tant
+// qu'aucun domaine n'est vérifié — pas encore utilisable pour de vrais
+// patients. Une fois notify.cliniqueneurodisk.com vérifié, remplacer par :
+// 'Clinique Neurodisk <info@notify.cliniqueneurodisk.com>'
+const MAIL_FROM          = 'Clinique Neurodisk <onboarding@resend.dev>'
 const MAIL_SUBJECT       = 'Votre accès à la plateforme Neurodisk'
 
 // Où l'utilisateur atterrit une fois le lien vérifié (session en place).

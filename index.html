@@ -662,6 +662,18 @@
     // Décide, après une auth réussie, s'il faut un 2ᵉ facteur avant d'entrer.
     async function gateAfterAuth() {
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase.from('profiles')
+            .select('account_disabled').eq('id', user.id).maybeSingle();
+          if (profile?.account_disabled) {
+            await supabase.auth.signOut();
+            showError('Ce compte a été désactivé pour inactivité prolongée (24 mois). Contactez la clinique pour le réactiver.');
+            return;
+          }
+        }
+      } catch (e) { console.error('[retention] vérification compte désactivé:', e); }
+      try {
         const { data: aal, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
         if (!error && aal && aal.nextLevel === 'aal2' && aal.currentLevel !== 'aal2') {
           await startMfaChallenge();

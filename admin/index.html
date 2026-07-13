@@ -772,6 +772,10 @@
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         Journal d'audit
       </a>
+      <a class="sidebar__link sidebar__sub admin-only" data-section="incidents" href="#">
+        <svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Registre des incidents
+      </a>
     </aside>
 
     <!-- Contenu -->
@@ -1862,6 +1866,46 @@
         </div>
       </section>
 
+      <section id="sec-incidents" class="section">
+        <div class="section-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Registre des incidents de confidentialité (Loi 25)
+        </div>
+        <div class="card">
+          <p style="font-size:.83rem;color:var(--muted);margin-bottom:1rem;line-height:1.6">
+            Tout incident touchant la confidentialité des renseignements de santé (fuite, accès non autorisé, perte d'appareil, etc.) doit être consigné ici. Conservation minimale de 5 ans.
+          </p>
+          <div class="form-grid" style="margin-bottom:1rem">
+            <div class="field">
+              <label for="incidentCategory">Catégorie *</label>
+              <select id="incidentCategory">
+                <option value="fuite_donnees">Fuite de données</option>
+                <option value="acces_non_autorise">Accès non autorisé</option>
+                <option value="perte_appareil">Perte / vol d'appareil</option>
+                <option value="erreur_envoi">Erreur d'envoi (courriel, document)</option>
+                <option value="autre">Autre</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="incidentDate">Date de l'incident</label>
+              <input type="datetime-local" id="incidentDate">
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="incidentDesc">Description *</label>
+              <textarea id="incidentDesc" rows="3" placeholder="Ce qui s'est passé, personnes/données touchées, mesures prises…"></textarea>
+            </div>
+            <div class="field" style="grid-column:1/-1;flex-direction:row;align-items:center;gap:.5rem">
+              <input type="checkbox" id="incidentLegalHold" style="width:auto">
+              <label for="incidentLegalHold" style="margin:0">Conservation prolongée (obligation légale) — n'est jamais purgé automatiquement</label>
+            </div>
+          </div>
+          <div id="alertIncident" class="alert"></div>
+          <button class="btn btn--primary btn--sm" id="btnIncidentAdd">➕ Consigner l'incident</button>
+          <hr style="margin:1.2rem 0;border:none;border-top:1px solid var(--border)">
+          <div id="incidentTableWrap" style="overflow-x:auto"><div class="empty-state">Chargement…</div></div>
+        </div>
+      </section>
+
     </main>
   </div>
 
@@ -2216,6 +2260,16 @@
           <span style="font-weight:400;color:var(--muted);font-size:.78rem">optionnel — visible uniquement par l'admin</span>
         </label>
         <textarea id="editPatientNote" rows="3" placeholder="Ex. : Suivi post-opératoire, appel mensuel…"></textarea>
+      </div>
+      <div class="field" style="margin-bottom:1.25rem;padding:.75rem;background:var(--bg-subtle,#f5f7fa);border-radius:8px">
+        <label style="display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem">
+          <input type="checkbox" id="editPatientLegalHold" style="width:auto">
+          Conservation prolongée (obligation légale)
+        </label>
+        <p style="font-size:.76rem;color:var(--muted);margin:0 0 .4rem">
+          Empêche la purge automatique du dossier (normalement 5 ans après le dernier service) et la désactivation pour inactivité (24 mois).
+        </p>
+        <p id="editPatientRetentionInfo" style="font-size:.76rem;color:var(--muted);margin:0"></p>
       </div>
       <div style="display:flex;gap:.75rem">
         <button class="btn btn--primary" id="btnSaveEditPatient">Enregistrer</button>
@@ -3091,6 +3145,9 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         } else if (sec === 'audit') {
           document.getElementById('sec-audit').classList.add('is-active');
           loadAuditLog();
+        } else if (sec === 'incidents') {
+          document.getElementById('sec-incidents').classList.add('is-active');
+          loadIncidentRegistry();
         } else if (sec === 'surveys') {
           document.getElementById('sec-surveys').classList.add('is-active');
           initSurveysSection();
@@ -3224,6 +3281,74 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     document.getElementById('auditFilterAction').addEventListener('change', loadAuditLog);
     document.getElementById('auditFilterUser').addEventListener('keyup', e => { if (e.key === 'Enter') loadAuditLog(); });
 
+    // ── Registre des incidents de confidentialité (Loi 25) ─
+    const INCIDENT_CATEGORY_LABEL = {
+      fuite_donnees: 'Fuite de données', acces_non_autorise: 'Accès non autorisé',
+      perte_appareil: "Perte / vol d'appareil", erreur_envoi: "Erreur d'envoi", autre: 'Autre'
+    };
+    async function loadIncidentRegistry() {
+      const wrap = document.getElementById('incidentTableWrap');
+      wrap.innerHTML = `<div class="empty-state">Chargement…</div>`;
+      const { data, error } = await sb.from('incident_registry')
+        .select('id, occurred_at, category, description, resolved, legal_hold')
+        .order('occurred_at', { ascending: false });
+      if (error) { wrap.innerHTML = `<div class="empty-state">Erreur : ${esc(error.message)}</div>`; return; }
+      if (!data?.length) { wrap.innerHTML = `<div class="empty-state">Aucun incident consigné.</div>`; return; }
+      const rows = data.map(r => {
+        const d = new Date(r.occurred_at).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'short' });
+        return `<tr>
+          <td style="white-space:nowrap">${d}</td>
+          <td>${esc(INCIDENT_CATEGORY_LABEL[r.category] || r.category)}</td>
+          <td style="max-width:340px">${esc(r.description)}</td>
+          <td>${r.legal_hold ? '🔒 Prolongée' : '5 ans'}</td>
+          <td>${r.resolved
+            ? '✅ Résolu'
+            : `<button class="btn btn--ghost btn--sm" onclick="resolveIncident('${r.id}', this)">Marquer résolu</button>`}</td>
+        </tr>`;
+      }).join('');
+      wrap.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.84rem">
+        <thead><tr style="text-align:left;border-bottom:2px solid var(--border)">
+          <th style="padding:.5rem">Date</th><th style="padding:.5rem">Catégorie</th>
+          <th style="padding:.5rem">Description</th><th style="padding:.5rem">Rétention</th><th style="padding:.5rem">Statut</th>
+        </tr></thead>
+        <tbody>${rows}</tbody></table>
+        <p style="font-size:.75rem;color:var(--muted);margin-top:.6rem">${data.length} incident(s).</p>`;
+    }
+
+    window.resolveIncident = async (id, btn) => {
+      btn.disabled = true;
+      const { error } = await sb.from('incident_registry').update({ resolved: true }).eq('id', id);
+      if (error) { toast('Erreur : ' + error.message, 'error'); btn.disabled = false; return; }
+      loadIncidentRegistry();
+    };
+
+    document.getElementById('btnIncidentAdd').addEventListener('click', async () => {
+      const alertBox = document.getElementById('alertIncident');
+      alertBox.style.display = 'none';
+      const category    = document.getElementById('incidentCategory').value;
+      const description = document.getElementById('incidentDesc').value.trim();
+      const dateVal      = document.getElementById('incidentDate').value;
+      const legalHold    = document.getElementById('incidentLegalHold').checked;
+      if (!description) {
+        alertBox.textContent = 'La description est obligatoire.';
+        alertBox.style.display = 'block';
+        return;
+      }
+      const payload = { category, description, legal_hold: legalHold };
+      if (dateVal) payload.occurred_at = new Date(dateVal).toISOString();
+      const { error } = await sb.from('incident_registry').insert(payload);
+      if (error) {
+        alertBox.textContent = 'Erreur : ' + error.message;
+        alertBox.style.display = 'block';
+        return;
+      }
+      document.getElementById('incidentDesc').value = '';
+      document.getElementById('incidentDate').value = '';
+      document.getElementById('incidentLegalHold').checked = false;
+      toast('Incident consigné.', 'success');
+      loadIncidentRegistry();
+    });
+
     // ══════════════════════════════════════════════════════
     // PATIENTS
     // ══════════════════════════════════════════════════════
@@ -3233,7 +3358,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
     async function loadPatients() {
       const { data, error } = await sb
         .from('profiles')
-        .select('id, email, full_name, is_admin, is_professional, created_at, note')
+        .select('id, email, full_name, is_admin, is_professional, created_at, note, legal_hold, last_service_at, account_disabled, disabled_at')
         .order('created_at', { ascending: false });
 
       if (error) { toast('Erreur chargement patients : ' + error.message, 'error'); return; }
@@ -3358,6 +3483,11 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       document.getElementById('modalEditPatientEmail').textContent = p.email;
       document.getElementById('editPatientName').value  = p.full_name || '';
       document.getElementById('editPatientNote').value  = p.note || '';
+      document.getElementById('editPatientLegalHold').checked = !!p.legal_hold;
+      const infoParts = [];
+      if (p.last_service_at) infoParts.push('Dernier service : ' + fmtDate(p.last_service_at));
+      infoParts.push(p.account_disabled ? '⚠️ Compte désactivé (inactivité)' + (p.disabled_at ? ' le ' + fmtDate(p.disabled_at) : '') : 'Compte actif');
+      document.getElementById('editPatientRetentionInfo').textContent = infoParts.join(' — ');
       setAlert(document.getElementById('alertEditPatient'), '', '');
       document.getElementById('modalEditPatient').classList.add('is-open');
       document.getElementById('modalEditPatient').setAttribute('aria-hidden', 'false');
@@ -3397,11 +3527,12 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
         return;
       }
 
-      // Note sauvegardée séparément — échoue silencieusement si colonne absente
-      await sb.from('profiles').update({ note: note || null }).eq('id', editPatientId);
+      // Note + rétention sauvegardées séparément — échoue silencieusement si colonne absente
+      const legalHold = document.getElementById('editPatientLegalHold').checked;
+      await sb.from('profiles').update({ note: note || null, legal_hold: legalHold }).eq('id', editPatientId);
 
       const p = allPatients.find(x => x.id === editPatientId);
-      if (p) { p.full_name = name || null; p.note = note || null; }
+      if (p) { p.full_name = name || null; p.note = note || null; p.legal_hold = legalHold; }
 
       toast('Patient mis à jour.', 'success');
       closeEditPatient();
