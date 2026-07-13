@@ -7,8 +7,10 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 ## 🔁 État actuel (à lire en premier après un clear du chat)
 
 **Migrations SQL à exécuter dans le SQL Editor Supabase** (dans l'ordre, non confirmées exécutées) :
-**025, 026, 027, 028, 029, 030, 031, 032, 033.**
+**025, 026, 027, 028, 029, 030, 031, 032, 033, 034, 035.**
 (011→024 : confirmées exécutées en juillet 2026, sauf mention contraire ci-dessous.)
+- **034** = politique de rétention Loi 25 (dossiers 5 ans après dernier service, comptes inactifs désactivés à 24 mois, registre des incidents 5 ans, `request_account_deletion`, tout via pg_cron).
+- **035** = `get_programme_professional()` (RPC SECURITY DEFINER) pour afficher le vrai nom du clinicien dans le PDF patient malgré la RLS.
 
 **Actions en attente côté utilisateur :**
 1. **Lien magique / Resend** : domaine `notify.cliniqueneurodisk.com` créé côté Resend mais **DNS pas encore configuré** (enregistrements DKIM/MX/SPF fournis, DNS géré chez Pacifique Hosting — ni GoDaddy ni Cloudflare). Une fois vérifié, changer `MAIL_FROM` dans `supabase/functions/magic-link-resend/index.ts` de `onboarding@resend.dev` → `info@notify.cliniqueneurodisk.com`, puis `supabase functions deploy magic-link-resend --no-verify-jwt`. En attendant, l'envoi ne fonctionne QUE vers l'adresse du compte Resend (`gabrielgirard.kin@gmail.com`), pas vers de vrais patients.
@@ -21,6 +23,16 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 ---
 
 ## Session — juillet 2026
+
+### 📄 PDF du programme d'exercices — refonte (génération dans l'app)
+- **Abandon de `window.print()`** (qui laissait les en-têtes/pieds du navigateur : date, titre d'onglet, URL, n° page — non supprimables par CSS) au profit d'une **génération PDF vectorielle côté client** : nouveau module `js/program-pdf.js` (jsPDF + qrcode-generator chargés depuis jsDelivr, déjà autorisé par la CSP ; aucun service externe, tout local/Canada).
+- **Page d'accueil unique compacte** (fusion des 2 anciennes pages redondantes) : logo, titres, patient, professionnel réel, date, programme, région (si fournie), objectifs réels du patient, « Comment utiliser », précautions générales.
+- **2 exercices par page** quand l'espace le permet, `break-inside` géré par mesure+pagination (aucun bloc coupé ; exercice trop grand → page complète ; nombre impair → dernier en demi-page haute sans étirement).
+- Chaque bloc : n°, nom FR, catégorie, images, **dosage normalisé** (`3 séries de 12 répétitions / Repos : … / Fréquence : … fois par jour` — uniformise sec→secondes, 2x/jour→2 fois par jour, SANS altérer la prescription), consignes, « À surveiller », note du pro (si présente), **lien vidéo cliquable + QR** (QR seulement si URL valide).
+- **Vrai nom du professionnel** via RPC `get_programme_professional` (migration **035**) : la RLS `profiles_select_own` empêchait le patient de lire le profil du clinicien → le PDF affichait toujours « Votre professionnel Neurodisk ». Repli neutre si le nom manque. (Titre/permis/coordonnées : champs inexistants sur `profiles` — omis proprement, à ajouter plus tard si besoin.)
+- Bouton patient renommé **« Télécharger mon programme (PDF) »**.
+- **Banc d'essai Node** `tools/gen_sample_program_pdf.mjs` (réutilise le MÊME layout que le navigateur) : 10 scénarios (1/2/3/6 exercices, note longue, sans note/vidéo, sans image, pro manquant, dosage varié, A4 + Lettre) → PDF inspectés visuellement. `js/package.json` (`type:module`) ajouté pour permettre à Node d'importer le module partagé.
+- ⚠️ Le CSS d'impression `@media print` reste en place comme repli (Ctrl+P) mais n'est plus le chemin officiel.
 
 ### 🎥 Coach IA par caméra (analyse de pose)
 - POC `tools/coach-demo.html` : MediaPipe (navigateur, aucun serveur), squelette + fantôme de démo en surimpression, comparaison de pose en direct. Branding logo Neurodisk (en-tête, écran d'accueil, filigrane caméra).

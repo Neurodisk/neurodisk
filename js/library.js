@@ -1,6 +1,7 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
     import { PROM_DEFS, PROM_LIST, renderPromForm, collectProm, renderPromChart } from '/js/proms.js?v=1';
     import { NEURODISK_CORE, QBPDS, STARTBACK, checkRedFlags, deriveDirectionalPattern, directionalPatternLabel, scoreQBPDS, scoreStartBack, renderPlaceholderScale, collectPlaceholderScale, renderAssessmentChart, ASSESS_CHART_DEFS, buildPainSerie } from '/js/assessments.js?v=4';
+    import { generateProgramPdf } from '/js/program-pdf.js?v=1';
 
     // Conditions pour lesquelles le module lombaire (QBPDS + STarT Back) s'ajoute au bilan
     const LOMBAR_CONDITIONS = ['hernie_discale', 'sciatique', 'radiculopathie', 'stenose_foraminale', 'stenose_spinale', 'arthrose_lombaire', 'spondylolyse', 'spondylolisthesis'];
@@ -1308,68 +1309,77 @@
       document.getElementById('heroSub').textContent = 'Toutes vos ressources, classées par condition.';
     });
 
-    document.getElementById('btnPrint').addEventListener('click', async () => {
-      await preparePrintCover();
-      window.print();
+    document.getElementById('btnPrint').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      const original = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Préparation du PDF…';
+      try {
+        const input = await buildPdfInput();
+        await generateProgramPdf(input, { logoUrl: '/assets/logo-neurodisk.png' });
+      } catch (err) {
+        console.error('[pdf] génération échouée:', err);
+        toast('Impossible de générer le PDF. Réessayez.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+      }
     });
 
-    // Remplit la page couverture imprimable juste avant l'impression.
-    async function preparePrintCover() {
-      const profName = document.getElementById('progProf')?.textContent || 'Votre professionnel Neurodisk';
-      const dateTxt  = activeProgramme?.created_at
+    // Assemble les données du PDF à partir du programme actif (données déjà
+    // chargées + nom réel du professionnel via RPC, contourne la RLS qui
+    // empêche le patient de lire le profil du clinicien).
+    async function buildPdfInput() {
+      const dateTxt = activeProgramme?.created_at
         ? new Date(activeProgramme.created_at).toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' })
         : new Date().toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' });
 
-      const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
-      set('printCoverPatient', _patientName || 'Vous');
-      set('printCoverProf', profName);
-      set('printCoverDate', dateTxt);
-      set('printCoverName', activeProgramme?.name || 'Mon programme');
-      set('printCoverFooterDate', dateTxt);
+      // Nom réel du professionnel (RPC autorisé : patient propriétaire du programme).
+      let professionalName = null;
+      try {
+        if (activeProgramme?.id) {
+          const { data } = await supabase.rpc('get_programme_professional', { p_programme_id: activeProgramme.id });
+          if (data && String(data).trim()) professionalName = String(data).trim();
+        }
+      } catch (_) { /* repli sur libellé neutre */ }
 
-      // Objectifs réels du patient s'ils existent, sinon la liste générique déjà en place.
+      // Objectifs réels du patient (non atteints), sinon liste générique côté module.
+      let objectives = [];
       try {
         if (_userId) {
           const { data } = await supabase.from('patient_objectives')
-            .select('label').eq('patient_id', _userId).eq('is_done', false).limit(4);
-          if (data && data.length) {
-            document.getElementById('printCoverObjectives').innerHTML =
-              data.map(o => `<li>${esc(o.label)}</li>`).join('');
-          }
+            .select('label').eq('patient_id', _userId).eq('is_done', false).limit(5);
+          objectives = (data || []).map(o => o.label).filter(Boolean);
         }
-      } catch { /* repli sur la liste générique déjà présente */ }
+      } catch (_) { /* liste générique */ }
 
-      await generatePrintQrCodes();
-    }
+      const exercises = (programmeData?.exercises || []).map((pe, i) => {
+        const ex = pe.exercise || {};
+        const { consignes, precautions } = parseExDesc(ex.description);
+        const imgs = (ex.exercise_images || []).slice().sort((a, b) => a.sort_order - b.sort_order);
+        const imageUrls = (imgs.length ? imgs.map(im => im.url) : (ex.thumbnail_url ? [ex.thumbnail_url] : []));
+        return {
+          index: i + 1,
+          name: ex.title || `Exercice ${i + 1}`,
+          category: ex.muscle_group || null,
+          dosage: { sets: pe.sets, reps: pe.reps, restSec: pe.rest_sec, frequency: pe.frequency },
+          consignes: consignes || '',
+          surveiller: precautions || '',
+          note: pe.notes || null,
+          videoUrl: ex.video_url || null,
+          imageUrls,
+        };
+      });
 
-    // Génère les QR codes (impression seulement) vers les vidéos de démo,
-    // uniquement pour les exercices qui en ont une. Généré côté client
-    // (qrcode-generator), aucune donnée envoyée à un tiers.
-    let _qrGenerated = false;
-    async function generatePrintQrCodes() {
-      if (_qrGenerated) return;
-      const nodes = document.querySelectorAll('.print-exercise-qr[data-video-url]');
-      if (!nodes.length) return;
-      try {
-        const mod = await import('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/+esm');
-        const QR = mod.default || mod;
-        nodes.forEach(el => {
-          const url = el.dataset.videoUrl;
-          if (!url) return;
-          const qr = QR(0, 'M');
-          qr.addData(url);
-          qr.make();
-          const img = document.createElement('img');
-          img.src = qr.createDataURL(4, 4);
-          img.alt = 'QR vers la vidéo de démonstration';
-          const label = document.createElement('span');
-          label.textContent = 'Vidéo de démonstration';
-          el.innerHTML = '';
-          el.appendChild(img);
-          el.appendChild(label);
-        });
-        _qrGenerated = true;
-      } catch { /* pas de QR si la génération échoue — le reste de la page s'imprime normalement */ }
+      return {
+        patientName: _patientName || 'Patient',
+        professionalName,
+        createdDate: dateTxt,
+        programName: activeProgramme?.name || 'Programme d\'entraînement',
+        region: null, // pas de diagnostic exposé au patient dans cette vue
+        objectives,
+        exercises,
+      };
     }
 
     document.getElementById('btnBackProgramme').addEventListener('click', () => {
@@ -1538,7 +1548,6 @@
 
     async function openProgramme(programmeId) {
       activeProgramme = allProgrammes.find(p => p.id === programmeId);
-      _qrGenerated = false;
 
       // Masquer la liste, afficher les exercices
       document.getElementById('viewProgrammeSummary').style.display = 'none';
