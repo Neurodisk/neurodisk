@@ -18,20 +18,23 @@ const makeQr = (url) => {
   catch { return null; }
 };
 
-// ── Images de test (dataURL) à partir d'assets locaux si dispo ──
+// ── Images de test (dataURL + vraies dimensions) à partir d'assets locaux ──
+function pngDims(buf) { return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) }; }
 function loadLocal(rel) {
   try {
     const buf = fs.readFileSync(rel);
     const b64 = buf.toString('base64');
     const fmt = /\.png$/i.test(rel) ? 'PNG' : 'JPEG';
     const mime = fmt === 'PNG' ? 'image/png' : 'image/jpeg';
-    return { dataUrl: `data:${mime};base64,${b64}`, fmt };
+    const dims = fmt === 'PNG' ? pngDims(buf) : { w: 0, h: 0 };
+    return { dataUrl: `data:${mime};base64,${b64}`, fmt, ...dims };
   } catch { return null; }
 }
 
-// Un logo réel + une fausse image d'exercice (le logo sert de substitut visuel).
-const logo = loadLocal('assets/logo-neurodisk.png');
-const demoImg = logo ? { ...logo, w: 400, h: 300 } : null;
+// Icône carrée du logo (même fichier que le module navigateur) + une image
+// d'exercice de substitution (logo mot-symbole, à titre de placeholder visuel).
+const logo = loadLocal('assets/logo-neurodisk-mark.png');
+const demoImg = loadLocal('assets/logo-neurodisk.png');
 
 const VIDEO = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 
@@ -56,7 +59,7 @@ const baseData = (n, extra = {}) => ({
   programName: 'Programme lombaire — phase 1',
   region: 'Région lombaire',
   objectives: ['Réduire la douleur au bas du dos', 'Améliorer la mobilité en flexion/extension', 'Reprendre la marche quotidienne'],
-  logoData: logo?.dataUrl || null,
+  logoData: logo || null,
   exercises: Array.from({ length: n }, (_, k) => ex(k + 1)),
   ...extra,
 });

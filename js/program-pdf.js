@@ -130,16 +130,23 @@ function drawCover(doc, data, g) {
   rc(doc, NAVY);
   doc.roundedRect(M, y, CW, bandH, 3, 3, 'F');
 
-  // Logo (pastille blanche)
-  const logoBox = 20;
+  // Logo (pastille blanche) — dimensionnée selon le vrai ratio du fichier,
+  // jamais forcée en carré (évite l'écrasement de l'image).
+  const logoBox = 22; // hauteur de la pastille
+  const logoPad = 3;
+  const logo = data.logoData;
+  const logoAr = logo && logo.w && logo.h ? logo.w / logo.h : 1;
+  const logoInnerH = logoBox - 2 * logoPad;
+  const logoInnerW = Math.min(logoInnerH * logoAr, 34); // largeur plafonnée
+  const pillW = logoInnerW + 2 * logoPad;
   const logoX = M + 6, logoY = y + (bandH - logoBox) / 2;
-  if (data.logoData) {
+  if (logo) {
     rc(doc, [255, 255, 255]);
-    doc.roundedRect(logoX, logoY, logoBox, logoBox, 2, 2, 'F');
-    try { doc.addImage(data.logoData, 'PNG', logoX + 2, logoY + 2, logoBox - 4, logoBox - 4, undefined, 'FAST'); } catch (_) {}
+    doc.roundedRect(logoX, logoY, pillW, logoBox, 2, 2, 'F');
+    try { doc.addImage(logo.dataUrl, logo.fmt || 'PNG', logoX + logoPad, logoY + logoPad, logoInnerW, logoInnerH, undefined, 'FAST'); } catch (_) {}
   }
 
-  const tx = M + (data.logoData ? logoBox + 12 : 8);
+  const tx = M + (logo ? pillW + 10 : 8);
   sc(doc, [255, 255, 255]);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
   doc.text('CLINIQUE NEURODISK', tx, y + 8);
@@ -247,12 +254,17 @@ function drawSection(doc, title, items, g) {
 // ── En-tête au-dessus des exercices ─────────────────────────
 function drawExercisesHeader(doc, data, g) {
   let y = g.y;
-  if (data.logoData) {
-    try { doc.addImage(data.logoData, 'PNG', g.M, y, 8, 8, undefined, 'FAST'); } catch (_) {}
+  const logo = data.logoData;
+  let logoW = 0;
+  if (logo) {
+    const ar = logo.w && logo.h ? logo.w / logo.h : 1;
+    const hh = 9;
+    logoW = hh * ar;
+    try { doc.addImage(logo.dataUrl, logo.fmt || 'PNG', g.M, y, logoW, hh, undefined, 'FAST'); } catch (_) {}
   }
   doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
   sc(doc, NAVY);
-  doc.text('Programme d\'entraînement adapté', g.M + (data.logoData ? 11 : 0), y + 6);
+  doc.text('Programme d\'entraînement adapté', g.M + (logo ? logoW + 4 : 0), y + 6);
   y += 11;
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5);
   sc(doc, MUTED);
@@ -484,36 +496,63 @@ function drawFooters(doc, g) {
 
 // ════════════════════════════════════════════════════════════
 // Entrée navigateur : charge jsPDF + QR (CDN), prépare les données,
-// dessine, puis télécharge le fichier.
+// dessine, puis OUVRE un aperçu du PDF dans un nouvel onglet (le patient
+// choisit lui-même s'il veut l'enregistrer via son navigateur — pas de
+// téléchargement forcé).
 // ════════════════════════════════════════════════════════════
 export async function generateProgramPdf(input, opts = {}) {
-  const format = opts.format === 'letter' ? 'letter' : 'a4';
-  const [{ jsPDF }, qrmod] = await Promise.all([
-    import('https://cdn.jsdelivr.net/npm/jspdf@2.5.2/+esm'),
-    import('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/+esm'),
-  ]);
-  const QR = qrmod.default || qrmod;
-  const makeQr = (url) => {
-    try { const q = QR(0, 'M'); q.addData(url); q.make(); return q.createDataURL(4, 2); }
-    catch { return null; }
-  };
-
-  // Charge le logo + toutes les images d'exercice en dataURL (avec dimensions).
-  const logoData = await loadImageData(opts.logoUrl || '/assets/logo-neurodisk.png');
-  for (const ex of (input.exercises || [])) {
-    ex.imageData = [];
-    for (const url of (ex.imageUrls || []).slice(0, 3)) {
-      const d = await loadImageData(url);
-      if (d) ex.imageData.push(d);
-    }
+  // Ouvre l'onglet d'aperçu IMMÉDIATEMENT (synchrone, dans le geste de clic) —
+  // sinon les `await` suivants (import CDN, chargement des images) font perdre
+  // le contexte « geste utilisateur » et le navigateur bloque la fenêtre.
+  const previewWin = window.open('', '_blank');
+  if (previewWin) {
+    previewWin.document.write('<!doctype html><title>Préparation du programme…</title><body style="font:14px system-ui;color:#5a7085;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">Préparation de votre programme…</body>');
   }
-  input.logoData = logoData?.dataUrl || null;
 
-  const doc = new jsPDF({ unit: 'mm', format, compress: true });
-  drawProgram(doc, input, { makeQr });
+  try {
+    const format = opts.format === 'letter' ? 'letter' : 'a4';
+    const [{ jsPDF }, qrmod] = await Promise.all([
+      import('https://cdn.jsdelivr.net/npm/jspdf@2.5.2/+esm'),
+      import('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/+esm'),
+    ]);
+    const QR = qrmod.default || qrmod;
+    const makeQr = (url) => {
+      try { const q = QR(0, 'M'); q.addData(url); q.make(); return q.createDataURL(4, 2); }
+      catch { return null; }
+    };
 
-  const safe = (input.programName || 'programme').replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '').slice(0, 60);
-  doc.save(`Programme_${safe || 'Neurodisk'}.pdf`);
+    // Logo : icône carrée (pas le mot-symbole large) pour un rendu net dans
+    // la pastille, sans jamais déformer l'image.
+    const logoData = await loadImageData(opts.logoUrl || '/assets/logo-neurodisk-mark.png');
+    for (const ex of (input.exercises || [])) {
+      ex.imageData = [];
+      for (const url of (ex.imageUrls || []).slice(0, 3)) {
+        const d = await loadImageData(url);
+        if (d) ex.imageData.push(d);
+      }
+    }
+    input.logoData = logoData || null;
+
+    const doc = new jsPDF({ unit: 'mm', format, compress: true });
+    drawProgram(doc, input, { makeQr });
+
+    const safe = (input.programName || 'programme').replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '').slice(0, 60);
+    const filename = `Programme_${safe || 'Neurodisk'}.pdf`;
+    const blobUrl = doc.output('bloburl');
+
+    if (previewWin && !previewWin.closed) {
+      // Onglet déjà ouvert : on y injecte l'aperçu (le patient choisit lui-même
+      // s'il veut l'enregistrer via les commandes de son navigateur).
+      previewWin.location.href = blobUrl;
+    } else {
+      // Onglet bloqué par le navigateur : repli sur le téléchargement direct.
+      doc.save(filename);
+    }
+    return { blobUrl, filename };
+  } catch (err) {
+    if (previewWin && !previewWin.closed) previewWin.close();
+    throw err;
+  }
 }
 
 // Charge une image (même origine ou CORS Supabase) en dataURL + dimensions.
