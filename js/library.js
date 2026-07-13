@@ -1,7 +1,7 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
     import { PROM_DEFS, PROM_LIST, renderPromForm, collectProm, renderPromChart } from '/js/proms.js?v=1';
     import { NEURODISK_CORE, QBPDS, STARTBACK, checkRedFlags, deriveDirectionalPattern, directionalPatternLabel, scoreQBPDS, scoreStartBack, renderPlaceholderScale, collectPlaceholderScale, renderAssessmentChart, ASSESS_CHART_DEFS, buildPainSerie } from '/js/assessments.js?v=4';
-    import { generateProgramPdf } from '/js/program-pdf.js?v=2';
+    import { generateProgramPdf } from '/js/program-pdf.js?v=3';
 
     // Conditions pour lesquelles le module lombaire (QBPDS + STarT Back) s'ajoute au bilan
     const LOMBAR_CONDITIONS = ['hernie_discale', 'sciatique', 'radiculopathie', 'stenose_foraminale', 'stenose_spinale', 'arthrose_lombaire', 'spondylolyse', 'spondylolisthesis'];
