@@ -265,12 +265,7 @@ function drawExercisesHeader(doc, data, g) {
   doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
   sc(doc, NAVY);
   doc.text('Programme d\'entraînement adapté', g.M + (logo ? logoW + 4 : 0), y + 6);
-  y += 11;
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5);
-  sc(doc, MUTED);
-  const meta = [data.professionalName || 'Votre professionnel Neurodisk', data.createdDate].filter(Boolean).join('  ·  ');
-  doc.text(meta, g.M, y);
-  y += 3;
+  y += 10;
   dc(doc, BORDER); doc.setLineWidth(0.5);
   doc.line(g.M, y, g.M + g.CW, y);
   return y + 6;
