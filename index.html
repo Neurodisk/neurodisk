@@ -337,8 +337,9 @@
             <span class="spinner" aria-hidden="true"></span>
           </button>
 
-          <div style="text-align:center;margin-top:.75rem">
+          <div style="text-align:center;margin-top:.75rem;display:flex;flex-direction:column;gap:.35rem">
             <button type="button" class="btn-ghost" id="btnForgot">Mot de passe oublié ?</button>
+            <button type="button" class="btn-ghost" id="btnMagicLink">Recevoir un lien de connexion par courriel</button>
           </div>
         </form>
 
@@ -367,6 +368,35 @@
             </button>
             <div style="text-align:center">
               <button type="button" class="btn-ghost" id="btnBackToLogin">← Retour à la connexion</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Vue : Lien magique ── -->
+        <div id="viewMagicLink" style="display:none">
+          <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;">
+            Entrez votre adresse courriel. Vous recevrez un lien pour vous connecter sans mot de passe.
+          </p>
+          <div class="form" style="gap:.75rem">
+            <div class="field">
+              <label for="magicLinkEmail">Adresse courriel</label>
+              <input type="email" id="magicLinkEmail" placeholder="prenom.nom@exemple.com"
+                autocomplete="email" autocapitalize="off" spellcheck="false">
+            </div>
+            <div class="alert alert--error" id="magicLinkError" role="alert" aria-live="polite" style="display:none">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span id="magicLinkErrorText"></span>
+            </div>
+            <div class="alert" id="magicLinkSuccess" role="status" aria-live="polite"
+              style="display:none;background:var(--success-bg);color:var(--success);padding:.8rem 1rem;border-radius:var(--radius);font-size:.83rem;line-height:1.5">
+              ✅ Si un compte existe pour ce courriel, un lien de connexion vient d'être envoyé. Vérifiez votre boîte (et vos indésirables).
+            </div>
+            <button type="button" class="btn-primary" id="btnSendMagicLink">
+              <span class="btn-label">Envoyer le lien</span>
+              <span class="spinner" aria-hidden="true"></span>
+            </button>
+            <div style="text-align:center">
+              <button type="button" class="btn-ghost" id="btnBackToLoginFromMagic">← Retour à la connexion</button>
             </div>
           </div>
         </div>
@@ -560,6 +590,64 @@
         document.getElementById('forgotEmail').value = '';
       } catch (err) {
         console.error('[forgot]', err);
+        errTxt.textContent  = 'Erreur : ' + err.message;
+        errEl.style.display = 'flex';
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('is-loading');
+      }
+    });
+
+    // ── Lien magique (envoi via Resend, edge function) ───
+    const viewMagicLink = document.getElementById('viewMagicLink');
+
+    document.getElementById('btnMagicLink').addEventListener('click', () => {
+      viewForm.style.display      = 'none';
+      viewMagicLink.style.display = '';
+      document.getElementById('magicLinkEmail').focus();
+    });
+
+    document.getElementById('btnBackToLoginFromMagic').addEventListener('click', () => {
+      viewMagicLink.style.display = 'none';
+      viewForm.style.display      = '';
+      document.getElementById('magicLinkSuccess').style.display = 'none';
+      document.getElementById('magicLinkError').style.display   = 'none';
+    });
+
+    document.getElementById('btnSendMagicLink').addEventListener('click', async () => {
+      const btn    = document.getElementById('btnSendMagicLink');
+      const email  = document.getElementById('magicLinkEmail').value.trim().toLowerCase();
+      const errEl  = document.getElementById('magicLinkError');
+      const errTxt = document.getElementById('magicLinkErrorText');
+      const okEl   = document.getElementById('magicLinkSuccess');
+
+      errEl.style.display = 'none';
+      okEl.style.display  = 'none';
+
+      if (!email) {
+        errTxt.textContent  = 'Veuillez entrer votre adresse courriel.';
+        errEl.style.display = 'flex'; return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errTxt.textContent  = 'Adresse courriel invalide.';
+        errEl.style.display = 'flex'; return;
+      }
+
+      btn.disabled = true;
+      btn.classList.add('is-loading');
+
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/magic-link-resend`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || 'Erreur inconnue.');
+        okEl.style.display = 'block';
+        document.getElementById('magicLinkEmail').value = '';
+      } catch (err) {
+        console.error('[magic-link]', err);
         errTxt.textContent  = 'Erreur : ' + err.message;
         errEl.style.display = 'flex';
       } finally {
