@@ -31,9 +31,10 @@ function loadLocal(rel) {
   } catch { return null; }
 }
 
-// Logo couleur complet (comme le module navigateur) + une image d'exercice
-// de substitution (logo mot-symbole, à titre de placeholder visuel).
+// Logo couleur complet (couverture) + icône simplifiée (en-têtes p2/p3) +
+// une image d'exercice de substitution (logo mot-symbole, placeholder visuel).
 const logo = loadLocal('assets/logo-neurodisk.png');
+const logoMark = loadLocal('assets/logo-neurodisk-mark.png');
 const demoImg = loadLocal('assets/logo-neurodisk.png');
 
 const VIDEO = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
@@ -60,6 +61,7 @@ const baseData = (n, extra = {}) => ({
   region: 'Région lombaire',
   objectives: ['Réduire la douleur au bas du dos', 'Améliorer la mobilité en flexion/extension', 'Reprendre la marche quotidienne'],
   logoData: logo || null,
+  logoMarkData: logoMark || logo || null,
   exercises: Array.from({ length: n }, (_, k) => ex(k + 1)),
   ...extra,
 });

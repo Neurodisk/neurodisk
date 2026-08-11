@@ -24,6 +24,18 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 
 ## Session — juillet 2026
 
+### ✨ PDF du programme — passe de finition DA (août 2026)
+- Suite de la refonte visuelle : neuf points d'une passe de finition, contenu clinique inchangé.
+- **Page 3 équilibrée** : la zone « Notes personnelles » occupe désormais tout l'espace restant jusqu'au pied de page (plus de grand vide résiduel), plus de lignes, plus visibles à l'impression.
+- **En-têtes p2/p3 identiques et lisibles** : icône simplifiée (`logo-neurodisk-mark.png`) + « Neurodisk » composé en Inter (fin du mot-symbole raster minuscule illisible).
+- **Motif de couverture retravaillé** : les points verticaux génériques remplacés par une courbe unique discrète (bézier), qui ne concurrence jamais le titre.
+- **Contraste renforcé** pour la clientèle 55-70 ans : libellés (Patient/Professionnel/Date/Programme), label « Consignes », lignes de la zone notes — tous assombris.
+- **Pictogramme d'avertissement refait** : bouclier → triangle + point d'exclamation universel (`icoWarning`, `doc.triangle`), identique dans « Précautions générales » et chaque encadré « À surveiller ». (Bug de positionnement corrigé au passage : l'ancien triangle débordait sur le texte suivant.)
+- **Textes variables** : bloc patient à hauteur de ligne dynamique — noms/titres/programmes longs passent proprement sur 2 lignes, jamais de débordement (validé avec nom composé, titre professionnel long, nom de programme long).
+- **Marge de sécurité bas de page 1** : espacements resserrés (jamais la taille du texte) pour garantir un espace confortable entre la dernière précaution et le pied de page.
+- Colonnes d'image légèrement agrandies (limite technique : aucun recadrage/retouche des photos, conformément à la contrainte).
+- Validé : 10 scénarios + cas textes longs, régénérés et inspectés visuellement, plus génération réelle navigateur (Inter incorporée confirmée). Cache-bust library.js v54, program-pdf.js v5.
+
 ### 🎨 PDF du programme — refonte visuelle « direction artistique » (août 2026)
 - Refonte complète du rendu du générateur `js/program-pdf.js` (production, données dynamiques) : allure clinique haut de gamme pour clientèle 55-70 ans. **Contenu clinique jamais modifié** (exercices, ordre, dosages, consignes, précautions, notes) — seule la mise en page change.
 - **Police Inter incorporée** : `tools/build_inter_font.mjs` télécharge InterVariable, l'instancie Regular/Bold, la sous-ensemble au français (harfbuzz-wasm via `subset-font`, pas de Python) → `js/inter-font.js` (base64, ~230 Ko). Registrée dans jsPDF (`addFileToVFS`/`addFont`), accents FR complets.
