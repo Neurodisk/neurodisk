@@ -103,6 +103,35 @@ function normalizeFrequency(f) {
 }
 
 // ════════════════════════════════════════════════════════════
+// Typographie (présentation seulement — ne reformule jamais le texte)
+// ════════════════════════════════════════════════════════════
+
+// Met une majuscule à la première lettre de chaque phrase (après un point,
+// un point d'exclamation/interrogation, ou en tout début de texte).
+// N'altère jamais le reste du texte (accents, ponctuation, mots conservés).
+export function capitalizeSentences(txt) {
+  if (!txt) return txt;
+  return String(txt).replace(/(^\s*|[.!?]\s+)([a-zà-öø-ÿ])/g, (m, sep, letter) => sep + letter.toUpperCase());
+}
+
+// Détecte si deux textes cliniques véhiculent essentiellement le même
+// message (mots significatifs en commun ≥ 60%), pour éviter d'afficher deux
+// encadrés redondants. Comparaison lexicale simple, aucune donnée modifiée —
+// sert uniquement à décider quoi AFFICHER.
+export function isRedundantNote(note, surveiller) {
+  if (!note || !surveiller) return false;
+  const words = (s) => new Set(
+    String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2)
+  );
+  const a = words(note), b = words(surveiller);
+  if (!a.size) return false;
+  let common = 0;
+  a.forEach(w => { if (b.has(w)) common++; });
+  return common / a.size >= 0.6;
+}
+
+// ════════════════════════════════════════════════════════════
 // Pictogrammes sobres (tracés vectoriels)
 // ════════════════════════════════════════════════════════════
 function icoTarget(doc, cx, cy, r, color) {
@@ -135,14 +164,6 @@ function icoPlay(doc, cx, cy, r, color) {
   fc(doc, color);
   doc.triangle(cx - r * 0.4, cy - r * 0.6, cx - r * 0.4, cy + r * 0.6, cx + r * 0.7, cy, 'F');
 }
-// Signature visuelle : courbe fluide unique inspirée de la colonne / du
-// symbole du logo — remplace l'ancienne colonne de points (trop générique).
-// Une seule ligne bézier, discrète, qui ne concurrence jamais le titre.
-function spineCurve(doc, x, y, color) {
-  dc(doc, color); doc.setLineWidth(1.0);
-  doc.lines([[3.5, 8, -3.5, 16, 0, 26]], x, y, undefined, 'S', false);
-}
-
 // ════════════════════════════════════════════════════════════
 // Cœur : dessine le programme dans un doc jsPDF
 // ════════════════════════════════════════════════════════════
@@ -185,11 +206,13 @@ export function drawProgram(doc, data, deps = {}) {
       y += h + 8;
 
       // Exercice seul sur sa page : la zone « Notes personnelles » occupe
-      // TOUT l'espace restant jusqu'au pied de page (répartition intentionnelle,
-      // pas de grand vide résiduel).
+      // la majorité de l'espace restant (≈82 %, module d'exercice agrandi
+      // en contrepartie), le reste devient une marge de sécurité généreuse
+      // avant le pied de page — pas de grand vide entre l'exercice et les notes.
       if (isLast && aloneOnPage && contentBottom - y > 30) {
-        drawNotesArea(doc, { x: M, y, w: CW }, contentBottom - y);
-        y = contentBottom;
+        const notesH = (contentBottom - y) * 0.82;
+        drawNotesArea(doc, { x: M, y, w: CW }, notesH);
+        y += notesH;
       }
     }
 
@@ -214,9 +237,6 @@ function drawCover(doc, data, g) {
     const hh = 13, ww = hh * (logo.w / logo.h);
     try { doc.addImage(logo.dataUrl, logo.fmt || 'PNG', M, y, ww, hh, undefined, 'FAST'); } catch (_) {}
   }
-  // Signature visuelle (discrète, à droite — n'entre jamais en conflit avec le titre)
-  spineCurve(doc, pageW - M - 4, y, TEAL);
-
   y += 20;
 
   // Titre + sous-titre
@@ -362,7 +382,7 @@ function layoutExercise(doc, ex, box, opts) {
   const draw = !!opts.draw;
   const { x, y, w } = box;
   const enlarged = !!opts.enlarged;
-  const imgColW = (enlarged ? 86 : 70);
+  const imgColW = (enlarged ? 84 : 70);
   const textX = x + EX.pad + imgColW + EX.gap;
   const textW = w - EX.pad * 2 - imgColW - EX.gap;
 
@@ -442,20 +462,22 @@ function rightColumn(doc, ex, x, y0, w, opts) {
   }
 
   // Consignes (fond blanc, aéré)
-  if (ex.consignes) {
+  const consignesTxt = capitalizeSentences(ex.consignes);
+  if (consignesTxt) {
     F(doc, 'bold', EX.labelSize);
     if (draw) { sc(doc, LABEL); doc.text('Consignes', x, y + 2.5); }
     y += 6.8;
     F(doc, 'normal', EX.textSize);
-    const lines = doc.splitTextToSize(ex.consignes, w);
+    const lines = doc.splitTextToSize(consignesTxt, w);
     if (draw) { sc(doc, TEXT); doc.text(lines, x, y); }
     y += lines.length * lh(EX.textSize, EX.tl) + 2;
   }
 
   // À surveiller (encadré corail)
-  if (ex.surveiller) {
+  const surveillerTxt = capitalizeSentences(ex.surveiller);
+  if (surveillerTxt) {
     F(doc, 'normal', EX.textSize);
-    const lines = doc.splitTextToSize(ex.surveiller, w - 8);
+    const lines = doc.splitTextToSize(surveillerTxt, w - 8);
     const boxH = 8.5 + lines.length * lh(EX.textSize, EX.tl) + 1.5;
     if (draw) {
       fc(doc, CORAL_BG); dc(doc, CORAL_BD); doc.setLineWidth(0.3);
@@ -469,10 +491,13 @@ function rightColumn(doc, ex, x, y0, w, opts) {
     y += boxH + 3;
   }
 
-  // Note du professionnel (encadré turquoise pâle)
-  if (ex.note) {
+  // Note du professionnel (encadré turquoise pâle) — masquée si elle répète
+  // essentiellement le même message que « À surveiller » (règle du modèle :
+  // jamais deux encadrés pour une même information).
+  const noteTxt = capitalizeSentences(ex.note);
+  if (noteTxt && !isRedundantNote(noteTxt, surveillerTxt)) {
     F(doc, 'normal', EX.textSize);
-    const lines = doc.splitTextToSize(ex.note, w - 9);
+    const lines = doc.splitTextToSize(noteTxt, w - 9);
     const boxH = 8.5 + lines.length * lh(EX.textSize, EX.tl) + 1.5;
     if (draw) {
       fc(doc, TEAL_PALE); doc.setLineWidth(0);
@@ -517,7 +542,7 @@ function rightColumn(doc, ex, x, y0, w, opts) {
 function imageStackHeight(ex, colW, enlarged) {
   const imgs = (ex.imageData || []).slice(0, enlarged ? 4 : 3);
   if (!imgs.length) return enlarged ? 50 : 34;
-  const cap = enlarged ? 74 : 56;
+  const cap = enlarged ? 82 : 56;
   let total = 0;
   imgs.forEach((im, i) => {
     const ar = (im.w && im.h) ? im.w / im.h : 1.4;
@@ -536,7 +561,7 @@ function drawImageStack(doc, ex, g, enlarged) {
     doc.text('Voir la vidéo', g.x + g.w / 2, g.y + (enlarged ? 30 : 22), { align: 'center' });
     return;
   }
-  const cap = enlarged ? 74 : 56;
+  const cap = enlarged ? 82 : 56;
   const multi = imgs.length > 1;
   let y = g.y;
   imgs.forEach((im, i) => {

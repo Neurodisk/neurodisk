@@ -91,6 +91,32 @@ const SCENARIOS = {
       ex(3, { dosage: { reps: 15, frequency: 'matin et soir' } }),
     ],
   }),
+  // Reproduit le cas du brief : titre exact avec terme anglais préservé,
+  // consignes/précautions commençant en minuscule (à corriger), note de
+  // l'exercice 1 redondante avec son « à surveiller » (doit être masquée),
+  // note distincte sur l'exercice 2 (doit rester affichée), page 3 rééquilibrée.
+  'brief_reel': baseData(3, {
+    exercises: [
+      ex(1, {
+        name: 'Rétraction cervicale (chin tuck assis)',
+        consignes: 'assis bien droit, rentrez légèrement le menton comme pour faire un double menton, sans baisser la tête.',
+        surveiller: 'mouvement lent et indolore, sans forcer.',
+        note: 'Mouvement lent et indolore, sans forcer.', // ≈ identique à « à surveiller » -> doit être MASQUÉE
+      }),
+      ex(2, {
+        name: 'Fléchisseurs profonds du cou (chin tuck couché)',
+        consignes: 'couché sur le dos, rentrez le menton en gardant l\'arrière de la tête au sol.',
+        surveiller: 'mouvement subtil, pas de poussée forte.',
+        note: 'Patient rapporte une raideur cervicale résiduelle le matin — insister sur la lenteur du mouvement.', // distincte -> doit rester AFFICHÉE
+      }),
+      ex(3, {
+        name: 'Étirement des extenseurs du cou',
+        consignes: 'assis ou debout, penchez doucement la tête vers l\'avant.',
+        surveiller: 'ne pas cambrer le bas du dos.',
+        note: null,
+      }),
+    ],
+  }),
 };
 
 let count = 0;

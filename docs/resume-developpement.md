@@ -24,6 +24,15 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 
 ## Session — juillet 2026
 
+### 🔧 PDF du programme — corrections ciblées (août 2026)
+- **Majuscules automatiques** (`capitalizeSentences`) : première lettre de chaque phrase (consignes, à surveiller, note) mise en majuscule à l'affichage — la donnée en base n'est jamais modifiée, aucune reformulation, aucun titre d'exercice touché.
+- **Dédoublonnage note/à surveiller** (`isRedundantNote`) : si la note du professionnel répète essentiellement le même message que l'encadré « À surveiller » (≥60% de mots significatifs communs), elle est masquée automatiquement à l'affichage. Une note distincte reste toujours affichée. Règle du modèle, réutilisable pour tout patient/programme.
+- **Page 3 rééquilibrée** : zone « Notes personnelles » réduite à ~82% de l'espace restant (au lieu de 100%), le reste devient une marge de sécurité avant le pied de page ; module de l'exercice seul + ses photos agrandis en contrepartie (ajusté de 94mm à 84mm de colonne image après avoir détecté un risque de collision entre le lien vidéo et le QR — corrigé, marge de ~11mm restaurée).
+- **Courbe décorative de la couverture retirée** (page 1) : espace blanc sobre conservé, titre/logo inchangés.
+- Validé : 11 scénarios incluant un cas reproduisant exactement le brief (titre « Fléchisseurs profonds du cou (chin tuck couché) » préservé tel quel, minuscules corrigées, note redondante masquée, note distincte conservée), plus génération réelle navigateur (Inter incorporée confirmée, helpers testés en conditions réelles).
+- ⚠️ **Limite technique signalée** : agrandir/recadrer les vraies photos de l'exercice « chin tuck couché » nécessite un accès aux fichiers image réels du patient (recadrage pixel), hors de portée d'un changement de code seul — non fait, à traiter séparément si besoin (voir échange avec l'utilisateur).
+- Cache-bust library.js v55, program-pdf.js v6.
+
 ### ✨ PDF du programme — passe de finition DA (août 2026)
 - Suite de la refonte visuelle : neuf points d'une passe de finition, contenu clinique inchangé.
 - **Page 3 équilibrée** : la zone « Notes personnelles » occupe désormais tout l'espace restant jusqu'au pied de page (plus de grand vide résiduel), plus de lignes, plus visibles à l'impression.
