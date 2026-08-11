@@ -31,9 +31,9 @@ function loadLocal(rel) {
   } catch { return null; }
 }
 
-// Icône carrée du logo (même fichier que le module navigateur) + une image
-// d'exercice de substitution (logo mot-symbole, à titre de placeholder visuel).
-const logo = loadLocal('assets/logo-neurodisk-mark.png');
+// Logo couleur complet (comme le module navigateur) + une image d'exercice
+// de substitution (logo mot-symbole, à titre de placeholder visuel).
+const logo = loadLocal('assets/logo-neurodisk.png');
 const demoImg = loadLocal('assets/logo-neurodisk.png');
 
 const VIDEO = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
@@ -93,8 +93,8 @@ const SCENARIOS = {
 
 let count = 0;
 for (const [name, data] of Object.entries(SCENARIOS)) {
-  for (const format of ['a4', 'letter']) {
-    if (format === 'letter' && name !== '3_exercices') continue; // Lettre : un cas suffit
+  for (const format of ['letter', 'a4']) {
+    if (format === 'a4' && name !== '3_exercices') continue; // Lettre = défaut ; A4 : un cas de contrôle
     const doc = new jsPDF({ unit: 'mm', format, compress: true });
     drawProgram(doc, JSON.parse(JSON.stringify(data)) , { makeQr });
     // ré-attacher logoData/imageData (perdus par le clone JSON si dataURL longs -> en fait conservés)

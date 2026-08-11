@@ -24,6 +24,17 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 
 ## Session — juillet 2026
 
+### 🎨 PDF du programme — refonte visuelle « direction artistique » (août 2026)
+- Refonte complète du rendu du générateur `js/program-pdf.js` (production, données dynamiques) : allure clinique haut de gamme pour clientèle 55-70 ans. **Contenu clinique jamais modifié** (exercices, ordre, dosages, consignes, précautions, notes) — seule la mise en page change.
+- **Police Inter incorporée** : `tools/build_inter_font.mjs` télécharge InterVariable, l'instancie Regular/Bold, la sous-ensemble au français (harfbuzz-wasm via `subset-font`, pas de Python) → `js/inter-font.js` (base64, ~230 Ko). Registrée dans jsPDF (`addFileToVFS`/`addFont`), accents FR complets.
+- **Palette** marine profond + turquoise (logo) + blanc cassé + bleu pâle (dosage) + corail (précautions) + turquoise pâle (notes du pro).
+- **Format Lettre 8,5×11 par défaut** (clinique nord-américaine ; A4 encore possible via option).
+- **Page 1** épurée : logo couleur intégré sur fond clair (plus de rectangle blanc), motif « colonne » discret, filet bicolore, bloc patient, sections Objectifs/Comment utiliser/Précautions avec pictogrammes vectoriels sobres.
+- **Exercices** : plus de gros bandeau « EXERCICE » → pastille numérotée navy ; nom en vedette ; catégorie en petite étiquette turquoise ; **2 modules par page** (pagination par mesure, aucun bloc coupé) ; dernier exercice seul agrandi + zone « Notes personnelles » vierge pour équilibrer.
+- **Encadrés hiérarchisés** uniformes : dosage (bleu pâle), consignes (fond clair aéré), à surveiller (corail + picto), note du pro (turquoise). Labels en casse normale (fin des MAJUSCULES partout).
+- **Pied de page uniforme** : « Clinique Neurodisk » · titre · pagination.
+- Robustesse : pattern « mesure == dessin » (fin des chevauchements), interligne du doc fixé (1,3) pour cohérence. Validé par 10 scénarios (1/2/3/6 ex, note longue, sans note/vidéo/image, pro manquant, dosage varié, Lettre + A4) inspectés visuellement + génération réelle navigateur (Inter incorporée confirmée). Bouton « Voir mon programme en PDF » (aperçu, pas de téléchargement forcé). Cache-bust library.js v53, program-pdf.js v4.
+
 ### 📄 PDF du programme d'exercices — refonte (génération dans l'app)
 - **Abandon de `window.print()`** (qui laissait les en-têtes/pieds du navigateur : date, titre d'onglet, URL, n° page — non supprimables par CSS) au profit d'une **génération PDF vectorielle côté client** : nouveau module `js/program-pdf.js` (jsPDF + qrcode-generator chargés depuis jsDelivr, déjà autorisé par la CSP ; aucun service externe, tout local/Canada).
 - **Page d'accueil unique compacte** (fusion des 2 anciennes pages redondantes) : logo, titres, patient, professionnel réel, date, programme, région (si fournie), objectifs réels du patient, « Comment utiliser », précautions générales.

@@ -1,36 +1,63 @@
 // ============================================================
-// Génération du PDF « Programme d'entraînement adapté » (Neurodisk)
+// PDF « Programme d'entraînement adapté » — Clinique Neurodisk
 //
-// Rendu vectoriel dans l'application (jsPDF) — texte sélectionnable,
-// liens vidéo cliquables, images nettes, aucun en-tête/pied de page
-// du navigateur. Aucune donnée envoyée à un service externe : jsPDF et
-// qrcode-generator sont chargés en modules (CDN jsDelivr, déjà autorisé
-// par la CSP) et tout le rendu se fait côté client.
+// Rendu vectoriel dans l'application (jsPDF), police Inter incorporée,
+// palette clinique marine + turquoise. Texte sélectionnable, liens vidéo
+// cliquables, images nettes, aucun en-tête/pied de page du navigateur.
+// Aucune donnée envoyée à un service externe : jsPDF/qrcode-generator sont
+// chargés en modules (CDN jsDelivr, déjà autorisé par la CSP), la police
+// Inter est incorporée localement (js/inter-font.js) et tout le rendu se
+// fait côté client.
 //
-// Le cœur `drawProgram()` est une fonction pure à dépendances injectées,
-// réutilisée telle quelle par le banc d'essai Node (tools/gen_sample_program_pdf.mjs)
-// pour générer et inspecter de vrais PDF.
+// Le cœur `drawProgram()` est une fonction pure (dépendances injectées),
+// réutilisée telle quelle par le banc d'essai Node
+// (tools/gen_sample_program_pdf.mjs) pour générer/inspecter de vrais PDF.
+//
+// ⚠️ Contenu clinique jamais modifié : cette couche ne fait que la MISE EN
+// PAGE. La normalisation du dosage n'altère que la présentation.
 // ============================================================
 
-// ── Palette clinique ────────────────────────────────────────
-const NAVY       = [11, 31, 58];
-const BLUE       = [24, 95, 165];
-const BLUE_SOFT  = [234, 242, 251];
-const BORDER     = [216, 222, 232];
-const TEXT       = [40, 54, 79];
-const MUTED      = [90, 112, 133];
-const WATCH_BG   = [251, 241, 239];
-const WATCH_BD   = [235, 211, 205];
-const WATCH_TX   = [122, 46, 37];
-const NOTE_BG    = [255, 249, 236];
-const NOTE_BD    = [201, 162, 39];
-const NOTE_TX    = [92, 74, 18];
-const BG_SOFT    = [248, 250, 252];
+import { INTER_REGULAR_B64, INTER_BOLD_B64 } from './inter-font.js';
+
+// ── Palette ─────────────────────────────────────────────────
+const NAVY      = [13, 39, 74];    // marine profond — structure, titres
+const NAVY_SOFT = [31, 58, 95];
+const TEAL      = [22, 158, 166];  // turquoise du logo — accent distinctif
+const TEAL_DEEP = [13, 112, 120];
+const TEAL_PALE = [228, 245, 244]; // notes du professionnel
+const OFFWHITE  = [250, 249, 245]; // blanc cassé chaleureux
+const PALEBLUE  = [234, 242, 251]; // informations générales / dosage
+const BORDER    = [222, 229, 237];
+const TEXT      = [43, 54, 68];
+const MUTED     = [108, 121, 138];
+const CORAL_BG  = [253, 236, 231]; // précautions
+const CORAL_BD  = [242, 205, 195];
+const CORAL_TX  = [176, 72, 55];
+const WHITE     = [255, 255, 255];
 
 const PT = 0.352778; // 1pt en mm
 
-// ── Normalisation du dosage (présentation seulement) ────────
-// Ne modifie PAS la prescription : réordonne et uniformise l'affichage.
+let FONT = 'helvetica';
+function registerFonts(doc) {
+  try {
+    doc.addFileToVFS('Inter-Regular.ttf', INTER_REGULAR_B64);
+    doc.addFont('Inter-Regular.ttf', 'Inter', 'normal');
+    doc.addFileToVFS('Inter-Bold.ttf', INTER_BOLD_B64);
+    doc.addFont('Inter-Bold.ttf', 'Inter', 'bold');
+    FONT = 'Inter';
+  } catch (_) { FONT = 'helvetica'; }
+}
+
+// ── Helpers couleur / police ────────────────────────────────
+function fc(doc, c) { doc.setFillColor(c[0], c[1], c[2]); }
+function sc(doc, c) { doc.setTextColor(c[0], c[1], c[2]); }
+function dc(doc, c) { doc.setDrawColor(c[0], c[1], c[2]); }
+function F(doc, weight, size) { doc.setFont(FONT, weight); if (size) doc.setFontSize(size); }
+function lh(size, factor = 1.35) { return size * PT * factor; }
+
+// ════════════════════════════════════════════════════════════
+// Normalisation du dosage (présentation seulement)
+// ════════════════════════════════════════════════════════════
 export function normalizeDosageLines(d = {}) {
   const lines = [];
   const sets = d.sets != null && d.sets !== '' ? Number(d.sets) : null;
@@ -62,8 +89,6 @@ function fmtSeconds(sec) {
   return `${sec} seconde${sec > 1 ? 's' : ''}`;
 }
 
-// Uniformise « sec/s » → « secondes », « 2x/jour » → « 2 fois par jour »
-// sans réécrire la valeur clinique saisie par le professionnel.
 function normalizeFrequency(f) {
   let s = String(f).trim();
   s = s.replace(/(\d+)\s*x\s*\/\s*(jour|semaine|jr|sem)/gi, (_, n, unit) => {
@@ -75,90 +100,124 @@ function normalizeFrequency(f) {
   return s;
 }
 
-// ── Utilitaires de dessin ───────────────────────────────────
-function rc(doc, c) { doc.setFillColor(c[0], c[1], c[2]); }
-function sc(doc, c) { doc.setTextColor(c[0], c[1], c[2]); }
-function dc(doc, c) { doc.setDrawColor(c[0], c[1], c[2]); }
+// ════════════════════════════════════════════════════════════
+// Pictogrammes sobres (tracés vectoriels)
+// ════════════════════════════════════════════════════════════
+function icoTarget(doc, cx, cy, r, color) {
+  dc(doc, color); doc.setLineWidth(0.5);
+  doc.circle(cx, cy, r, 'S');
+  doc.circle(cx, cy, r * 0.55, 'S');
+  fc(doc, color); doc.circle(cx, cy, r * 0.16, 'F');
+}
+function icoCheck(doc, cx, cy, r, color) {
+  dc(doc, color); doc.setLineWidth(0.5);
+  doc.circle(cx, cy, r, 'S');
+  doc.setLineWidth(0.7);
+  doc.lines([[1.1, 1.2], [2.2, -2.6]], cx - 1.5, cy + 0.1);
+}
+function icoShield(doc, cx, cy, r, color) {
+  dc(doc, color); doc.setLineWidth(0.5);
+  const w = r * 1.5;
+  doc.lines(
+    [[w, 0], [0, r * 0.7], [-w / 2, r * 0.9], [-w / 2, -r * 0.9], [0, -r * 0.7]],
+    cx - w / 2, cy - r
+  );
+  fc(doc, color);
+  doc.rect(cx - 0.28, cy - r * 0.45, 0.56, r * 0.75, 'F');
+  doc.circle(cx, cy + r * 0.55, 0.32, 'F');
+}
+function icoPlay(doc, cx, cy, r, color) {
+  fc(doc, color);
+  doc.triangle(cx - r * 0.4, cy - r * 0.6, cx - r * 0.4, cy + r * 0.6, cx + r * 0.7, cy, 'F');
+}
+// Signature visuelle : colonne de points (rappel du logo)
+function spineMotif(doc, x, y, color) {
+  fc(doc, color);
+  const sizes = [0.7, 1.0, 1.4, 1.8, 1.4, 1.0, 0.7];
+  let cy = y;
+  sizes.forEach(s => { doc.circle(x, cy, s, 'F'); cy += s * 2 + 1.6; });
+}
 
-// ── Cœur : dessine le programme dans un doc jsPDF ───────────
-// deps: { makeQr(url) -> dataURL PNG | null }
-// data: voir tools/gen_sample_program_pdf.mjs pour la forme complète.
+// ════════════════════════════════════════════════════════════
+// Cœur : dessine le programme dans un doc jsPDF
+// ════════════════════════════════════════════════════════════
 export function drawProgram(doc, data, deps = {}) {
   const makeQr = deps.makeQr || (() => null);
+  registerFonts(doc);
+  doc.setLineHeightFactor(1.3); // interligne confortable ET cohérent mesure/dessin
+  F(doc, 'normal', 11);
+
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
-  const M = 15;                 // marge latérale
-  const TOP = 14, BOT = 16;     // marge haut / bas (bas = espace pied de page)
-  const CW = pageW - 2 * M;     // largeur de contenu
+  const M = 16;
+  const TOP = 14, BOT = 16;
+  const CW = pageW - 2 * M;
   const contentBottom = pageH - BOT;
+  const G = { pageW, pageH, M, TOP, BOT, CW, contentBottom };
 
-  doc.setFont('helvetica', 'normal');
+  // ══ PAGE 1 — page d'accueil ══
+  drawCover(doc, data, G);
 
-  // ══ PAGE 1 — page d'accueil compacte (fusionnée) ══
-  drawCover(doc, data, { pageW, pageH, M, TOP, CW });
-
-  // ══ PAGES SUIVANTES — exercices, 2 par page si l'espace le permet ══
+  // ══ PAGES SUIVANTES — exercices ══
   const exercises = data.exercises || [];
   if (exercises.length) {
     doc.addPage();
-    let y = TOP;
-    y = drawExercisesHeader(doc, data, { M, TOP, CW, y });
+    let y = drawRunningHeader(doc, data, G);
 
-    for (const ex of exercises) {
-      const h = measureExercise(doc, ex, CW);
-      // Nouveau bloc : ne pas couper entre deux pages.
+    for (let i = 0; i < exercises.length; i++) {
+      const ex = exercises[i];
+      const isLast = i === exercises.length - 1;
+      let h = layoutExercise(doc, ex, { x: M, y, w: CW }, { draw: false });
+
       if (y + h > contentBottom) {
         doc.addPage();
-        y = TOP;
+        y = drawRunningHeader(doc, data, G);
       }
-      drawExercise(doc, ex, { x: M, y, w: CW }, { makeQr });
-      y += h + 6; // espace inter-bloc
+      // Dernier exercice seul en haut d'une page → variante agrandie (équilibre).
+      const aloneOnPage = isLast && Math.abs(y - (TOP)) < 40; // y proche du haut après header
+      const enlarged = aloneOnPage && (contentBottom - y) > h + 70;
+      h = layoutExercise(doc, ex, { x: M, y, w: CW }, { draw: true, makeQr, enlarged });
+      y += h + 8;
+    }
+
+    // Zone « Notes personnelles » vierge si l'espace le permet (équilibre la page).
+    if (contentBottom - y > 46) {
+      drawNotesArea(doc, { x: M, y, w: CW }, contentBottom - y - 4);
     }
   }
 
-  // ══ Pieds de page (numérotation discrète Neurodisk) ══
-  drawFooters(doc, { pageW, pageH, M });
+  drawFooters(doc, data, G);
 }
 
 // ── Page d'accueil ──────────────────────────────────────────
 function drawCover(doc, data, g) {
   const { pageW, M, CW } = g;
-  let y = g.TOP;
+  let y = g.TOP + 2;
 
-  // Bandeau navy avec logo + titres
-  const bandH = 30;
-  rc(doc, NAVY);
-  doc.roundedRect(M, y, CW, bandH, 3, 3, 'F');
-
-  // Logo (pastille blanche) — dimensionnée selon le vrai ratio du fichier,
-  // jamais forcée en carré (évite l'écrasement de l'image).
-  const logoBox = 22; // hauteur de la pastille
-  const logoPad = 3;
+  // Logo couleur (ratio réel, sur fond clair — pas de rectangle)
   const logo = data.logoData;
-  const logoAr = logo && logo.w && logo.h ? logo.w / logo.h : 1;
-  const logoInnerH = logoBox - 2 * logoPad;
-  const logoInnerW = Math.min(logoInnerH * logoAr, 34); // largeur plafonnée
-  const pillW = logoInnerW + 2 * logoPad;
-  const logoX = M + 6, logoY = y + (bandH - logoBox) / 2;
-  if (logo) {
-    rc(doc, [255, 255, 255]);
-    doc.roundedRect(logoX, logoY, pillW, logoBox, 2, 2, 'F');
-    try { doc.addImage(logo.dataUrl, logo.fmt || 'PNG', logoX + logoPad, logoY + logoPad, logoInnerW, logoInnerH, undefined, 'FAST'); } catch (_) {}
+  if (logo && logo.w && logo.h) {
+    const hh = 13, ww = hh * (logo.w / logo.h);
+    try { doc.addImage(logo.dataUrl, logo.fmt || 'PNG', M, y, ww, hh, undefined, 'FAST'); } catch (_) {}
   }
+  // Signature colonne (discrète, à droite)
+  spineMotif(doc, pageW - M - 3, y + 1, TEAL);
 
-  const tx = M + (logo ? pillW + 10 : 8);
-  sc(doc, [255, 255, 255]);
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
-  doc.text('CLINIQUE NEURODISK', tx, y + 8);
-  doc.setFontSize(17);
-  doc.text('Programme d\'entraînement adapté', tx, y + 17);
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5);
-  sc(doc, [220, 230, 245]);
-  doc.text('Plan d\'exercices personnalisé', tx, y + 24);
+  y += 22;
 
-  y += bandH + 8;
+  // Titre + sous-titre
+  F(doc, 'bold', 23); sc(doc, NAVY);
+  doc.text('Programme d\'entraînement adapté', M, y);
+  y += 8;
+  F(doc, 'normal', 13); sc(doc, TEAL_DEEP);
+  doc.text('Plan d\'exercices personnalisé', M, y);
+  y += 5;
+  // Filet bicolore (signature)
+  dc(doc, NAVY); doc.setLineWidth(1.1); doc.line(M, y, M + 32, y);
+  dc(doc, TEAL); doc.setLineWidth(1.1); doc.line(M + 33, y, M + 52, y);
+  y += 8;
 
-  // Bloc d'informations (patient / pro / date / programme / région)
+  // Bloc patient / programme
   const rows = [
     ['Patient', data.patientName || '—'],
     ['Professionnel', data.professionalName || 'Votre professionnel Neurodisk'],
@@ -166,346 +225,348 @@ function drawCover(doc, data, g) {
     ['Programme', data.programName || '—'],
   ];
   if (data.region) rows.push(['Région ciblée', data.region]);
-
-  const rowH = 8;
+  const rowH = 8.5;
   const infoH = rows.length * rowH + 6;
-  rc(doc, BLUE_SOFT); dc(doc, BORDER); doc.setLineWidth(0.3);
+  fc(doc, OFFWHITE); dc(doc, BORDER); doc.setLineWidth(0.4);
   doc.roundedRect(M, y, CW, infoH, 2.5, 2.5, 'FD');
-  let ry = y + 3 + rowH / 2 + 1;
-  doc.setFontSize(10);
+  fc(doc, TEAL); doc.roundedRect(M, y, 2, infoH, 1, 1, 'F'); // liseré turquoise
+  let ry = y + 3 + rowH / 2 + 0.5;
+  doc.setFontSize(11);
   rows.forEach((r, i) => {
-    sc(doc, MUTED); doc.setFont('helvetica', 'normal');
-    doc.text(r[0], M + 6, ry);
-    sc(doc, NAVY); doc.setFont('helvetica', 'bold');
-    doc.text(String(r[1]), pageW - M - 6, ry, { align: 'right', maxWidth: CW - 55 });
-    if (i < rows.length - 1) { dc(doc, [220, 228, 240]); doc.setLineWidth(0.2); doc.line(M + 6, ry + rowH / 2 - 1, pageW - M - 6, ry + rowH / 2 - 1); }
+    F(doc, 'normal', 11); sc(doc, MUTED);
+    doc.text(r[0], M + 7, ry);
+    F(doc, 'bold', 11); sc(doc, NAVY);
+    doc.text(String(r[1]), pageW - M - 6, ry, { align: 'right', maxWidth: CW - 58 });
+    if (i < rows.length - 1) { dc(doc, [231, 236, 243]); doc.setLineWidth(0.2); doc.line(M + 7, ry + rowH / 2 - 1, pageW - M - 6, ry + rowH / 2 - 1); }
     ry += rowH;
   });
-  y += infoH + 8;
+  y += infoH + 7;
 
-  // Encadré clinique rassurant
-  const introTxt = 'Ce programme a été conçu pour vous aider à bouger progressivement, renforcer les bonnes zones et améliorer votre confort au quotidien.';
-  y = drawSoftBox(doc, introTxt, { x: M, y, w: CW });
+  // Intro rassurante (encadré bleu pâle)
+  y = softIntro(doc, 'Ce programme a été conçu pour vous aider à bouger progressivement, renforcer les bonnes zones et améliorer votre confort au quotidien.', { x: M, y, w: CW });
   y += 7;
 
-  // Objectifs
+  // Sections avec pictogrammes
   const objectives = (data.objectives && data.objectives.length)
     ? data.objectives
     : ['Améliorer le contrôle du mouvement', 'Renforcer progressivement les zones ciblées', 'Réduire les irritations liées aux positions prolongées', 'Favoriser un retour sécuritaire aux activités'];
-  y = drawSection(doc, 'Objectifs du programme', objectives, { x: M, y, w: CW });
-  y += 4;
 
-  // Comment utiliser
-  y = drawSection(doc, 'Comment utiliser votre programme', [
+  y = section(doc, icoTarget, 'Objectifs du programme', objectives, { x: M, y, w: CW });
+  y += 5;
+  y = section(doc, icoCheck, 'Comment utiliser votre programme', [
     'Faites les exercices dans l\'ordre présenté.',
     'Respectez le dosage indiqué pour chaque exercice.',
     'La qualité du mouvement est plus importante que la quantité.',
     'Respirez normalement pendant les exercices.',
   ], { x: M, y, w: CW });
-  y += 4;
-
-  // Précautions générales
-  y = drawSection(doc, 'Précautions générales', [
+  y += 5;
+  y = section(doc, icoShield, 'Précautions générales', [
     'Faites les mouvements lentement et sans forcer.',
     'Respectez vos douleurs : un léger inconfort est acceptable, une douleur vive ne l\'est pas.',
     'Cessez l\'exercice si la douleur augmente fortement, descend dans la jambe ou provoque des engourdissements importants.',
     'Communiquez avec votre professionnel si vos symptômes changent.',
-  ], { x: M, y, w: CW });
+  ], { x: M, y, w: CW }, CORAL_TX);
 }
 
-function drawSoftBox(doc, txt, g) {
-  const padX = 5, padY = 4, lh = 10 * PT * 1.35;
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-  const lines = doc.splitTextToSize(txt, g.w - 2 * padX);
-  const h = lines.length * lh + 2 * padY;
-  rc(doc, BLUE_SOFT); dc(doc, BORDER); doc.setLineWidth(0.3);
-  doc.roundedRect(g.x, g.y, g.w, h, 2, 2, 'FD');
-  // barre latérale navy
-  rc(doc, NAVY); doc.rect(g.x, g.y, 1.4, h, 'F');
-  sc(doc, [38, 54, 79]);
-  doc.text(lines, g.x + padX, g.y + padY + lh * 0.75);
+function softIntro(doc, txt, g) {
+  const padX = 6, padY = 4.5, size = 11.5;
+  F(doc, 'normal', size);
+  const lines = doc.splitTextToSize(txt, g.w - 2 * padX - 3);
+  const h = lines.length * lh(size, 1.4) + 2 * padY;
+  fc(doc, PALEBLUE); dc(doc, BORDER); doc.setLineWidth(0.35);
+  doc.roundedRect(g.x, g.y, g.w, h, 2.5, 2.5, 'FD');
+  fc(doc, NAVY); doc.roundedRect(g.x, g.y, 2, h, 1, 1, 'F');
+  sc(doc, NAVY_SOFT);
+  doc.text(lines, g.x + padX, g.y + padY + lh(size, 1.4) * 0.72);
   return g.y + h;
 }
 
-function drawSection(doc, title, items, g) {
+function section(doc, icon, title, items, g, accent) {
   let y = g.y;
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(11.5);
-  sc(doc, NAVY);
-  doc.text(title, g.x, y + 4);
-  y += 5.5;
-  dc(doc, BLUE_SOFT); doc.setLineWidth(0.6);
-  doc.line(g.x, y, g.x + g.w, y);
-  y += 4;
+  const iconColor = accent || TEAL_DEEP;
+  icon(doc, g.x + 3, y + 1.4, 3, iconColor);
+  F(doc, 'bold', 13.5); sc(doc, NAVY);
+  doc.text(title, g.x + 9, y + 3);
+  y += 6;
+  dc(doc, TEAL); doc.setLineWidth(0.5); doc.line(g.x, y, g.x + 20, y);
+  dc(doc, BORDER); doc.setLineWidth(0.4); doc.line(g.x + 20, y, g.x + g.w, y);
+  y += 4.5;
 
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-  sc(doc, TEXT);
-  const lh = 10 * PT * 1.35;
-  const bulletX = g.x + 1.5, textX = g.x + 6, textW = g.w - 6;
+  F(doc, 'normal', 11.5); sc(doc, TEXT);
+  const size = 11.5, textX = g.x + 6.5, textW = g.w - 6.5;
+  const bulletColor = accent || TEAL;
   items.forEach(it => {
     const lines = doc.splitTextToSize(it, textW);
-    rc(doc, NAVY);
-    doc.circle(bulletX, y - 1.1, 0.9, 'F');
+    fc(doc, bulletColor); doc.circle(g.x + 1.6, y - 1.1, 1.0, 'F');
     doc.text(lines, textX, y);
-    y += lines.length * lh + 1.5;
+    y += lines.length * lh(size, 1.4) + 2;
   });
   return y;
 }
 
-// ── En-tête au-dessus des exercices ─────────────────────────
-function drawExercisesHeader(doc, data, g) {
-  let y = g.y;
+// ── En-tête courant (pages 2+) ──────────────────────────────
+function drawRunningHeader(doc, data, g) {
+  let y = g.TOP;
   const logo = data.logoData;
   let logoW = 0;
-  if (logo) {
-    const ar = logo.w && logo.h ? logo.w / logo.h : 1;
-    const hh = 9;
-    logoW = hh * ar;
-    try { doc.addImage(logo.dataUrl, logo.fmt || 'PNG', g.M, y, logoW, hh, undefined, 'FAST'); } catch (_) {}
+  if (logo && logo.w && logo.h) {
+    const hh = 8; logoW = hh * (logo.w / logo.h);
+    try { doc.addImage(logo.dataUrl, logo.fmt || 'PNG', g.M, y - 1, logoW, hh, undefined, 'FAST'); } catch (_) {}
   }
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
-  sc(doc, NAVY);
-  doc.text('Programme d\'entraînement adapté', g.M + (logo ? logoW + 4 : 0), y + 6);
-  y += 10;
-  dc(doc, BORDER); doc.setLineWidth(0.5);
-  doc.line(g.M, y, g.M + g.CW, y);
-  return y + 6;
+  F(doc, 'bold', 12); sc(doc, NAVY);
+  doc.text('Programme d\'entraînement adapté', g.M + (logoW ? logoW + 5 : 0), y + 4.5);
+  y += 8.5;
+  dc(doc, NAVY); doc.setLineWidth(0.8); doc.line(g.M, y, g.M + 20, y);
+  dc(doc, TEAL); doc.setLineWidth(0.8); doc.line(g.M + 20.5, y, g.M + 34, y);
+  dc(doc, BORDER); doc.setLineWidth(0.4); doc.line(g.M + 34.5, y, g.M + g.CW, y);
+  return y + 7;
 }
 
-// ── Mesure de la hauteur d'un bloc d'exercice ───────────────
+// ════════════════════════════════════════════════════════════
+// Bloc d'exercice — layout unifié (mesure == dessin)
+// ════════════════════════════════════════════════════════════
 const EX = {
-  headH: 7, pad: 5, imgColW: 60, colGap: 6,
-  nameSize: 13, catSize: 8, doseSize: 10, labelSize: 8, textSize: 9.5,
+  pad: 5, gap: 6, numD: 11,
+  nameSize: 14, catSize: 8.5, doseSize: 10.5, labelSize: 9, textSize: 11,
+  tl: 1.3, // interligne du corps de texte
 };
 
-function exTextColW(cw) { return cw - EX.imgColW - EX.colGap - 2 * EX.pad; }
+function layoutExercise(doc, ex, box, opts) {
+  const draw = !!opts.draw;
+  const { x, y, w } = box;
+  const enlarged = !!opts.enlarged;
+  const imgColW = (enlarged ? 82 : 66);
+  const textX = x + EX.pad + imgColW + EX.gap;
+  const textW = w - EX.pad * 2 - imgColW - EX.gap;
 
-function measureExercise(doc, ex, cw) {
-  const textW = exTextColW(cw);
-  let h = EX.headH + EX.pad;
+  // — hauteur en-tête (numéro + nom + catégorie) —
+  // Dérivée des positions réelles ; pas de filet séparateur (épuré) donc le
+  // corps commence juste sous la pastille de catégorie / le numéro.
+  F(doc, 'bold', EX.nameSize);
+  const nameLines = doc.splitTextToSize(ex.name || '', w - EX.pad * 2 - EX.numD - 5);
+  const lastBaseOff = EX.pad + 3.5 + (nameLines.length - 1) * lh(EX.nameSize, 1.15);
+  const circleBottomOff = EX.pad + EX.numD - 1;
+  const contentBottomOff = ex.category ? lastBaseOff + 7 : lastBaseOff + 2.5;
+  const headH = Math.max(circleBottomOff, contentBottomOff) + 1.5;
 
-  // Colonne texte
-  doc.setFontSize(EX.nameSize);
-  const nameLines = doc.splitTextToSize(ex.name || '', textW);
-  let textH = nameLines.length * EX.nameSize * PT * 1.2 + 1.5;
-  if (ex.category) textH += 5.5;
+  // — hauteur colonne texte (mesure) —
+  const rightH = rightColumn(doc, ex, textX, y + headH + 2, textW, { draw: false, enlarged });
+  // — hauteur colonne image —
+  const leftH = imageStackHeight(ex, imgColW, enlarged);
 
-  const doseLines = normalizeDosageLines(ex.dosage);
-  if (doseLines.length) textH += 4 + doseLines.length * (EX.doseSize * PT * 1.35) + 4;
+  const bodyH = Math.max(rightH, leftH);
+  const totalH = headH + bodyH + EX.pad;
 
-  doc.setFontSize(EX.textSize);
-  if (ex.consignes) textH += 6.5 + doc.splitTextToSize(ex.consignes, textW).length * EX.textSize * PT * 1.35 + 2;
-  if (ex.surveiller) textH += 4.5 + doc.splitTextToSize(ex.surveiller, textW - 6).length * EX.textSize * PT * 1.35 + 5;
-  if (ex.note) textH += doc.splitTextToSize(ex.note, textW - 6).length * EX.textSize * PT * 1.35 + 7;
-  if (ex.videoUrl) textH += 16;
+  if (!draw) return totalH;
 
-  // Colonne image
-  const imgH = imageStackHeight(ex);
+  // — cadre —
+  fc(doc, OFFWHITE); dc(doc, BORDER); doc.setLineWidth(0.4);
+  doc.roundedRect(x, y, w, totalH, 3, 3, 'FD');
 
-  h += Math.max(textH, imgH) + EX.pad;
-  return h;
+  // — en-tête : pastille numérotée + nom + catégorie —
+  const numCx = x + EX.pad + EX.numD / 2, numCy = y + EX.pad + EX.numD / 2 - 1;
+  fc(doc, NAVY); doc.circle(numCx, numCy, EX.numD / 2, 'F');
+  fc(doc, TEAL); doc.circle(numCx, numCy, EX.numD / 2, 'S');
+  F(doc, 'bold', 13); sc(doc, WHITE);
+  doc.text(String(ex.index), numCx, numCy + 1.6, { align: 'center' });
+
+  const nameX = x + EX.pad + EX.numD + 5;
+  F(doc, 'bold', EX.nameSize); sc(doc, NAVY);
+  doc.text(nameLines, nameX, y + EX.pad + 3.5);
+  if (ex.category) {
+    const hy = y + lastBaseOff + 5.2; // pastille collée sous la dernière ligne du nom
+    F(doc, 'bold', EX.catSize);
+    const cat = ex.category;
+    const cw = doc.getTextWidth(cat) + 6;
+    fc(doc, TEAL_PALE); dc(doc, [200, 230, 228]); doc.setLineWidth(0.2);
+    doc.roundedRect(nameX, hy - 3.2, cw, 5, 1.4, 1.4, 'FD');
+    sc(doc, TEAL_DEEP); doc.text(cat, nameX + 3, hy + 0.2);
+  }
+
+  // — colonnes (le corps démarre juste sous l'en-tête) —
+  const bodyY = y + headH + 2;
+  drawImageStack(doc, ex, { x: x + EX.pad, y: bodyY, w: imgColW }, enlarged);
+  rightColumn(doc, ex, textX, bodyY, textW, { draw: true, makeQr: opts.makeQr, enlarged });
+
+  return totalH;
 }
 
-function imageStackHeight(ex) {
-  const imgs = (ex.imageData || []).slice(0, 3);
-  if (!imgs.length) return 34; // placeholder
-  const w = EX.imgColW;
+// Colonne de droite : dosage, consignes, à surveiller, note, vidéo.
+// Retourne la hauteur ; dessine si draw.
+function rightColumn(doc, ex, x, y0, w, opts) {
+  const draw = !!opts.draw;
+  let y = y0;
+
+  // Dosage (encadré bleu pâle)
+  const doseLines = normalizeDosageLines(ex.dosage);
+  if (doseLines.length) {
+    const dlh = lh(EX.doseSize, 1.35);
+    const boxH = doseLines.length * dlh + 4.5;
+    if (draw) {
+      fc(doc, PALEBLUE); dc(doc, BORDER); doc.setLineWidth(0.3);
+      doc.roundedRect(x, y, w, boxH, 2, 2, 'FD');
+      let dy = y + 4;
+      doseLines.forEach((l, i) => {
+        F(doc, i === 0 ? 'bold' : 'normal', EX.doseSize); sc(doc, NAVY);
+        doc.text(l, x + 4, dy); dy += dlh;
+      });
+    }
+    y += boxH + 3.5;
+  }
+
+  // Consignes (fond blanc, aéré)
+  if (ex.consignes) {
+    F(doc, 'bold', EX.labelSize);
+    if (draw) { sc(doc, MUTED); doc.text('Consignes', x, y + 2.5); }
+    y += 6.8;
+    F(doc, 'normal', EX.textSize);
+    const lines = doc.splitTextToSize(ex.consignes, w);
+    if (draw) { sc(doc, TEXT); doc.text(lines, x, y); }
+    y += lines.length * lh(EX.textSize, EX.tl) + 2;
+  }
+
+  // À surveiller (encadré corail)
+  if (ex.surveiller) {
+    F(doc, 'normal', EX.textSize);
+    const lines = doc.splitTextToSize(ex.surveiller, w - 8);
+    const boxH = 7.5 + lines.length * lh(EX.textSize, EX.tl) + 1.5;
+    if (draw) {
+      fc(doc, CORAL_BG); dc(doc, CORAL_BD); doc.setLineWidth(0.3);
+      doc.roundedRect(x, y, w, boxH, 2, 2, 'FD');
+      icoShield(doc, x + 4, y + 4, 2.2, CORAL_TX);
+      F(doc, 'bold', EX.labelSize); sc(doc, CORAL_TX);
+      doc.text('À surveiller', x + 8, y + 4.4);
+      F(doc, 'normal', EX.textSize); sc(doc, CORAL_TX);
+      doc.text(lines, x + 4, y + 8.5);
+    }
+    y += boxH + 3;
+  }
+
+  // Note du professionnel (encadré turquoise pâle)
+  if (ex.note) {
+    F(doc, 'normal', EX.textSize);
+    const lines = doc.splitTextToSize(ex.note, w - 9);
+    const boxH = 7.5 + lines.length * lh(EX.textSize, EX.tl) + 1.5;
+    if (draw) {
+      fc(doc, TEAL_PALE); doc.setLineWidth(0);
+      doc.roundedRect(x, y, w, boxH, 2, 2, 'F');
+      fc(doc, TEAL); doc.rect(x, y, 1.6, boxH, 'F');
+      F(doc, 'bold', EX.labelSize); sc(doc, TEAL_DEEP);
+      doc.text('Note de votre professionnel', x + 5, y + 4.4);
+      F(doc, 'normal', EX.textSize); sc(doc, TEAL_DEEP);
+      doc.text(lines, x + 5, y + 8.5);
+    }
+    y += boxH + 3;
+  }
+
+  // Accès vidéo (lien cliquable + QR)
+  if (ex.videoUrl) {
+    if (draw) {
+      dc(doc, BORDER); doc.setLineWidth(0.2);
+      doc.setLineDashPattern([0.8, 0.8], 0); doc.line(x, y, x + w, y);
+      doc.setLineDashPattern([], 0);
+      const ty = y + 4;
+      icoPlay(doc, x + 2, ty + 1, 2.2, TEAL);
+      F(doc, 'bold', 10.5); sc(doc, TEAL_DEEP);
+      const label = 'Voir la vidéo de démonstration';
+      doc.textWithLink(label, x + 6, ty + 2, { url: ex.videoUrl });
+      const lw = doc.getTextWidth(label);
+      dc(doc, TEAL); doc.setLineWidth(0.3); doc.line(x + 6, ty + 3, x + 6 + lw, ty + 3);
+      F(doc, 'normal', 8); sc(doc, MUTED);
+      doc.text('Scannez le code ou touchez le lien', x + 6, ty + 7);
+      const qr = opts.makeQr ? opts.makeQr(ex.videoUrl) : null;
+      if (qr) {
+        const qs = 13, qx = x + w - qs;
+        try { doc.addImage(qr, 'PNG', qx, y + 1, qs, qs, undefined, 'FAST'); doc.link(qx, y + 1, qs, qs, { url: ex.videoUrl }); } catch (_) {}
+      }
+    }
+    y += 13.5;
+  }
+
+  return y - y0;
+}
+
+// ── Images empilées ─────────────────────────────────────────
+function imageStackHeight(ex, colW, enlarged) {
+  const imgs = (ex.imageData || []).slice(0, enlarged ? 4 : 3);
+  if (!imgs.length) return enlarged ? 50 : 34;
+  const cap = enlarged ? 70 : 52;
   let total = 0;
   imgs.forEach((im, i) => {
     const ar = (im.w && im.h) ? im.w / im.h : 1.4;
-    let hh = w / ar;
-    hh = Math.min(hh, 48);
-    total += hh + (i > 0 ? 3 : 0);
+    total += Math.min(colW / ar, cap) + (i ? 3 : 0);
   });
-  return Math.max(total, 30);
+  return Math.max(total, 28);
 }
 
-// ── Dessin d'un bloc d'exercice ─────────────────────────────
-function drawExercise(doc, ex, box, deps) {
-  const { x, y, w } = box;
-  const h = measureExercise(doc, ex, w);
-
-  // Cadre
-  rc(doc, [255, 255, 255]); dc(doc, BORDER); doc.setLineWidth(0.4);
-  doc.roundedRect(x, y, w, h, 2.5, 2.5, 'FD');
-
-  // Bandeau numéro
-  rc(doc, NAVY);
-  doc.roundedRect(x, y, w, EX.headH, 2.5, 2.5, 'F');
-  doc.rect(x, y + EX.headH - 3, w, 3, 'F'); // coin bas droit du bandeau
-  sc(doc, [255, 255, 255]); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
-  doc.text(`EXERCICE ${ex.index}`, x + EX.pad, y + 4.9);
-
-  const bodyY = y + EX.headH + EX.pad;
-  const imgX = x + EX.pad;
-  const textX = x + EX.pad + EX.imgColW + EX.colGap;
-  const textW = exTextColW(w);
-
-  // ── Colonne image ──
-  drawImageStack(doc, ex, { x: imgX, y: bodyY, w: EX.imgColW });
-
-  // ── Colonne texte ──
-  let ty = bodyY + 1;
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(EX.nameSize); sc(doc, NAVY);
-  const nameLines = doc.splitTextToSize(ex.name || '', textW);
-  doc.text(nameLines, textX, ty + EX.nameSize * PT * 0.9);
-  ty += nameLines.length * EX.nameSize * PT * 1.2 + 1.5;
-
-  if (ex.category) {
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(EX.catSize);
-    const cat = ex.category.toUpperCase();
-    const cw = doc.getTextWidth(cat) + 6;
-    rc(doc, BLUE_SOFT); dc(doc, BORDER); doc.setLineWidth(0.2);
-    doc.roundedRect(textX, ty - 0.5, cw, 4.6, 1.2, 1.2, 'FD');
-    sc(doc, NAVY);
-    doc.text(cat, textX + 3, ty + 2.7);
-    ty += 5.5;
-  }
-
-  // Dosage
-  const doseLines = normalizeDosageLines(ex.dosage);
-  if (doseLines.length) {
-    ty += 2;
-    const dlh = EX.doseSize * PT * 1.35;
-    const boxH = doseLines.length * dlh + 4;
-    rc(doc, BLUE_SOFT); dc(doc, BORDER); doc.setLineWidth(0.25);
-    doc.roundedRect(textX, ty, textW, boxH, 1.5, 1.5, 'FD');
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(EX.doseSize); sc(doc, NAVY);
-    let dy = ty + 3;
-    doseLines.forEach((l, i) => {
-      if (i === 0) doc.setFont('helvetica', 'bold'); else doc.setFont('helvetica', 'normal');
-      doc.text(l, textX + 3, dy);
-      dy += dlh;
-    });
-    ty += boxH + 4;
-  }
-
-  // Consignes
-  if (ex.consignes) {
-    ty = drawTextBlock(doc, 'CONSIGNES', ex.consignes, { x: textX, y: ty, w: textW }, { labelColor: MUTED, textColor: TEXT });
-    ty += 2;
-  }
-
-  // À surveiller
-  if (ex.surveiller) {
-    const tlh = EX.textSize * PT * 1.35;
-    const lines = doc.splitTextToSize(ex.surveiller, textW - 6);
-    const boxH = lines.length * tlh + 7;
-    rc(doc, WATCH_BG); dc(doc, WATCH_BD); doc.setLineWidth(0.25);
-    doc.roundedRect(textX, ty, textW, boxH, 1.5, 1.5, 'FD');
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(EX.labelSize); sc(doc, WATCH_TX);
-    doc.text('À SURVEILLER', textX + 3, ty + 3.5);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(EX.textSize); sc(doc, WATCH_TX);
-    doc.text(lines, textX + 3, ty + 7);
-    ty += boxH + 3;
-  }
-
-  // Note du professionnel
-  if (ex.note) {
-    const tlh = EX.textSize * PT * 1.35;
-    const lines = doc.splitTextToSize(ex.note, textW - 6);
-    const boxH = lines.length * tlh + 7;
-    rc(doc, NOTE_BG); doc.setLineWidth(0);
-    doc.roundedRect(textX, ty, textW, boxH, 1.5, 1.5, 'F');
-    rc(doc, NOTE_BD); doc.rect(textX, ty, 1.4, boxH, 'F');
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(EX.labelSize); sc(doc, NOTE_TX);
-    doc.text('NOTE DE VOTRE PROFESSIONNEL', textX + 4, ty + 3.5);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(EX.textSize); sc(doc, NOTE_TX);
-    doc.text(lines, textX + 4, ty + 7);
-    ty += boxH + 3;
-  }
-
-  // Accès vidéo : lien cliquable + QR
-  if (ex.videoUrl) {
-    const qr = deps.makeQr ? deps.makeQr(ex.videoUrl) : null;
-    const qrSize = 13;
-    dc(doc, BORDER); doc.setLineWidth(0.2);
-    doc.setLineDashPattern([0.8, 0.8], 0);
-    doc.line(textX, ty, textX + textW, ty);
-    doc.setLineDashPattern([], 0);
-    ty += 3.5;
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); sc(doc, BLUE);
-    const label = 'Voir la vidéo de démonstration';
-    doc.textWithLink(label, textX, ty + 2, { url: ex.videoUrl });
-    const lw = doc.getTextWidth(label);
-    doc.setDrawColor(BLUE[0], BLUE[1], BLUE[2]); doc.setLineWidth(0.3);
-    doc.line(textX, ty + 3, textX + lw, ty + 3); // soulignement
-    doc.setFontSize(7.5); sc(doc, MUTED); doc.setFont('helvetica', 'normal');
-    doc.text('Scannez le code ou touchez le lien', textX, ty + 7.5);
-    if (qr) {
-      try {
-        const qx = textX + textW - qrSize;
-        doc.addImage(qr, 'PNG', qx, ty - 2, qrSize, qrSize, undefined, 'FAST');
-        doc.link(qx, ty - 2, qrSize, qrSize, { url: ex.videoUrl });
-      } catch (_) {}
-    }
-  }
-}
-
-function drawTextBlock(doc, label, txt, g, colors) {
-  let y = g.y;
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(EX.labelSize); sc(doc, colors.labelColor);
-  doc.text(label, g.x, y + 2.5);
-  y += 6.5;
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(EX.textSize); sc(doc, colors.textColor);
-  const lines = doc.splitTextToSize(txt, g.w);
-  doc.text(lines, g.x, y);
-  return y + lines.length * EX.textSize * PT * 1.35;
-}
-
-function drawImageStack(doc, ex, g) {
-  const imgs = (ex.imageData || []).slice(0, 3);
+function drawImageStack(doc, ex, g, enlarged) {
+  const imgs = (ex.imageData || []).slice(0, enlarged ? 4 : 3);
   if (!imgs.length) {
-    rc(doc, BG_SOFT); dc(doc, BORDER); doc.setLineWidth(0.3);
-    doc.roundedRect(g.x, g.y, g.w, 30, 2, 2, 'FD');
-    doc.setFontSize(8); sc(doc, MUTED); doc.setFont('helvetica', 'normal');
-    doc.text('Voir la vidéo', g.x + g.w / 2, g.y + 16, { align: 'center' });
+    fc(doc, PALEBLUE); dc(doc, BORDER); doc.setLineWidth(0.3);
+    doc.roundedRect(g.x, g.y, g.w, enlarged ? 50 : 34, 2, 2, 'FD');
+    icoPlay(doc, g.x + g.w / 2 - 1, g.y + (enlarged ? 22 : 14), 3, TEAL);
+    F(doc, 'normal', 9); sc(doc, MUTED);
+    doc.text('Voir la vidéo', g.x + g.w / 2, g.y + (enlarged ? 30 : 22), { align: 'center' });
     return;
   }
+  const cap = enlarged ? 70 : 52;
+  const multi = imgs.length > 1;
   let y = g.y;
-  imgs.forEach((im) => {
+  imgs.forEach((im, i) => {
     const ar = (im.w && im.h) ? im.w / im.h : 1.4;
-    let hh = Math.min(g.w / ar, 48);
-    let ww = hh * ar;
+    let hh = Math.min(g.w / ar, cap), ww = hh * ar;
     if (ww > g.w) { ww = g.w; hh = ww / ar; }
     const ix = g.x + (g.w - ww) / 2;
-    rc(doc, BG_SOFT); dc(doc, BORDER); doc.setLineWidth(0.3);
+    fc(doc, WHITE); dc(doc, BORDER); doc.setLineWidth(0.3);
     doc.roundedRect(g.x, y, g.w, hh, 2, 2, 'FD');
     try { doc.addImage(im.dataUrl, im.fmt || 'JPEG', ix, y, ww, hh, undefined, 'FAST'); } catch (_) {}
+    if (multi) { // badge numéro d'étape discret
+      fc(doc, NAVY); doc.circle(g.x + 3.5, y + 3.5, 2.4, 'F');
+      F(doc, 'bold', 8); sc(doc, WHITE); doc.text(String(i + 1), g.x + 3.5, y + 4.4, { align: 'center' });
+    }
     y += hh + 3;
   });
 }
 
-// ── Pieds de page (numérotation discrète) ───────────────────
-function drawFooters(doc, g) {
+// ── Zone « Notes personnelles » vierge ──────────────────────
+function drawNotesArea(doc, g, maxH) {
+  const h = Math.min(maxH, 46);
+  fc(doc, OFFWHITE); dc(doc, BORDER); doc.setLineWidth(0.4);
+  doc.roundedRect(g.x, g.y, g.w, h, 3, 3, 'FD');
+  F(doc, 'bold', EX.labelSize); sc(doc, MUTED);
+  doc.text('Notes personnelles', g.x + 6, g.y + 6);
+  dc(doc, [231, 236, 243]); doc.setLineWidth(0.25);
+  let ly = g.y + 12;
+  while (ly < g.y + h - 4) { doc.line(g.x + 6, ly, g.x + g.w - 6, ly); ly += 8; }
+}
+
+// ── Pieds de page uniformes ─────────────────────────────────
+function drawFooters(doc, data, g) {
   const total = doc.internal.getNumberOfPages();
   for (let p = 1; p <= total; p++) {
     doc.setPage(p);
-    const fy = g.pageH - 9;
-    dc(doc, BORDER); doc.setLineWidth(0.3);
-    doc.line(g.M, fy, g.pageW - g.M, fy);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); sc(doc, MUTED);
-    doc.text('Neurodisk — Programme d\'entraînement adapté', g.M, fy + 4);
+    const fy = g.pageH - 10;
+    dc(doc, BORDER); doc.setLineWidth(0.3); doc.line(g.M, fy, g.pageW - g.M, fy);
+    F(doc, 'bold', 8); sc(doc, NAVY);
+    doc.text('Clinique Neurodisk', g.M, fy + 4);
+    F(doc, 'normal', 8); sc(doc, MUTED);
+    doc.text('Programme d\'entraînement adapté', g.pageW / 2, fy + 4, { align: 'center' });
     doc.text(`Page ${p} / ${total}`, g.pageW - g.M, fy + 4, { align: 'right' });
   }
 }
 
 // ════════════════════════════════════════════════════════════
 // Entrée navigateur : charge jsPDF + QR (CDN), prépare les données,
-// dessine, puis OUVRE un aperçu du PDF dans un nouvel onglet (le patient
-// choisit lui-même s'il veut l'enregistrer via son navigateur — pas de
-// téléchargement forcé).
+// dessine, puis OUVRE un aperçu du PDF dans un nouvel onglet.
 // ════════════════════════════════════════════════════════════
 export async function generateProgramPdf(input, opts = {}) {
-  // Ouvre l'onglet d'aperçu IMMÉDIATEMENT (synchrone, dans le geste de clic) —
-  // sinon les `await` suivants (import CDN, chargement des images) font perdre
-  // le contexte « geste utilisateur » et le navigateur bloque la fenêtre.
   const previewWin = window.open('', '_blank');
   if (previewWin) {
     previewWin.document.write('<!doctype html><title>Préparation du programme…</title><body style="font:14px system-ui;color:#5a7085;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">Préparation de votre programme…</body>');
   }
 
   try {
-    const format = opts.format === 'letter' ? 'letter' : 'a4';
+    const format = opts.format === 'a4' ? 'a4' : 'letter'; // Lettre par défaut (clinique nord-américaine)
     const [{ jsPDF }, qrmod] = await Promise.all([
       import('https://cdn.jsdelivr.net/npm/jspdf@2.5.2/+esm'),
       import('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/+esm'),
@@ -516,12 +577,10 @@ export async function generateProgramPdf(input, opts = {}) {
       catch { return null; }
     };
 
-    // Logo : icône carrée (pas le mot-symbole large) pour un rendu net dans
-    // la pastille, sans jamais déformer l'image.
-    const logoData = await loadImageData(opts.logoUrl || '/assets/logo-neurodisk-mark.png');
+    const logoData = await loadImageData(opts.logoUrl || '/assets/logo-neurodisk.png');
     for (const ex of (input.exercises || [])) {
       ex.imageData = [];
-      for (const url of (ex.imageUrls || []).slice(0, 3)) {
+      for (const url of (ex.imageUrls || []).slice(0, 4)) {
         const d = await loadImageData(url);
         if (d) ex.imageData.push(d);
       }
@@ -535,14 +594,8 @@ export async function generateProgramPdf(input, opts = {}) {
     const filename = `Programme_${safe || 'Neurodisk'}.pdf`;
     const blobUrl = doc.output('bloburl');
 
-    if (previewWin && !previewWin.closed) {
-      // Onglet déjà ouvert : on y injecte l'aperçu (le patient choisit lui-même
-      // s'il veut l'enregistrer via les commandes de son navigateur).
-      previewWin.location.href = blobUrl;
-    } else {
-      // Onglet bloqué par le navigateur : repli sur le téléchargement direct.
-      doc.save(filename);
-    }
+    if (previewWin && !previewWin.closed) previewWin.location.href = blobUrl;
+    else doc.save(filename);
     return { blobUrl, filename };
   } catch (err) {
     if (previewWin && !previewWin.closed) previewWin.close();
@@ -550,7 +603,6 @@ export async function generateProgramPdf(input, opts = {}) {
   }
 }
 
-// Charge une image (même origine ou CORS Supabase) en dataURL + dimensions.
 async function loadImageData(url) {
   if (!url) return null;
   try {

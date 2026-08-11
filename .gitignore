@@ -32,3 +32,6 @@ supabase/.temp/
 
 # Documents Loi 25 internes (ne pas publier)
 docs/loi25/
+
+# PDF échantillons générés par tools/gen_sample_program_pdf.mjs
+programme_*.pdf
