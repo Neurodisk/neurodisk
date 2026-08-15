@@ -7,7 +7,7 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 ## 🔁 État actuel (à lire en premier après un clear du chat)
 
 **Migrations SQL à exécuter dans le SQL Editor Supabase** (dans l'ordre, non confirmées exécutées) :
-**025, 026, 027, 028, 029, 030, 031, 032, 033, 034, 035.**
+**025, 026, 027, 028, 029, 030, 031, 032, 033, 034, 035, 036.**
 (011→024 : confirmées exécutées en juillet 2026, sauf mention contraire ci-dessous.)
 - **034** = politique de rétention Loi 25 (dossiers 5 ans après dernier service, comptes inactifs désactivés à 24 mois, registre des incidents 5 ans, `request_account_deletion`, tout via pg_cron).
 - **035** = `get_programme_professional()` (RPC SECURITY DEFINER) pour afficher le vrai nom du clinicien dans le PDF patient malgré la RLS.
@@ -23,6 +23,11 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 ---
 
 ## Session — juillet 2026
+
+### 🐛 Fix : ajout de vidéo YouTube dans les ressources bloqué (août 2026)
+- **Cause** : la migration 018 (passage Bunny → YouTube) a ajouté `resources.video_url` mais n'a jamais mis à jour l'ancienne contrainte CHECK `video_requires_bunny_id` (héritée du schéma initial Bunny), qui exigeait encore `bunny_video_id IS NOT NULL` pour toute ressource `type='video'`. Le formulaire admin envoie correctement `video_url` (lien YouTube) + `bunny_video_id: null` → violation de contrainte à l'insertion.
+- **Correctif** : migration **036** — contrainte réécrite pour accepter `bunny_video_id` OU `video_url`.
+- ⚠️ **À exécuter** dans le SQL Editor Supabase (s'ajoute à la liste 025-036).
 
 ### 🔧 PDF du programme — corrections ciblées (août 2026)
 - **Majuscules automatiques** (`capitalizeSentences`) : première lettre de chaque phrase (consignes, à surveiller, note) mise en majuscule à l'affichage — la donnée en base n'est jamais modifiée, aucune reformulation, aucun titre d'exercice touché.
