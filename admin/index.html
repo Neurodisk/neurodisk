@@ -863,8 +863,8 @@
           <form id="formAddResource">
             <div class="form-grid">
               <div class="field" style="grid-column:1/-1">
-                <label for="rTitle">Titre *</label>
-                <input type="text" id="rTitle" placeholder="Ex. : Exercices de stabilisation lombaire" required>
+                <label for="rTitle">Titre <span style="font-weight:400;color:var(--muted);font-size:.78rem">optionnel — déduit automatiquement pour une vidéo YouTube si laissé vide</span></label>
+                <input type="text" id="rTitle" placeholder="Ex. : Exercices de stabilisation lombaire (laisser vide pour auto-détecter)">
               </div>
               <div class="field">
                 <label>Type *</label>
@@ -2040,8 +2040,8 @@
         <input type="hidden" id="editResourceType">
         <div class="form-grid">
           <div class="field" style="grid-column:1/-1">
-            <label for="editTitle">Titre *</label>
-            <input type="text" id="editTitle" required>
+            <label for="editTitle">Titre <span style="font-weight:400;color:var(--muted);font-size:.78rem">optionnel</span></label>
+            <input type="text" id="editTitle">
           </div>
           <div class="field">
             <label for="editCondition">Condition *</label>
@@ -3936,11 +3936,23 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       });
     });
 
+    // Récupère le vrai titre d'une vidéo YouTube via l'API oEmbed publique
+    // (aucune clé requise, CORS autorisé). Retourne null si indisponible —
+    // le titre reste alors optionnel, jamais bloquant.
+    async function fetchYoutubeTitle(url) {
+      try {
+        const resp = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        return data?.title || null;
+      } catch { return null; }
+    }
+
     // Formulaire ajout ressource
     document.getElementById('formAddResource').addEventListener('submit', async e => {
       e.preventDefault();
       const type     = document.querySelector('input[name="rType"]:checked').value;
-      const title    = document.getElementById('rTitle').value.trim();
+      let title      = document.getElementById('rTitle').value.trim();
       const cond     = document.getElementById('rCondition').value;
       const category = document.getElementById('rCategory').value;
       const bunnyId  = document.getElementById('rBunnyId').value.trim();
@@ -3964,6 +3976,21 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       setAlert(alert, '', '');
       btn.disabled = true;
       btn.innerHTML = `<span class="spinner-inline"></span> Ajout…`;
+
+      // Titre optionnel : déduit automatiquement si laissé vide.
+      if (!title) {
+        if (type === 'video') {
+          btn.innerHTML = `<span class="spinner-inline"></span> Détection du titre…`;
+          title = (await fetchYoutubeTitle(bunnyId)) || 'Vidéo sans titre';
+        } else if (type === 'pdf') {
+          title = 'Document PDF sans titre';
+        } else if (type === 'word') {
+          title = 'Document Word sans titre';
+        } else {
+          title = 'Ressource sans titre';
+        }
+        btn.innerHTML = `<span class="spinner-inline"></span> Ajout…`;
+      }
 
       // Garde-fou anti-doublon : même titre + même fichier dans la même audience
       const srcCol = type === 'video' ? 'video_url' : 'pdf_url';
@@ -7060,7 +7087,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       e.preventDefault();
       const id       = document.getElementById('editResourceId').value;
       const type     = document.getElementById('editResourceType').value;
-      const title    = document.getElementById('editTitle').value.trim();
+      let title      = document.getElementById('editTitle').value.trim();
       const cond     = document.getElementById('editCondition').value;
       const category = document.getElementById('editCategory').value;
       const duration = parseInt(document.getElementById('editDuration').value) || null;
@@ -7071,12 +7098,26 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
       const newThumb    = document.getElementById('editThumbnailUrl').value.trim() || null;
       const btn         = document.getElementById('btnSaveEdit');
 
-      if (!title) { setAlert(alertEditRes, 'Le titre est requis.', 'error'); return; }
       if (!cond)  { setAlert(alertEditRes, 'La condition est requise.', 'error'); return; }
 
       setAlert(alertEditRes, '', '');
       btn.disabled = true;
       btn.innerHTML = `<span class="spinner-inline"></span> Enregistrement…`;
+
+      // Titre optionnel : déduit automatiquement si laissé vide.
+      if (!title) {
+        if (type === 'video' && newBunny) {
+          btn.innerHTML = `<span class="spinner-inline"></span> Détection du titre…`;
+          title = (await fetchYoutubeTitle(newBunny)) || 'Vidéo sans titre';
+          btn.innerHTML = `<span class="spinner-inline"></span> Enregistrement…`;
+        } else if (type === 'pdf') {
+          title = 'Document PDF sans titre';
+        } else if (type === 'word') {
+          title = 'Document Word sans titre';
+        } else {
+          title = 'Ressource sans titre';
+        }
+      }
 
       const payload = {
         title, description: desc || null,
