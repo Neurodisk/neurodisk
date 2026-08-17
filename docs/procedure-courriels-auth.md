@@ -35,12 +35,20 @@ Conséquence pratique : **l'étape 1 ci-dessous suffit à tout réparer.** L'ét
 
 ---
 
+> ### ⚠️ Où sont ces réglages ?
+> Ils ne sont **pas** dans « Project Settings ». Ils se trouvent dans la section **Authentication** du menu principal de gauche (icône utilisateurs), qui possède son propre sous-menu : *Users, Policies, Sign In / Providers, Sessions, **Rate Limits**, **Emails**, **URL Configuration**, **SMTP**…*
+>
+> Liens directs pour le projet Neurodisk (`jqxykxkikvrgwnajhhbi`) :
+> - SMTP → https://supabase.com/dashboard/project/jqxykxkikvrgwnajhhbi/auth/smtp
+> - URL Configuration → https://supabase.com/dashboard/project/jqxykxkikvrgwnajhhbi/auth/url-configuration
+> - Rate Limits → https://supabase.com/dashboard/project/jqxykxkikvrgwnajhhbi/auth/rate-limits
+
 ## Étape 1 — SMTP personnalisé dans Supabase *(obligatoire)*
 
 Répare les deux flux, sans aucun déploiement.
 
 1. Créer une clé API dans Resend : **resend.com → API Keys → Create API Key** (permission *Sending access* suffit). Copier la clé `re_...`.
-2. Supabase → **Project Settings → Authentication → SMTP Settings** → activer **Enable Custom SMTP**.
+2. Supabase → **Authentication → SMTP** ([lien direct](https://supabase.com/dashboard/project/jqxykxkikvrgwnajhhbi/auth/smtp)) → activer **Enable Custom SMTP**.
 3. Remplir :
 
    | Champ | Valeur |
@@ -60,17 +68,18 @@ Répare les deux flux, sans aucun déploiement.
 
 Sans ça, le courriel part mais **le lien échoue au clic**.
 
-Supabase → **Authentication → URL Configuration** :
+Supabase → **Authentication → URL Configuration** ([lien direct](https://supabase.com/dashboard/project/jqxykxkikvrgwnajhhbi/auth/url-configuration)) :
 
 - **Site URL** : `https://cliniqueneurodisk.com`
-- **Redirect URLs** — ajouter :
-  - `https://cliniqueneurodisk.com/**`
+- **Redirect URLs** — ajouter ces deux entrées **exactes** :
   - `https://cliniqueneurodisk.com/reset-password.html`
   - `https://cliniqueneurodisk.com/library.html`
 
+> Le caractère générique `https://cliniqueneurodisk.com/**` fonctionne aussi, mais la documentation Supabase recommande des **chemins exacts en production** (le générique est prévu pour le développement et les URL de prévisualisation).
+
 ## Étape 3 — Relever la limite d'envoi *(recommandé)*
 
-Supabase → **Authentication → Rate Limits** → augmenter **« Emails per hour »** (la valeur par défaut de 2/h vise le serveur de test ; avec un SMTP personnalisé on peut monter, p. ex. 100/h).
+Supabase → **Authentication → Rate Limits** ([lien direct](https://supabase.com/dashboard/project/jqxykxkikvrgwnajhhbi/auth/rate-limits)) → augmenter **« Emails per hour »** (la valeur par défaut vise le serveur de test ; avec un SMTP personnalisé on peut monter, p. ex. 100/h).
 
 ## Étape 4 — Gabarit Resend brandé *(optionnel)*
 
