@@ -70,12 +70,16 @@ Sans ça, le courriel part mais **le lien échoue au clic**.
 
 Supabase → **Authentication → URL Configuration** ([lien direct](https://supabase.com/dashboard/project/jqxykxkikvrgwnajhhbi/auth/url-configuration)) :
 
-- **Site URL** : `https://cliniqueneurodisk.com`
+- **Site URL** : `https://plateforme.neurodisk.com`
 - **Redirect URLs** — ajouter ces deux entrées **exactes** :
-  - `https://cliniqueneurodisk.com/reset-password.html`
-  - `https://cliniqueneurodisk.com/library.html`
+  - `https://plateforme.neurodisk.com/reset-password.html`
+  - `https://plateforme.neurodisk.com/library.html`
 
-> Le caractère générique `https://cliniqueneurodisk.com/**` fonctionne aussi, mais la documentation Supabase recommande des **chemins exacts en production** (le générique est prévu pour le développement et les URL de prévisualisation).
+> ⚠️ **La plateforme est sur `plateforme.neurodisk.com`**, pas sur `cliniqueneurodisk.com` (ce dernier est le site vitrine de la clinique). Se tromper de domaine ici casse le lien au clic.
+>
+> Avantage : le domaine d'envoi (`neurodisk.com`) et celui de l'application (`plateforme.neurodisk.com`) partagent la même racine — c'est meilleur pour la confiance et la délivrabilité.
+
+> Le caractère générique `https://plateforme.neurodisk.com/**` fonctionne aussi, mais la documentation Supabase recommande des **chemins exacts en production** (le générique est prévu pour le développement et les URL de prévisualisation).
 
 ## Étape 3 — Relever la limite d'envoi *(recommandé)*
 
@@ -158,7 +162,7 @@ supabase.cmd functions deploy magic-link-resend --no-verify-jwt --project-ref jq
 
 ## Tester
 
-1. Écran de connexion → **« Mot de passe oublié ? »** → entrer une adresse de **compte existant** → le courriel doit arriver en moins d'une minute.
+1. Aller sur **https://plateforme.neurodisk.com** → **« Mot de passe oublié ? »** → entrer une adresse de **compte existant** → le courriel doit arriver en moins d'une minute.
 2. Même chose avec **« Recevoir un lien de connexion par courriel »**.
 3. Cliquer le lien reçu : il doit ouvrir `reset-password.html` (ou `library.html`) **connecté**, sans message d'erreur.
 
