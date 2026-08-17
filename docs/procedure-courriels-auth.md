@@ -58,7 +58,7 @@ Répare les deux flux, sans aucun déploiement.
    | Username | `resend` |
    | Password | *la clé `re_...`* (à coller par toi) |
    | Sender email | `no-reply@neurodisk.com` |
-   | Sender name | `Clinique Neurodisk` |
+   | Sender name | `Neurodisk Chicoutimi` |
 
 4. **Save**.
 
@@ -133,7 +133,7 @@ supabase.cmd projects list
 > `<` et `>` sont des opérateurs de redirection en PowerShell. L'argument **doit** être entre guillemets simples, sinon la commande échoue.
 
 ```powershell
-supabase.cmd secrets set 'MAIL_FROM=Clinique Neurodisk <no-reply@neurodisk.com>' --project-ref jqxykxkikvrgwnajhhbi
+supabase.cmd secrets set 'MAIL_FROM=Neurodisk Chicoutimi <no-reply@neurodisk.com>' --project-ref jqxykxkikvrgwnajhhbi
 ```
 
 ```powershell

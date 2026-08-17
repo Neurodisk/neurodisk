@@ -35,7 +35,7 @@
 // Configuration (secrets Supabase — aucun redéploiement nécessaire
 // pour changer l'expéditeur) :
 //   supabase secrets set RESEND_API_KEY=re_...
-//   supabase secrets set MAIL_FROM="Clinique Neurodisk <no-reply@neurodisk.com>"
+//   supabase secrets set MAIL_FROM="Neurodisk Chicoutimi <no-reply@neurodisk.com>"
 //   supabase secrets set MAIL_REPLY_TO="info@cliniqueneurodisk.com"
 //
 // Déploiement :
@@ -57,7 +57,7 @@ const RESEND_TEMPLATE_ID = 'd2df0c0d-a49b-40e2-a57e-52b1c4801c29'
 // d'adresse ne demande PAS de redéploiement.
 // NB : neurodisk.com n'a pas de MX de réception — d'où « no-reply »
 // et un Reply-To vers une vraie boîte.
-const MAIL_FROM     = Deno.env.get('MAIL_FROM')     ?? 'Clinique Neurodisk <no-reply@neurodisk.com>'
+const MAIL_FROM     = Deno.env.get('MAIL_FROM')     ?? 'Neurodisk Chicoutimi <no-reply@neurodisk.com>'
 const MAIL_REPLY_TO = Deno.env.get('MAIL_REPLY_TO') ?? ''
 
 const SUBJECTS: Record<string, string> = {
