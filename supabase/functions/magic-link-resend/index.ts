@@ -36,7 +36,7 @@
 // pour changer l'expéditeur) :
 //   supabase secrets set RESEND_API_KEY=re_...
 //   supabase secrets set MAIL_FROM="Neurodisk Chicoutimi <no-reply@neurodisk.com>"
-//   supabase secrets set MAIL_REPLY_TO="info@cliniqueneurodisk.com"
+//   supabase secrets set MAIL_REPLY_TO="info.neurodisk@gmail.com"
 //
 // Déploiement :
 //   supabase functions deploy magic-link-resend --no-verify-jwt

@@ -137,7 +137,7 @@ supabase.cmd secrets set 'MAIL_FROM=Neurodisk Chicoutimi <no-reply@neurodisk.com
 ```
 
 ```powershell
-supabase.cmd secrets set 'MAIL_REPLY_TO=info@cliniqueneurodisk.com' --project-ref jqxykxkikvrgwnajhhbi
+supabase.cmd secrets set 'MAIL_REPLY_TO=info.neurodisk@gmail.com' --project-ref jqxykxkikvrgwnajhhbi
 ```
 
 Vérifier que `RESEND_API_KEY` est bien présent (il devrait déjà y être) :
@@ -156,7 +156,7 @@ supabase.cmd functions deploy magic-link-resend --no-verify-jwt --project-ref jq
 
 > `--no-verify-jwt` est indispensable : l'utilisateur n'a pas encore de session quand il demande un lien.
 
-> ⚠️ Vérifier que la boîte `info@cliniqueneurodisk.com` existe réellement (le domaine a un MX chez Pacifique Hosting) — sinon mettre une adresse réellement relevée, sans quoi les réponses des patients se perdront.
+> Le Reply-To est **`info.neurodisk@gmail.com`** (confirmé par l'utilisateur, août 2026). ⚠️ Ne pas utiliser `info@cliniqueneurodisk.com` : cette boîte **n'existe pas**. Comme `neurodisk.com` n'a aucun MX de réception, c'est ce Reply-To qui garantit qu'une réponse de patient arrive quelque part.
 
 ---
 

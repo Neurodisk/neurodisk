@@ -15,13 +15,13 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 - **036** = corrige la contrainte `video_requires_bunny_id` qui bloquait l'ajout de vidéos YouTube dans les ressources.
 
 **Actions en attente côté utilisateur :**
-1. **Courriels d'authentification — 2 réglages restants** (le reste fonctionne, confirmé par l'utilisateur) :
-   - a. **Nom d'expéditeur → « Neurodisk Chicoutimi »** (remplace « Clinique Neurodisk »), aux DEUX endroits :
-     · secret Resend : `supabase.cmd secrets set 'MAIL_FROM=Neurodisk Chicoutimi <no-reply@neurodisk.com>' --project-ref jqxykxkikvrgwnajhhbi` (effet immédiat, pas de redéploiement)
-     · [Auth → SMTP](https://supabase.com/dashboard/project/jqxykxkikvrgwnajhhbi/auth/smtp) → champ **Sender name**
-   - b. **Confirmer le Reply-To** : actuellement `info@cliniqueneurodisk.com`. ⚠️ Non vérifié que cette boîte existe — sinon les réponses de patients se perdent (`neurodisk.com` n'a aucun MX de réception, d'où le `no-reply`).
+1. **Courriels d'authentification — configuration terminée** (SMTP, Redirect URLs, limites : faits et confirmés fonctionnels par l'utilisateur). Reste à appliquer le **Reply-To corrigé** :
+   `supabase.cmd secrets set 'MAIL_REPLY_TO=info.neurodisk@gmail.com' --project-ref jqxykxkikvrgwnajhhbi`
+   ⚠️ **`info@cliniqueneurodisk.com` n'existe pas** — la vraie boîte est `info.neurodisk@gmail.com`.
+   Nom d'expéditeur retenu : **« Neurodisk Chicoutimi »** (secret `MAIL_FROM` + champ *Sender name* dans [Auth → SMTP](https://supabase.com/dashboard/project/jqxykxkikvrgwnajhhbi/auth/smtp)).
 2. **2FA obligatoire pour le staff** : reporté volontairement (« plus tard »). Actuellement optionnel.
-3. **Créer le bucket Storage `patient-files`** (PRIVÉ) s'il ne l'est pas déjà — nécessaire pour les pièces jointes du chat sécurisées (voir migration 033).
+3. **Vérifier / créer le bucket Storage `patient-files`** (PRIVÉ) — nécessaire aux pièces jointes du chat sécurisées (migration 033).
+   Vérification : [Storage](https://supabase.com/dashboard/project/jqxykxkikvrgwnajhhbi/storage/buckets) ou `supabase.cmd storage ls --linked`.
 4. Valider juridiquement les 4 documents Loi 25 (`docs/loi25/`) + accepter/classer le DPA Supabase.
 
 **Comptes de test utiles :** patient fictif « Ozzy Osbourne » (`gabrielgirard1@hotmail.fr`), admin (`gabrielgirard.kin@gmail.com`).
