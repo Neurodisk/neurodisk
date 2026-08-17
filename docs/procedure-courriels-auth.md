@@ -105,22 +105,41 @@ $env:SUPABASE_ACCESS_TOKEN = "sbp_colle_ton_jeton_ici"
 
 > Ce jeton donne un accès complet au projet : ne le partage avec personne et ne le colle jamais dans un fichier versionné. Il reste valable le temps de la fenêtre PowerShell.
 
-### 4b — Définir les secrets
+> ### ⚠️ Piège Windows n°1 — `npx` bloqué par la stratégie d'exécution
+> `npx supabase …` échoue avec :
+> `Impossible de charger le fichier …\npx.ps1, car l'exécution de scripts est désactivée sur ce système` (`PSSecurityException` / `UnauthorizedAccess`).
+>
+> PowerShell refuse d'exécuter les scripts `.ps1`. Taper simplement `supabase` échoue pareil (un `supabase.ps1` existe aussi).
+>
+> **Solution retenue : utiliser `supabase.cmd`** — un fichier de commandes, non soumis à cette restriction. Le CLI est déjà installé globalement (`%AppData%\npm\supabase.cmd`, v2.105.0), donc `npx` est inutile.
+>
+> Solution de rechange, valable **uniquement pour la fenêtre en cours** :
+> `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
+> ❌ Éviter les variantes `-Scope LocalMachine` / `Unrestricted` vues sur les forums : elles abaissent la sécurité de tout le poste de façon permanente.
 
-⚠️ **Piège PowerShell** : `<` et `>` sont des opérateurs de redirection. L'argument **doit** être entre guillemets simples, sinon la commande échoue.
+Vérifier que l'authentification fonctionne :
 
 ```powershell
-npx supabase secrets set 'MAIL_FROM=Clinique Neurodisk <no-reply@neurodisk.com>' --project-ref jqxykxkikvrgwnajhhbi
+supabase.cmd projects list
+```
+
+### 4b — Définir les secrets
+
+> ### ⚠️ Piège Windows n°2 — les chevrons
+> `<` et `>` sont des opérateurs de redirection en PowerShell. L'argument **doit** être entre guillemets simples, sinon la commande échoue.
+
+```powershell
+supabase.cmd secrets set 'MAIL_FROM=Clinique Neurodisk <no-reply@neurodisk.com>' --project-ref jqxykxkikvrgwnajhhbi
 ```
 
 ```powershell
-npx supabase secrets set 'MAIL_REPLY_TO=info@cliniqueneurodisk.com' --project-ref jqxykxkikvrgwnajhhbi
+supabase.cmd secrets set 'MAIL_REPLY_TO=info@cliniqueneurodisk.com' --project-ref jqxykxkikvrgwnajhhbi
 ```
 
 Vérifier que `RESEND_API_KEY` est bien présent (il devrait déjà y être) :
 
 ```powershell
-npx supabase secrets list --project-ref jqxykxkikvrgwnajhhbi
+supabase.cmd secrets list --project-ref jqxykxkikvrgwnajhhbi
 ```
 
 > Alternative sans CLI : ces secrets se règlent aussi dans le tableau de bord, section **Edge Functions → Secrets**. Un changement de secret est pris en compte **immédiatement, sans redéploiement**.
@@ -128,7 +147,7 @@ npx supabase secrets list --project-ref jqxykxkikvrgwnajhhbi
 ### 4c — Déployer la fonction corrigée
 
 ```powershell
-npx supabase functions deploy magic-link-resend --no-verify-jwt --project-ref jqxykxkikvrgwnajhhbi
+supabase.cmd functions deploy magic-link-resend --no-verify-jwt --project-ref jqxykxkikvrgwnajhhbi
 ```
 
 > `--no-verify-jwt` est indispensable : l'utilisateur n'a pas encore de session quand il demande un lien.
