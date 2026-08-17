@@ -81,25 +81,59 @@ Supabase → **Authentication → URL Configuration** ([lien direct](https://sup
 
 Supabase → **Authentication → Rate Limits** ([lien direct](https://supabase.com/dashboard/project/jqxykxkikvrgwnajhhbi/auth/rate-limits)) → augmenter **« Emails per hour »** (la valeur par défaut vise le serveur de test ; avec un SMTP personnalisé on peut monter, p. ex. 100/h).
 
-## Étape 4 — Gabarit Resend brandé *(optionnel)*
+## Étape 4 — Gabarit Resend brandé *(recommandé)*
 
-Uniquement pour que les courriels utilisent le gabarit Resend `d2df0c0d-…` au lieu du gabarit Supabase. Nécessite le CLI.
+Fait passer les courriels par le gabarit Resend `d2df0c0d-…` au lieu du gabarit Supabase.
 
-```bash
-supabase secrets set MAIL_FROM="Clinique Neurodisk <no-reply@neurodisk.com>"
-```
-
-```bash
-supabase secrets set MAIL_REPLY_TO="info@cliniqueneurodisk.com"
-```
-
-```bash
-supabase functions deploy magic-link-resend --no-verify-jwt
-```
-
-> `MAIL_FROM` et `MAIL_REPLY_TO` sont lus depuis les secrets : changer d'adresse plus tard ne demande **aucun redéploiement**.
+> ### ⚠️ Pourquoi ce n'est pas vraiment « optionnel »
+> La version **actuellement déployée** de l'edge function est l'ancienne : elle ignore le paramètre `type` et envoie toujours un **lien magique**, même pour une demande de mot de passe oublié.
 >
-> ⚠️ Vérifier que la boîte `info@cliniqueneurodisk.com` existe bien (le domaine a un MX chez Pacifique Hosting) — sinon utiliser une adresse réellement relevée.
+> En pratique, pour un vrai patient, l'ancienne fonction échoue chez Resend (expéditeur `onboarding@resend.dev`) → le repli natif prend le relais → comportement correct. **Mais** pour l'adresse du compte Resend (`gabrielgirard.kin@gmail.com`), l'ancienne fonction réussit et renvoie un **lien de connexion au lieu d'un lien de réinitialisation** — exactement l'adresse avec laquelle tu vas tester.
+>
+> Donc : soit tu fais l'étape 4, soit tu testes le mot de passe oublié avec une **autre** adresse que celle du compte Resend.
+
+### 4a — Jeton d'accès (règle le problème de `supabase login` sous Windows)
+
+Le CLI est installé et le projet est déjà lié (`jqxykxkikvrgwnajhhbi`) ; il manque seulement l'authentification. Pas besoin du login interactif :
+
+1. Créer un jeton personnel : **https://supabase.com/dashboard/account/tokens** → *Generate new token* → copier `sbp_…`
+2. Dans PowerShell, à la racine du projet :
+
+```powershell
+$env:SUPABASE_ACCESS_TOKEN = "sbp_colle_ton_jeton_ici"
+```
+
+> Ce jeton donne un accès complet au projet : ne le partage avec personne et ne le colle jamais dans un fichier versionné. Il reste valable le temps de la fenêtre PowerShell.
+
+### 4b — Définir les secrets
+
+⚠️ **Piège PowerShell** : `<` et `>` sont des opérateurs de redirection. L'argument **doit** être entre guillemets simples, sinon la commande échoue.
+
+```powershell
+npx supabase secrets set 'MAIL_FROM=Clinique Neurodisk <no-reply@neurodisk.com>' --project-ref jqxykxkikvrgwnajhhbi
+```
+
+```powershell
+npx supabase secrets set 'MAIL_REPLY_TO=info@cliniqueneurodisk.com' --project-ref jqxykxkikvrgwnajhhbi
+```
+
+Vérifier que `RESEND_API_KEY` est bien présent (il devrait déjà y être) :
+
+```powershell
+npx supabase secrets list --project-ref jqxykxkikvrgwnajhhbi
+```
+
+> Alternative sans CLI : ces secrets se règlent aussi dans le tableau de bord, section **Edge Functions → Secrets**. Un changement de secret est pris en compte **immédiatement, sans redéploiement**.
+
+### 4c — Déployer la fonction corrigée
+
+```powershell
+npx supabase functions deploy magic-link-resend --no-verify-jwt --project-ref jqxykxkikvrgwnajhhbi
+```
+
+> `--no-verify-jwt` est indispensable : l'utilisateur n'a pas encore de session quand il demande un lien.
+
+> ⚠️ Vérifier que la boîte `info@cliniqueneurodisk.com` existe réellement (le domaine a un MX chez Pacifique Hosting) — sinon mettre une adresse réellement relevée, sans quoi les réponses des patients se perdront.
 
 ---
 
