@@ -360,7 +360,7 @@
             </div>
             <div class="alert" id="forgotSuccess" role="status" aria-live="polite"
               style="display:none;background:var(--success-bg);color:var(--success);padding:.8rem 1rem;border-radius:var(--radius);font-size:.83rem;line-height:1.5">
-              ✅ Lien envoyé ! Vérifiez votre boîte courriel (et vos indésirables).
+              ✅ Si un compte existe pour ce courriel, un lien de réinitialisation vient d'être envoyé. Vérifiez votre boîte (et vos indésirables).
             </div>
             <button type="button" class="btn-primary" id="btnSendReset">
               <span class="btn-label">Envoyer le lien</span>
@@ -581,16 +581,37 @@
       btn.disabled = true;
       btn.classList.add('is-loading');
 
+      // Envoi via l'edge function (gabarit Resend de la clinique). Si elle
+      // n'est pas déployée / injoignable, repli automatique sur l'envoi
+      // natif Supabase — qui fonctionne dès que le SMTP personnalisé est
+      // configuré. Le patient n'a donc jamais d'écran cassé.
       try {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password.html`,
-        });
-        if (error) throw error;
+        let sent = false;
+        try {
+          const res = await fetch(`${SUPABASE_URL}/functions/v1/magic-link-resend`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+            body: JSON.stringify({ email, type: 'recovery' }),
+          });
+          if (res.ok) sent = true;
+          else console.warn('[forgot] edge function HTTP', res.status, '— repli sur l\'envoi natif');
+        } catch (fnErr) {
+          console.warn('[forgot] edge function injoignable — repli sur l\'envoi natif :', fnErr);
+        }
+
+        if (!sent) {
+          const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/reset-password.html`,
+          });
+          if (error) throw error;
+        }
+
         okEl.style.display = 'block';
         document.getElementById('forgotEmail').value = '';
       } catch (err) {
         console.error('[forgot]', err);
-        errTxt.textContent  = 'Erreur : ' + err.message;
+        // Message neutre : ne jamais laisser deviner si le compte existe.
+        errTxt.textContent  = "L'envoi a échoué. Veuillez réessayer dans quelques instants.";
         errEl.style.display = 'flex';
       } finally {
         btn.disabled = false;
@@ -636,19 +657,43 @@
       btn.disabled = true;
       btn.classList.add('is-loading');
 
+      // Même logique que la réinitialisation : edge function (gabarit
+      // Resend) d'abord, repli sur l'envoi natif Supabase si elle n'est
+      // pas déployée.
       try {
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/magic-link-resend`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
-          body: JSON.stringify({ email }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || 'Erreur inconnue.');
+        let sent = false;
+        try {
+          const res = await fetch(`${SUPABASE_URL}/functions/v1/magic-link-resend`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+            body: JSON.stringify({ email, type: 'magiclink' }),
+          });
+          if (res.ok) sent = true;
+          else console.warn('[magic-link] edge function HTTP', res.status, '— repli sur l\'envoi natif');
+        } catch (fnErr) {
+          console.warn('[magic-link] edge function injoignable — repli sur l\'envoi natif :', fnErr);
+        }
+
+        if (!sent) {
+          // shouldCreateUser:false — un inconnu ne doit JAMAIS pouvoir
+          // se créer un compte depuis cet écran (données de santé).
+          const { error } = await supabase.auth.signInWithOtp({
+            email,
+            options: {
+              shouldCreateUser: false,
+              emailRedirectTo: `${window.location.origin}/library.html`,
+            },
+          });
+          // Compte inexistant : on n'en dit rien, message identique.
+          if (error && !/not\s*found|signups?\s*not\s*allowed|invalid/i.test(error.message)) throw error;
+        }
+
         okEl.style.display = 'block';
         document.getElementById('magicLinkEmail').value = '';
       } catch (err) {
         console.error('[magic-link]', err);
-        errTxt.textContent  = 'Erreur : ' + err.message;
+        // Message neutre : ne jamais laisser deviner si le compte existe.
+        errTxt.textContent  = "L'envoi a échoué. Veuillez réessayer dans quelques instants.";
         errEl.style.display = 'flex';
       } finally {
         btn.disabled = false;

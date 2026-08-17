@@ -13,7 +13,7 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 - **035** = `get_programme_professional()` (RPC SECURITY DEFINER) pour afficher le vrai nom du clinicien dans le PDF patient malgré la RLS.
 
 **Actions en attente côté utilisateur :**
-1. **Lien magique / Resend** : domaine `notify.cliniqueneurodisk.com` créé côté Resend mais **DNS pas encore configuré** (enregistrements DKIM/MX/SPF fournis, DNS géré chez Pacifique Hosting — ni GoDaddy ni Cloudflare). Une fois vérifié, changer `MAIL_FROM` dans `supabase/functions/magic-link-resend/index.ts` de `onboarding@resend.dev` → `info@notify.cliniqueneurodisk.com`, puis `supabase functions deploy magic-link-resend --no-verify-jwt`. En attendant, l'envoi ne fonctionne QUE vers l'adresse du compte Resend (`gabrielgirard.kin@gmail.com`), pas vers de vrais patients.
+1. **Courriels d'authentification (lien magique + mot de passe oublié)** : le domaine **`neurodisk.com` est vérifié dans Resend** (DKIM/SPF/MX de retour confirmés, DNS sur Cloudflare) — l'ancien plan `notify.cliniqueneurodisk.com` est abandonné. Code corrigé (expéditeur `no-reply@neurodisk.com` via secrets, support `recovery`, repli natif). **⚠️ Reste à faire dans le tableau de bord Supabase** : (a) activer le **SMTP personnalisé** (`smtp.resend.com`, port 465, user `resend`, mot de passe = clé API Resend), (b) **allowlister les Redirect URLs** pour `https://cliniqueneurodisk.com/**`, (c) relever la limite « Emails per hour ». Procédure complète : **`docs/procedure-courriels-auth.md`**.
 2. **2FA obligatoire pour le staff** : reporté volontairement (« plus tard »). Actuellement optionnel.
 3. **Créer le bucket Storage `patient-files`** (PRIVÉ) s'il ne l'est pas déjà — nécessaire pour les pièces jointes du chat sécurisées (voir migration 033).
 4. Valider juridiquement les 4 documents Loi 25 (`docs/loi25/`) + accepter/classer le DPA Supabase.
@@ -23,6 +23,15 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 ---
 
 ## Session — juillet 2026
+
+### ✉️ Fix : lien magique + mot de passe oublié non fonctionnels (août 2026)
+- **Deux causes distinctes.** Lien magique : l'edge function envoyait depuis `onboarding@resend.dev` (domaine de test Resend) → Resend n'autorise l'envoi qu'à l'adresse du compte, donc échec pour tout vrai patient. Mot de passe oublié : ne passait **pas** par Resend, mais par le serveur courriel intégré de Supabase (~2 courriels/h, « pour tests seulement », livraison peu fiable).
+- **Domaine** : `neurodisk.com` désormais vérifié dans Resend (DKIM + SPF + MX de retour confirmés par requête DNS ; DNS sur Cloudflare). Expéditeur retenu **`no-reply@neurodisk.com`** + Reply-To — car `neurodisk.com` n'a aucun MX de réception (une réponse de patient y serait perdue). NB : l'app tourne sur `cliniqueneurodisk.com`, le domaine d'envoi est distinct, c'est normal.
+- **Edge function** `magic-link-resend` : `MAIL_FROM`/`MAIL_REPLY_TO` lus depuis les **secrets** (changer d'adresse ne demande plus de redéploiement), support du type **`recovery`** (le mot de passe oublié réutilise le même gabarit Resend), sujets distincts par type.
+- **Front** (`index.html`) : les deux écrans appellent l'edge function puis **replient automatiquement sur l'envoi natif Supabase** si elle est absente/injoignable → tout fonctionne dès que le SMTP personnalisé est configuré, même sans déploiement CLI. Repli du lien magique en `shouldCreateUser: false` (aucun inconnu ne peut se créer un compte).
+- 🔒 **Faille corrigée — énumération de comptes** : un échec d'envoi renvoyait `502` alors qu'un compte inexistant renvoyait `200`, permettant de distinguer les adresses réellement patientes de la clinique (fuite de renseignements de santé, Loi 25). Réponse et message d'écran désormais **identiques dans tous les cas** ; les vraies erreurs vont dans les logs serveur.
+- Vérifié en conditions réelles (navigateur, `fetch` intercepté, aucun courriel envoyé) : chemin principal → appel avec `type:'recovery'` ✓ ; repli → edge function 404 puis `/auth/v1/recover` natif ✓ ; message générique et champ vidé dans les deux cas ✓.
+- 📋 Procédure de configuration : **`docs/procedure-courriels-auth.md`**.
 
 ### 🐛 Fix : ajout de vidéo YouTube dans les ressources bloqué (août 2026)
 - **Cause** : la migration 018 (passage Bunny → YouTube) a ajouté `resources.video_url` mais n'a jamais mis à jour l'ancienne contrainte CHECK `video_requires_bunny_id` (héritée du schéma initial Bunny), qui exigeait encore `bunny_video_id IS NOT NULL` pour toute ressource `type='video'`. Le formulaire admin envoie correctement `video_url` (lien YouTube) + `bunny_video_id: null` → violation de contrainte à l'insertion.
