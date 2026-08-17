@@ -1,9 +1,15 @@
+# NOTE Cloudflare Workers : les règles _headers PAR CHEMIN se sont déjà
+# révélées inopérantes sur ce projet (seule la règle globale /* s'applique
+# de façon fiable). Tout en-tête qui DOIT s'appliquer est donc placé dans
+# le bloc /* ci-dessous. La plateforme entière est privée : un noindex
+# global est le comportement voulu, pas un effet de bord.
 /*
   X-Frame-Options: SAMEORIGIN
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(self), microphone=(), geolocation=()
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  X-Robots-Tag: noindex, nofollow, noarchive
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://jqxykxkikvrgwnajhhbi.supabase.co; media-src 'self' blob: https://jqxykxkikvrgwnajhhbi.supabase.co; connect-src 'self' https://jqxykxkikvrgwnajhhbi.supabase.co wss://jqxykxkikvrgwnajhhbi.supabase.co https://cdn.jsdelivr.net https://storage.googleapis.com; worker-src 'self' blob:; frame-src https://www.youtube-nocookie.com https://www.youtube.com https://iframe.mediadelivery.net; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
 
 /assets/*
@@ -15,5 +21,26 @@
 /css/*
   Cache-Control: public, max-age=86400, stale-while-revalidate=3600
 
+# Pages HTML : jamais mises en cache disque. Celles qui portent de
+# l'authentification ou des renseignements de santé sont explicitement
+# en no-store (une copie ne doit pas rester sur un poste partagé).
 /*.html
-  Cache-Control: public, max-age=0, must-revalidate
+  Cache-Control: no-store
+
+/
+  Cache-Control: no-store
+
+/index.html
+  Cache-Control: no-store
+
+/reset-password.html
+  Cache-Control: no-store
+
+/library.html
+  Cache-Control: no-store
+
+/admin/*
+  Cache-Control: no-store
+
+/auth/*
+  Cache-Control: no-store

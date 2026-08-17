@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Connexion — Bibliothèque Neurodisk</title>
   <meta name="description" content="Accédez à vos ressources cliniques personnalisées.">
+  <!-- Page d'authentification : jamais indexée (renseignements de santé). -->
+  <meta name="robots" content="noindex, nofollow, noarchive">
   <!-- PWA -->
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#1B2B6B">
@@ -57,6 +59,8 @@
       min-height: 100%;
       display: flex;
       flex-direction: column;
+      /* Garde-fou : aucun défilement horizontal, même à 320 px. */
+      overflow-x: hidden;
     }
 
     /* ── Fond décoratif ── */
@@ -93,20 +97,27 @@
       background: var(--white);
       border-radius: var(--radius);
       box-shadow: var(--shadow-lg);
-      width: 100%; max-width: 420px;
-      padding: 3rem 2.75rem;
+      width: 100%; max-width: 460px;
+      padding: 2.5rem 2.5rem 2rem;
       border: 1px solid rgba(209,223,240,0.6);
     }
 
     /* ── Header ── */
-    .card__header { text-align: center; margin-bottom: 2.25rem; }
-    .logo-img { height: 52px; width: auto; margin: 0 auto 1.75rem; }
+    .card__header { text-align: center; margin-bottom: 1.75rem; }
+    /* Logo agrandi pour la clientèle 55-70 ans.
+       ⚠️ Le PNG source ne fait que 228×81 px : à cette taille il est au
+       maximum de sa définition. Un SVG officiel reste nécessaire pour un
+       rendu parfaitement net sur écrans haute densité. */
+    .logo-img {
+      width: 230px; height: auto;
+      margin: 0 auto 1.5rem;
+    }
     .card__title {
-      font-size: 1.4rem; font-weight: 700; color: var(--text);
-      letter-spacing: -0.03em; margin-bottom: 0.5rem; line-height: 1.2;
+      font-size: 1.5rem; font-weight: 700; color: var(--text);
+      letter-spacing: -0.03em; margin-bottom: 0.65rem; line-height: 1.25;
     }
     .card__sub {
-      font-size: 0.875rem; color: var(--muted); line-height: 1.6;
+      font-size: 1.05rem; color: var(--muted); line-height: 1.6;
     }
 
     /* ── Séparateur ── */
@@ -116,27 +127,32 @@
     .sep::before, .sep::after {
       content: ''; flex: 1; height: 1px; background: var(--border);
     }
-    .sep span { font-size: .72rem; color: var(--muted); font-weight: 600;
+    .sep span { font-size: .82rem; color: var(--muted); font-weight: 600;
       text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+
+    /* ── Vues (une seule visible à la fois) ── */
+    .view { display: none; }
+    .view.is-active { display: block; }
 
     /* ── Formulaire ── */
     .form { display: flex; flex-direction: column; gap: 1rem; }
-    .field { display: flex; flex-direction: column; gap: 0.35rem; }
-    .field label { font-size: 1.125rem; font-weight: 500; color: var(--text); }
+    .field { display: flex; flex-direction: column; gap: 0.4rem; }
+    .field label { font-size: 1.125rem; font-weight: 600; color: var(--text); }
     /* Styles partagés email + mot de passe */
     .field input[type="email"],
     .field input[type="password"],
     .field input[type="text"] {
-      width: 100%; padding: .9rem 1.1rem;
+      width: 100%; padding: .95rem 1.1rem;
       border: 1.5px solid var(--border); border-radius: var(--radius);
-      font-size: 1rem; color: var(--text); background: var(--bg);
+      font-size: 1.0625rem; color: var(--text); background: var(--bg);
       transition: border-color 150ms, box-shadow 150ms, background 150ms;
-      outline: none;
+      outline: none; min-height: 54px;
     }
     .field input[type="email"]::placeholder,
-    .field input[type="password"]::placeholder { color: #a8bdd4; }
+    .field input[type="password"]::placeholder { color: #7d93ab; }
     .field input[type="email"]:focus,
-    .field input[type="password"]:focus {
+    .field input[type="password"]:focus,
+    .field input[type="text"]:focus {
       border-color: var(--blue); background: var(--white);
       box-shadow: 0 0 0 4px rgba(24,95,165,.1);
     }
@@ -147,27 +163,29 @@
       position: relative; display: flex; align-items: center;
     }
     .password-wrap input {
-      padding-right: 3rem !important;
+      padding-right: 3.25rem !important;
     }
     .btn-eye {
-      position: absolute; right: .5rem;
+      position: absolute; right: .4rem;
       display: flex; align-items: center; justify-content: center;
-      width: 44px; height: 44px; border-radius: 8px;
+      width: 46px; height: 46px; border-radius: 8px;
       color: var(--muted); background: none; border: none;
       cursor: pointer; transition: color 150ms, background 150ms;
       flex-shrink: 0;
     }
     .btn-eye:hover { color: var(--blue); background: var(--blue-light); }
-    .btn-eye svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .btn-eye svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
     /* ── Bouton principal ── */
     .btn-primary {
-      width: 100%; padding: 1rem 1.5rem;
+      width: 100%; padding: 1rem 1.25rem;
       background: linear-gradient(135deg, var(--blue) 0%, var(--blue-mid) 100%);
       color: var(--white); border-radius: var(--radius-pill);
-      font-size: 1.125rem; font-weight: 500; min-height: 56px;
+      font-size: 1.125rem; font-weight: 600; min-height: 58px;
       box-shadow: 0 4px 20px rgba(24,95,165,.35);
       transition: transform 150ms, box-shadow 150ms, opacity 150ms;
+      display: flex; align-items: center; justify-content: center; gap: .55rem;
+      line-height: 1.3;
     }
     .btn-primary:hover:not(:disabled) {
       transform: translateY(-1px);
@@ -176,78 +194,131 @@
     .btn-primary:active:not(:disabled) { transform: translateY(0); }
     .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
     .btn-primary .spinner {
-      display: none; width: 16px; height: 16px;
+      display: none; width: 18px; height: 18px;
       border: 2px solid rgba(255,255,255,.35); border-top-color: #fff;
-      border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto;
+      border-radius: 50%; animation: spin .7s linear infinite;
     }
     .btn-primary.is-loading .btn-label { display: none; }
-    .btn-primary.is-loading .spinner  { display: block; }
+    .btn-primary.is-loading .btn-icon  { display: none; }
+    .btn-primary.is-loading .spinner   { display: block; }
+    .btn-primary .btn-icon { flex-shrink: 0; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Erreur ── */
+    /* ── Bouton secondaire (mot de passe) ── */
+    .btn-secondary {
+      width: 100%; padding: .9rem 1.25rem;
+      background: var(--white); color: var(--blue);
+      border: 1.5px solid var(--border); border-radius: var(--radius-pill);
+      font-size: 1.0625rem; font-weight: 600; min-height: 52px;
+      transition: background 150ms, border-color 150ms, color 150ms;
+      display: flex; align-items: center; justify-content: center; gap: .5rem;
+    }
+    .btn-secondary:hover { background: var(--blue-light); border-color: var(--blue); color: var(--blue-dark); }
+
+    /* ── Texte d'aide sous le bouton principal ── */
+    .hint {
+      font-size: 1rem; color: var(--muted); line-height: 1.6;
+      text-align: center; margin-top: .85rem;
+    }
+
+    /* ── Erreur / succès ── */
     .alert {
       display: none; align-items: flex-start; gap: .6rem;
-      padding: .8rem 1rem; border-radius: var(--radius);
-      font-size: .83rem; line-height: 1.5;
+      padding: .9rem 1rem; border-radius: var(--radius);
+      font-size: .98rem; line-height: 1.55;
     }
     .alert.is-visible { display: flex; }
     .alert--error { background: var(--error-bg); color: var(--error); }
-
-    /* ── Toggle mode ── */
-    .mode-toggle {
-      display: flex; background: var(--bg); border-radius: 100px;
-      padding: 3px; margin-bottom: 1.25rem; gap: 2px;
-      border: 1px solid var(--border);
-    }
-    .mode-toggle__btn {
-      flex: 1; padding: .7rem .75rem; border-radius: 100px;
-      font-size: 1rem; font-weight: 500; color: var(--muted);
-      transition: all 150ms; text-align: center; min-height: 48px;
-    }
-    .mode-toggle__btn.is-active {
-      background: var(--white); color: var(--blue);
-      box-shadow: 0 1px 6px rgba(13,33,55,.1);
-    }
+    .alert svg { flex-shrink: 0; margin-top: .15rem; }
 
     /* ── Info bas formulaire ── */
     .form-note {
       text-align: center; font-size: 1rem; color: var(--muted); line-height: 1.6;
     }
-    .form-note svg { display: inline; vertical-align: middle; margin-right: 3px; }
 
     /* ── Vue confirmation ── */
     .confirmation {
-      display: none; flex-direction: column; align-items: center;
+      flex-direction: column; align-items: center;
       text-align: center; gap: 1rem;
     }
-    .confirmation.is-visible { display: flex; }
+    .view.confirmation.is-active { display: flex; }
     .conf-icon {
       width: 68px; height: 68px; border-radius: 50%;
       background: var(--success-bg);
       display: flex; align-items: center; justify-content: center;
     }
-    .conf-icon svg { stroke: var(--success); }
-    .conf-title { font-size: 1.1rem; font-weight: 700; color: var(--text); letter-spacing: -.02em; }
-    .conf-email { font-weight: 700; color: var(--blue); word-break: break-all; }
+    .conf-icon svg { stroke: var(--success); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .conf-title { font-size: 1.2rem; font-weight: 700; color: var(--text); letter-spacing: -.02em; }
     .conf-note {
-      font-size: 1rem; color: var(--muted);
+      font-size: 1.02rem; color: var(--text);
       background: var(--blue-soft); border-radius: 10px;
-      padding: .9rem 1rem; line-height: 1.6; width: 100%;
+      padding: 1rem; line-height: 1.6; width: 100%;
     }
+    .conf-hint { font-size: .98rem; color: var(--muted); line-height: 1.6; }
+
     .btn-ghost {
-      background: none; color: var(--blue); font-size: 1rem;
-      font-weight: 500; padding: .75rem .5rem;
+      background: none; color: var(--blue); font-size: 1.0625rem;
+      font-weight: 600; padding: .75rem .5rem;
       text-decoration: underline; text-underline-offset: 3px;
       transition: color 150ms; min-height: 48px;
     }
     .btn-ghost:hover { color: var(--blue-dark); }
 
+    .actions-stack {
+      display: flex; flex-direction: column; gap: .25rem;
+      align-items: center; margin-top: .5rem;
+    }
+
+    /* ── Bloc d'aide (contact clinique) ── */
+    .help {
+      margin-top: 1.75rem; padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+    .help__title {
+      font-size: 1.05rem; font-weight: 700; color: var(--text);
+      text-align: center; margin-bottom: .35rem;
+    }
+    .help__lead {
+      font-size: .98rem; color: var(--muted); text-align: center;
+      line-height: 1.6; margin-bottom: 1rem;
+    }
+    .help__list { display: flex; flex-direction: column; gap: .6rem; }
+    .help__row {
+      display: flex; align-items: center; gap: .85rem;
+      min-height: 60px; padding: .75rem 1rem;
+      background: var(--blue-soft); border: 1px solid var(--border);
+      border-radius: var(--radius); text-decoration: none;
+      color: var(--text); transition: background 150ms, border-color 150ms;
+    }
+    .help__row:hover { background: var(--blue-light); border-color: var(--blue); }
+    .help__icon {
+      flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%;
+      background: var(--white); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--blue);
+    }
+    .help__icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .help__text { min-width: 0; }
+    .help__label { font-size: 1.0625rem; font-weight: 600; line-height: 1.3; }
+    .help__value { font-size: .96rem; color: var(--muted); line-height: 1.4; word-break: break-word; }
+
     /* ── Footer ── */
     .site-footer {
       position: relative; z-index: 1;
-      text-align: center; padding: 1.5rem 1rem;
-      font-size: 1rem; color: var(--muted);
+      text-align: center; padding: 1.5rem 1rem 2rem;
+      font-size: .98rem; color: var(--muted);
     }
+    .footer-links {
+      display: flex; flex-wrap: wrap; justify-content: center;
+      gap: .25rem 0; margin-bottom: .85rem;
+    }
+    .footer-links a {
+      color: var(--blue); text-decoration: underline; text-underline-offset: 3px;
+      padding: .6rem .9rem; min-height: 44px;
+      display: inline-flex; align-items: center;
+      font-size: 1rem; font-weight: 500;
+    }
+    .footer-links a:hover { color: var(--blue-dark); }
 
     :focus-visible {
       outline: 3px solid var(--blue);
@@ -269,8 +340,22 @@
       border-radius: 50%; animation: spin .8s linear infinite;
     }
 
-    @media (max-width: 480px) {
-      .card { padding: 2.25rem 1.75rem; }
+    @media (max-width: 520px) {
+      .page { padding: 1.5rem .75rem; }
+      .card { padding: 2rem 1.35rem 1.5rem; }
+      .logo-img { width: 190px; }
+      .card__title { font-size: 1.35rem; }
+    }
+    /* Très petits écrans (320 px) */
+    @media (max-width: 360px) {
+      .card { padding: 1.75rem 1rem 1.35rem; }
+      .logo-img { width: 175px; }
+      .help__row { padding: .7rem .8rem; gap: .65rem; }
+      .help__icon { width: 36px; height: 36px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
     }
   </style>
 </head>
@@ -288,22 +373,65 @@
         <img
           class="logo-img"
           src="/assets/logo-neurodisk.png"
-          alt="Neurodisk"
+          alt="Clinique Neurodisk"
+          width="230" height="82"
           onerror="this.style.display='none'"
         >
         <h1 class="card__title">Votre bibliothèque clinique</h1>
-        <p class="card__sub">Connectez-vous avec votre courriel et votre mot de passe.</p>
+        <p class="card__sub">
+          Retrouvez les vidéos, exercices, recommandations et documents personnalisés
+          remis par la Clinique Neurodisk.
+        </p>
       </header>
 
-      <!-- Vue formulaire : email + mot de passe uniquement -->
-      <div id="viewForm">
+      <!-- ══ Vue principale : connexion par lien courriel ══ -->
+      <div class="view is-active" id="viewMagic">
+        <form class="form" id="magicForm" novalidate>
+          <div class="field">
+            <label for="magicLinkEmail">Adresse courriel</label>
+            <input
+              type="email" id="magicLinkEmail" name="email"
+              placeholder="prenom.nom@exemple.com"
+              autocomplete="email" inputmode="email" autocapitalize="off"
+              spellcheck="false" aria-describedby="magicHint" required
+            >
+          </div>
+
+          <div class="alert alert--error" id="magicLinkError" role="alert" aria-live="assertive">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span id="magicLinkErrorText"></span>
+          </div>
+
+          <div>
+            <button type="submit" class="btn-primary" id="btnSendMagicLink">
+              <svg class="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+              <span class="btn-label">Recevoir mon lien de connexion</span>
+              <span class="spinner" aria-hidden="true"></span>
+            </button>
+            <p class="hint" id="magicHint">
+              Nous vous enverrons un lien sécurisé pour accéder à votre plateforme.
+              Aucun mot de passe à retenir.
+            </p>
+          </div>
+        </form>
+
+        <div class="sep"><span>ou</span></div>
+
+        <button type="button" class="btn-secondary" id="btnUsePassword">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Se connecter avec un mot de passe
+        </button>
+      </div>
+
+      <!-- ══ Vue secondaire : connexion par mot de passe ══ -->
+      <div class="view" id="viewPassword">
         <form class="form" id="loginForm" novalidate>
           <div class="field">
             <label for="emailInput">Adresse courriel</label>
             <input
               type="email" id="emailInput" name="email"
               placeholder="prenom.nom@exemple.com"
-              autocomplete="email" autocapitalize="off"
+              autocomplete="email" inputmode="email" autocapitalize="off"
               spellcheck="false" required
             >
           </div>
@@ -312,13 +440,13 @@
             <div class="password-wrap">
               <input
                 type="password" id="passwordInput" name="password"
-                placeholder="••••••••"
+                placeholder="Votre mot de passe"
                 autocomplete="current-password"
                 required
               >
-              <button type="button" class="btn-eye" id="btnEye" aria-label="Afficher le mot de passe">
-                <!-- Icône œil fermé par défaut -->
-                <svg id="eyeIcon" viewBox="0 0 24 24">
+              <button type="button" class="btn-eye" id="btnEye" aria-label="Afficher le mot de passe" aria-pressed="false">
+                <!-- Icône œil barré par défaut (mot de passe masqué) -->
+                <svg id="eyeIcon" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
                   <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
                   <line x1="1" y1="1" x2="23" y2="23"/>
@@ -327,8 +455,8 @@
             </div>
           </div>
 
-          <div class="alert alert--error" id="emailError" role="alert" aria-live="polite">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <div class="alert alert--error" id="emailError" role="alert" aria-live="assertive">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <span id="emailErrorText"></span>
           </div>
 
@@ -337,102 +465,123 @@
             <span class="spinner" aria-hidden="true"></span>
           </button>
 
-          <div style="text-align:center;margin-top:.75rem;display:flex;flex-direction:column;gap:.35rem">
+          <div class="actions-stack">
             <button type="button" class="btn-ghost" id="btnForgot">Mot de passe oublié ?</button>
-            <button type="button" class="btn-ghost" id="btnMagicLink">Recevoir un lien de connexion par courriel</button>
+            <button type="button" class="btn-ghost" data-back-to-magic>← Recevoir plutôt un lien par courriel</button>
           </div>
         </form>
       </div>
 
-      <!-- ── Vue : Mot de passe oublié ── -->
-        <div id="viewForgot" style="display:none">
-          <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;">
-            Entrez votre adresse courriel. Vous recevrez un lien pour créer un nouveau mot de passe.
-          </p>
-          <div class="form" style="gap:.75rem">
-            <div class="field">
-              <label for="forgotEmail">Adresse courriel</label>
-              <input type="email" id="forgotEmail" placeholder="prenom.nom@exemple.com"
-                autocomplete="email" autocapitalize="off" spellcheck="false">
-            </div>
-            <div class="alert alert--error" id="forgotError" role="alert" aria-live="polite" style="display:none">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              <span id="forgotErrorText"></span>
-            </div>
-            <div class="alert" id="forgotSuccess" role="status" aria-live="polite"
-              style="display:none;background:var(--success-bg);color:var(--success);padding:.8rem 1rem;border-radius:var(--radius);font-size:.83rem;line-height:1.5">
-              ✅ Si un compte existe pour ce courriel, un lien de réinitialisation vient d'être envoyé. Vérifiez votre boîte (et vos indésirables).
-            </div>
-            <button type="button" class="btn-primary" id="btnSendReset">
-              <span class="btn-label">Envoyer le lien</span>
-              <span class="spinner" aria-hidden="true"></span>
-            </button>
-            <div style="text-align:center">
-              <button type="button" class="btn-ghost" id="btnBackToLogin">← Retour à la connexion</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── Vue : Lien magique ── -->
-        <div id="viewMagicLink" style="display:none">
-          <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;">
-            Entrez votre adresse courriel. Vous recevrez un lien pour vous connecter sans mot de passe.
-          </p>
-          <div class="form" style="gap:.75rem">
-            <div class="field">
-              <label for="magicLinkEmail">Adresse courriel</label>
-              <input type="email" id="magicLinkEmail" placeholder="prenom.nom@exemple.com"
-                autocomplete="email" autocapitalize="off" spellcheck="false">
-            </div>
-            <div class="alert alert--error" id="magicLinkError" role="alert" aria-live="polite" style="display:none">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              <span id="magicLinkErrorText"></span>
-            </div>
-            <div class="alert" id="magicLinkSuccess" role="status" aria-live="polite"
-              style="display:none;background:var(--success-bg);color:var(--success);padding:.8rem 1rem;border-radius:var(--radius);font-size:.83rem;line-height:1.5">
-              ✅ Si un compte existe pour ce courriel, un lien de connexion vient d'être envoyé. Vérifiez votre boîte (et vos indésirables).
-            </div>
-            <button type="button" class="btn-primary" id="btnSendMagicLink">
-              <span class="btn-label">Envoyer le lien</span>
-              <span class="spinner" aria-hidden="true"></span>
-            </button>
-            <div style="text-align:center">
-              <button type="button" class="btn-ghost" id="btnBackToLoginFromMagic">← Retour à la connexion</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── Vue : Vérification 2FA (TOTP) ── -->
-        <div id="viewMfa" style="display:none">
-          <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;">
-            Sécurité du compte. Entrez le code à 6 chiffres affiché dans votre application d'authentification.
-          </p>
-          <div class="form" style="gap:.75rem">
-            <div class="field">
-              <label for="mfaCode">Code de vérification</label>
-              <input type="text" id="mfaCode" inputmode="numeric" autocomplete="one-time-code"
-                maxlength="6" placeholder="123 456" style="letter-spacing:.3em;text-align:center;font-size:1.1rem">
-            </div>
-            <div class="alert alert--error" id="mfaError" role="alert" aria-live="polite" style="display:none">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              <span id="mfaErrorText"></span>
-            </div>
-            <button type="button" class="btn-primary" id="btnVerifyMfa">
-              <span class="btn-label">Vérifier</span>
-              <span class="spinner" aria-hidden="true"></span>
-            </button>
-          </div>
-        </div>
-
-        <div class="sep"><span>Connexion sécurisée</span></div>
-        <p class="form-note">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          Vous n'avez pas encore de compte ? Contactez la clinique.
+      <!-- ══ Vue : Mot de passe oublié ══ -->
+      <div class="view" id="viewForgot">
+        <h2 class="card__title" style="font-size:1.2rem;text-align:center;margin-bottom:.5rem">Mot de passe oublié</h2>
+        <p class="form-note" style="margin-bottom:1.25rem">
+          Entrez votre adresse courriel. Vous recevrez un lien pour créer un nouveau mot de passe.
         </p>
+        <form class="form" id="forgotForm" novalidate>
+          <div class="field">
+            <label for="forgotEmail">Adresse courriel</label>
+            <input type="email" id="forgotEmail" placeholder="prenom.nom@exemple.com"
+              autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" required>
+          </div>
+          <div class="alert alert--error" id="forgotError" role="alert" aria-live="assertive">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span id="forgotErrorText"></span>
+          </div>
+          <button type="submit" class="btn-primary" id="btnSendReset">
+            <span class="btn-label">Envoyer le lien</span>
+            <span class="spinner" aria-hidden="true"></span>
+          </button>
+          <div class="actions-stack">
+            <button type="button" class="btn-ghost" data-back-to-magic>← Retour à la connexion</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- ══ Vue : confirmation d'envoi (message toujours neutre) ══ -->
+      <div class="view confirmation" id="viewSent">
+        <div class="conf-icon" aria-hidden="true">
+          <svg width="32" height="32" viewBox="0 0 24 24"><path d="M4 12.5 9.5 18 20 6.5"/></svg>
+        </div>
+        <h2 class="conf-title">Vérifiez votre boîte courriel</h2>
+        <p class="conf-note" id="sentMessage" role="status" aria-live="polite"></p>
+        <p class="conf-hint">
+          Le courriel peut prendre quelques minutes à arriver.
+          Toujours rien ? Appelez-nous au <strong>(418)&nbsp;543-1113</strong>, nous vous aiderons.
+        </p>
+        <div class="actions-stack">
+          <button type="button" class="btn-ghost" data-back-to-magic>← Retour à la connexion</button>
+        </div>
+      </div>
+
+      <!-- ══ Vue : Vérification à deux facteurs (TOTP) ══ -->
+      <div class="view" id="viewMfa">
+        <h2 class="card__title" style="font-size:1.2rem;text-align:center;margin-bottom:.5rem">Vérification de sécurité</h2>
+        <p class="form-note" style="margin-bottom:1.25rem">
+          Entrez le code à 6 chiffres affiché dans votre application d'authentification.
+        </p>
+        <form class="form" id="mfaForm" novalidate>
+          <div class="field">
+            <label for="mfaCode">Code de vérification</label>
+            <input type="text" id="mfaCode" inputmode="numeric" autocomplete="one-time-code"
+              maxlength="6" placeholder="123456" style="letter-spacing:.3em;text-align:center;font-size:1.25rem">
+          </div>
+          <div class="alert alert--error" id="mfaError" role="alert" aria-live="assertive">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span id="mfaErrorText"></span>
+          </div>
+          <button type="submit" class="btn-primary" id="btnVerifyMfa">
+            <span class="btn-label">Vérifier</span>
+            <span class="spinner" aria-hidden="true"></span>
+          </button>
+        </form>
+      </div>
+
+      <!-- ══ Aide : contact réel de la clinique ══ -->
+      <section class="help" aria-labelledby="helpTitle">
+        <h2 class="help__title" id="helpTitle">Nous sommes là pour vous aider</h2>
+        <p class="help__lead">
+          Vous n'avez pas encore de compte ? Les accès sont créés par la clinique.
+        </p>
+        <div class="help__list">
+          <a class="help__row" href="tel:+14185431113">
+            <span class="help__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </span>
+            <span class="help__text">
+              <span class="help__label">Appelez la clinique</span>
+              <span class="help__value">(418) 543-1113</span>
+            </span>
+          </a>
+          <a class="help__row" href="mailto:info.neurodisk@gmail.com">
+            <span class="help__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+            </span>
+            <span class="help__text">
+              <span class="help__label">Écrivez-nous</span>
+              <span class="help__value">info.neurodisk@gmail.com</span>
+            </span>
+          </a>
+          <a class="help__row" href="/aide.html">
+            <span class="help__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </span>
+            <span class="help__text">
+              <span class="help__label">Besoin d'aide pour vous connecter ?</span>
+              <span class="help__value">Guide pas à pas</span>
+            </span>
+          </a>
+        </div>
+      </section>
     </div>
   </main>
 
   <footer class="site-footer">
+    <nav class="footer-links" aria-label="Liens utiles">
+      <a href="/confidentialite.html">Confidentialité</a>
+      <a href="/conditions.html">Conditions d'utilisation</a>
+      <a href="/aide.html">Besoin d'aide ?</a>
+    </nav>
     &copy; <span id="year"></span> Clinique Neurodisk — Saguenay, Québec
   </footer>
 
@@ -472,16 +621,65 @@
       }
     });
 
-    let loader           = document.getElementById('pageLoader');
-    const form           = document.getElementById('loginForm');
-    const emailInput     = document.getElementById('emailInput');
-    const passwordInput  = document.getElementById('passwordInput');
-    const submitBtn      = document.getElementById('submitBtn');
-    const emailError     = document.getElementById('emailError');
-    const emailErrorText = document.getElementById('emailErrorText');
-    const btnEye         = document.getElementById('btnEye');
-    const eyeIcon        = document.getElementById('eyeIcon');
-    document.getElementById('year').textContent = new Date().getFullYear();
+    const $ = id => document.getElementById(id);
+
+    let loader           = $('pageLoader');
+    const form           = $('loginForm');
+    const emailInput     = $('emailInput');
+    const passwordInput  = $('passwordInput');
+    const submitBtn      = $('submitBtn');
+    const emailError     = $('emailError');
+    const emailErrorText = $('emailErrorText');
+    const btnEye         = $('btnEye');
+    const eyeIcon        = $('eyeIcon');
+    $('year').textContent = new Date().getFullYear();
+
+    // ── Message neutre unique : ne révèle jamais si un compte existe ──
+    const MSG_NEUTRE_CONNEXION =
+      "Si un compte est associé à cette adresse, un lien de connexion vient d'être envoyé. " +
+      "Vérifiez également vos courriels indésirables.";
+    const MSG_NEUTRE_RESET =
+      "Si un compte est associé à cette adresse, un lien de réinitialisation vient d'être envoyé. " +
+      "Vérifiez également vos courriels indésirables.";
+
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    // ── Gestion des vues (une seule visible à la fois) ────
+    const VIEWS = ['viewMagic', 'viewPassword', 'viewForgot', 'viewSent', 'viewMfa'];
+    function showView(id, focusId) {
+      VIEWS.forEach(v => $(v).classList.toggle('is-active', v === id));
+      hideAlert('magicLinkError'); hideAlert('emailError'); hideAlert('forgotError');
+      if (focusId) { const el = $(focusId); if (el) el.focus(); }
+    }
+    function showAlert(id, textId, msg) {
+      $(textId).textContent = msg;
+      $(id).classList.add('is-visible');
+    }
+    function hideAlert(id) { $(id).classList.remove('is-visible'); }
+    function setBtnLoading(btn, state) {
+      btn.disabled = state;
+      btn.classList.toggle('is-loading', state);
+    }
+
+    // Le courriel saisi suit l'utilisateur d'une vue à l'autre.
+    function syncEmail(from, to) {
+      const v = $(from).value.trim();
+      if (v && !$(to).value.trim()) $(to).value = v;
+    }
+
+    $('btnUsePassword').addEventListener('click', () => {
+      syncEmail('magicLinkEmail', 'emailInput');
+      showView('viewPassword', $('emailInput').value ? 'passwordInput' : 'emailInput');
+    });
+
+    $('btnForgot').addEventListener('click', () => {
+      syncEmail('emailInput', 'forgotEmail');
+      showView('viewForgot', 'forgotEmail');
+    });
+
+    document.querySelectorAll('[data-back-to-magic]').forEach(btn => {
+      btn.addEventListener('click', () => showView('viewMagic', 'magicLinkEmail'));
+    });
 
     // ── Toggle afficher/masquer mot de passe ─────────────
     const eyeOpen   = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
@@ -492,8 +690,8 @@
       passwordInput.type = isPassword ? 'text' : 'password';
       eyeIcon.innerHTML  = isPassword ? eyeOpen : eyeClosed;
       btnEye.setAttribute('aria-label', isPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+      btnEye.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
       passwordInput.focus();
-      console.log('[œil] type du champ:', passwordInput.type);
     });
 
     // Session Supabase stockée localement (même expirée) → déjà connecté ici
@@ -531,7 +729,96 @@
     }
     checkSession();
 
-    // ── Connexion par mot de passe ───────────────────────
+    // ── Envoi d'un lien par courriel (connexion OU réinitialisation) ──
+    // Une seule fonction pour les deux flux : edge function (gabarit Resend
+    // de la clinique) d'abord, repli automatique sur l'envoi natif Supabase
+    // si elle n'est pas déployée / injoignable.
+    // ⚠️ Le résultat affiché est TOUJOURS le même message neutre : ni un
+    // compte inexistant, ni une panne d'envoi ne doivent pouvoir être
+    // distingués depuis l'écran (anti-énumération de comptes, Loi 25).
+    async function envoyerLien(email, type) {
+      let sent = false;
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/magic-link-resend`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+          body: JSON.stringify({ email, type }),
+        });
+        if (res.ok) sent = true;
+        else console.warn('[lien] edge function HTTP', res.status, '— repli sur l\'envoi natif');
+      } catch (fnErr) {
+        console.warn('[lien] edge function injoignable — repli sur l\'envoi natif :', fnErr);
+      }
+
+      if (sent) return;
+
+      if (type === 'recovery') {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password.html`,
+        });
+        if (error) console.error('[lien] resetPasswordForEmail:', error.message);
+      } else {
+        // shouldCreateUser:false — un inconnu ne doit JAMAIS pouvoir
+        // se créer un compte depuis cet écran (données de santé).
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            shouldCreateUser: false,
+            emailRedirectTo: `${window.location.origin}/library.html`,
+          },
+        });
+        if (error) console.error('[lien] signInWithOtp:', error.message);
+      }
+    }
+
+    // Valide le courriel puis lance l'envoi. Renvoie true si l'envoi a été tenté.
+    async function traiterEnvoi({ inputId, errId, errTxtId, btn, type, message }) {
+      const email = $(inputId).value.trim().toLowerCase();
+      hideAlert(errId);
+
+      if (!email) {
+        showAlert(errId, errTxtId, 'Veuillez entrer votre adresse courriel.');
+        $(inputId).focus(); return;
+      }
+      if (!EMAIL_RE.test(email)) {
+        showAlert(errId, errTxtId, 'Cette adresse courriel ne semble pas valide. Exemple : prenom.nom@exemple.com');
+        $(inputId).focus(); return;
+      }
+
+      setBtnLoading(btn, true);
+      try {
+        await envoyerLien(email, type);
+      } catch (err) {
+        // Aucune erreur technique à l'écran : le message reste neutre.
+        console.error('[lien] échec inattendu :', err);
+      } finally {
+        setBtnLoading(btn, false);
+      }
+
+      $(inputId).value = '';
+      $('sentMessage').textContent = message;
+      showView('viewSent');
+    }
+
+    // ── Lien de connexion (action principale) ────────────
+    $('magicForm').addEventListener('submit', e => {
+      e.preventDefault();
+      traiterEnvoi({
+        inputId: 'magicLinkEmail', errId: 'magicLinkError', errTxtId: 'magicLinkErrorText',
+        btn: $('btnSendMagicLink'), type: 'magiclink', message: MSG_NEUTRE_CONNEXION,
+      });
+    });
+
+    // ── Mot de passe oublié ──────────────────────────────
+    $('forgotForm').addEventListener('submit', e => {
+      e.preventDefault();
+      traiterEnvoi({
+        inputId: 'forgotEmail', errId: 'forgotError', errTxtId: 'forgotErrorText',
+        btn: $('btnSendReset'), type: 'recovery', message: MSG_NEUTRE_RESET,
+      });
+    });
+
+    // ── Connexion par mot de passe (option secondaire) ───
     form.addEventListener('submit', async e => {
       e.preventDefault();
       clearError();
@@ -539,7 +826,7 @@
       const password = passwordInput.value;
 
       if (!email)    { showError('Veuillez entrer votre adresse courriel.'); emailInput.focus(); return; }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('Adresse courriel invalide.'); emailInput.focus(); return; }
+      if (!EMAIL_RE.test(email)) { showError('Cette adresse courriel ne semble pas valide. Exemple : prenom.nom@exemple.com'); emailInput.focus(); return; }
       if (!password) { showError('Veuillez entrer votre mot de passe.'); passwordInput.focus(); return; }
 
       console.log('[auth] tentative de connexion pour:', email);
@@ -553,7 +840,8 @@
           } else if (error.message.includes('Email not confirmed')) {
             showError('Courriel non confirmé. Vérifiez votre boîte de réception.');
           } else {
-            showError(`Erreur : ${error.message}`);
+            // Jamais de message technique à l'écran.
+            showError("La connexion a échoué. Réessayez dans quelques instants ou appelez la clinique au (418) 543-1113.");
           }
           return;
         }
@@ -561,168 +849,9 @@
         await gateAfterAuth();
       } catch (err) {
         console.error('[auth] exception inattendue:', err);
-        showError('Impossible de joindre le serveur. Vérifiez votre connexion.');
+        showError('Impossible de joindre le serveur. Vérifiez votre connexion Internet.');
       } finally {
         setLoading(false);
-      }
-    });
-
-    // ── Mot de passe oublié ──────────────────────────────
-    const viewForm   = document.getElementById('viewForm');
-    const viewForgot = document.getElementById('viewForgot');
-
-    document.getElementById('btnForgot').addEventListener('click', () => {
-      viewForm.style.display   = 'none';
-      viewForgot.style.display = '';
-      document.getElementById('forgotEmail').focus();
-    });
-
-    document.getElementById('btnBackToLogin').addEventListener('click', () => {
-      viewForgot.style.display = 'none';
-      viewForm.style.display   = '';
-      document.getElementById('forgotSuccess').style.display = 'none';
-      document.getElementById('forgotError').style.display   = 'none';
-    });
-
-    document.getElementById('btnSendReset').addEventListener('click', async () => {
-      const btn   = document.getElementById('btnSendReset');
-      const email = document.getElementById('forgotEmail').value.trim().toLowerCase();
-      const errEl = document.getElementById('forgotError');
-      const errTxt= document.getElementById('forgotErrorText');
-      const okEl  = document.getElementById('forgotSuccess');
-
-      errEl.style.display = 'none';
-      okEl.style.display  = 'none';
-
-      if (!email) {
-        errTxt.textContent  = 'Veuillez entrer votre adresse courriel.';
-        errEl.style.display = 'flex'; return;
-      }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        errTxt.textContent  = 'Adresse courriel invalide.';
-        errEl.style.display = 'flex'; return;
-      }
-
-      btn.disabled = true;
-      btn.classList.add('is-loading');
-
-      // Envoi via l'edge function (gabarit Resend de la clinique). Si elle
-      // n'est pas déployée / injoignable, repli automatique sur l'envoi
-      // natif Supabase — qui fonctionne dès que le SMTP personnalisé est
-      // configuré. Le patient n'a donc jamais d'écran cassé.
-      try {
-        let sent = false;
-        try {
-          const res = await fetch(`${SUPABASE_URL}/functions/v1/magic-link-resend`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
-            body: JSON.stringify({ email, type: 'recovery' }),
-          });
-          if (res.ok) sent = true;
-          else console.warn('[forgot] edge function HTTP', res.status, '— repli sur l\'envoi natif');
-        } catch (fnErr) {
-          console.warn('[forgot] edge function injoignable — repli sur l\'envoi natif :', fnErr);
-        }
-
-        if (!sent) {
-          const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/reset-password.html`,
-          });
-          if (error) throw error;
-        }
-
-        okEl.style.display = 'block';
-        document.getElementById('forgotEmail').value = '';
-      } catch (err) {
-        console.error('[forgot]', err);
-        // Message neutre : ne jamais laisser deviner si le compte existe.
-        errTxt.textContent  = "L'envoi a échoué. Veuillez réessayer dans quelques instants.";
-        errEl.style.display = 'flex';
-      } finally {
-        btn.disabled = false;
-        btn.classList.remove('is-loading');
-      }
-    });
-
-    // ── Lien magique (envoi via Resend, edge function) ───
-    const viewMagicLink = document.getElementById('viewMagicLink');
-
-    document.getElementById('btnMagicLink').addEventListener('click', () => {
-      viewForm.style.display      = 'none';
-      viewMagicLink.style.display = '';
-      document.getElementById('magicLinkEmail').focus();
-    });
-
-    document.getElementById('btnBackToLoginFromMagic').addEventListener('click', () => {
-      viewMagicLink.style.display = 'none';
-      viewForm.style.display      = '';
-      document.getElementById('magicLinkSuccess').style.display = 'none';
-      document.getElementById('magicLinkError').style.display   = 'none';
-    });
-
-    document.getElementById('btnSendMagicLink').addEventListener('click', async () => {
-      const btn    = document.getElementById('btnSendMagicLink');
-      const email  = document.getElementById('magicLinkEmail').value.trim().toLowerCase();
-      const errEl  = document.getElementById('magicLinkError');
-      const errTxt = document.getElementById('magicLinkErrorText');
-      const okEl   = document.getElementById('magicLinkSuccess');
-
-      errEl.style.display = 'none';
-      okEl.style.display  = 'none';
-
-      if (!email) {
-        errTxt.textContent  = 'Veuillez entrer votre adresse courriel.';
-        errEl.style.display = 'flex'; return;
-      }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        errTxt.textContent  = 'Adresse courriel invalide.';
-        errEl.style.display = 'flex'; return;
-      }
-
-      btn.disabled = true;
-      btn.classList.add('is-loading');
-
-      // Même logique que la réinitialisation : edge function (gabarit
-      // Resend) d'abord, repli sur l'envoi natif Supabase si elle n'est
-      // pas déployée.
-      try {
-        let sent = false;
-        try {
-          const res = await fetch(`${SUPABASE_URL}/functions/v1/magic-link-resend`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
-            body: JSON.stringify({ email, type: 'magiclink' }),
-          });
-          if (res.ok) sent = true;
-          else console.warn('[magic-link] edge function HTTP', res.status, '— repli sur l\'envoi natif');
-        } catch (fnErr) {
-          console.warn('[magic-link] edge function injoignable — repli sur l\'envoi natif :', fnErr);
-        }
-
-        if (!sent) {
-          // shouldCreateUser:false — un inconnu ne doit JAMAIS pouvoir
-          // se créer un compte depuis cet écran (données de santé).
-          const { error } = await supabase.auth.signInWithOtp({
-            email,
-            options: {
-              shouldCreateUser: false,
-              emailRedirectTo: `${window.location.origin}/library.html`,
-            },
-          });
-          // Compte inexistant : on n'en dit rien, message identique.
-          if (error && !/not\s*found|signups?\s*not\s*allowed|invalid/i.test(error.message)) throw error;
-        }
-
-        okEl.style.display = 'block';
-        document.getElementById('magicLinkEmail').value = '';
-      } catch (err) {
-        console.error('[magic-link]', err);
-        // Message neutre : ne jamais laisser deviner si le compte existe.
-        errTxt.textContent  = "L'envoi a échoué. Veuillez réessayer dans quelques instants.";
-        errEl.style.display = 'flex';
-      } finally {
-        btn.disabled = false;
-        btn.classList.remove('is-loading');
       }
     });
 
@@ -741,6 +870,7 @@
             .select('account_disabled').eq('id', user.id).maybeSingle();
           if (profile?.account_disabled) {
             await supabase.auth.signOut();
+            showView('viewPassword');
             showError('Ce compte a été désactivé pour inactivité prolongée (24 mois). Contactez la clinique pour le réactiver.');
             return;
           }
@@ -762,28 +892,29 @@
       if (!totp) { window.location.replace('/library.html'); return; } // sécurité : pas de facteur → on n'enferme personne
       mfaFactorId = totp.id;
       const { data: ch, error } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
-      if (error) { showError('Impossible de démarrer la vérification de sécurité : ' + error.message); return; }
+      if (error) {
+        console.error('[mfa] challenge:', error.message);
+        showView('viewPassword');
+        showError('La vérification de sécurité est momentanément indisponible. Réessayez dans quelques instants.');
+        return;
+      }
       mfaChallengeId = ch.id;
-      // Affiche la vue 2FA (on cache seulement le formulaire, pas le conteneur parent)
+      // Affiche la vue 2FA (toutes les autres vues sont masquées par showView)
       if (loader) { loader.classList.add('is-hidden'); }
-      document.getElementById('loginForm').style.display = 'none';
-      viewForgot.style.display = 'none';
-      document.getElementById('viewMfa').style.display = '';
-      document.getElementById('mfaCode').focus();
+      showView('viewMfa', 'mfaCode');
     }
 
     function mfaShowError(msg) {
-      const el = document.getElementById('mfaError');
-      document.getElementById('mfaErrorText').textContent = msg;
-      el.style.display = 'flex';
+      showAlert('mfaError', 'mfaErrorText', msg);
     }
 
-    document.getElementById('btnVerifyMfa').addEventListener('click', async () => {
-      const btn  = document.getElementById('btnVerifyMfa');
-      const code = document.getElementById('mfaCode').value.trim();
-      document.getElementById('mfaError').style.display = 'none';
+    $('mfaForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn  = $('btnVerifyMfa');
+      const code = $('mfaCode').value.trim();
+      hideAlert('mfaError');
       if (!/^\d{6}$/.test(code)) { mfaShowError('Entrez le code à 6 chiffres.'); return; }
-      btn.disabled = true; btn.classList.add('is-loading');
+      setBtnLoading(btn, true);
       try {
         const { error } = await supabase.auth.mfa.verify({
           factorId: mfaFactorId, challengeId: mfaChallengeId, code,
@@ -793,15 +924,16 @@
           // le défi est consommé : on en régénère un pour la prochaine tentative
           const { data: ch } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
           mfaChallengeId = ch?.id || mfaChallengeId;
-          document.getElementById('mfaCode').value = '';
-          document.getElementById('mfaCode').focus();
+          $('mfaCode').value = '';
+          $('mfaCode').focus();
           return;
         }
         window.location.replace('/library.html');
-      } catch (e) {
-        mfaShowError('Erreur : ' + e.message);
+      } catch (e2) {
+        console.error('[mfa] verify:', e2);
+        mfaShowError('La vérification a échoué. Réessayez dans quelques instants.');
       } finally {
-        btn.disabled = false; btn.classList.remove('is-loading');
+        setBtnLoading(btn, false);
       }
     });
 
@@ -812,10 +944,7 @@
     function clearError() {
       emailError.classList.remove('is-visible');
     }
-    function setLoading(s) {
-      submitBtn.disabled = s;
-      submitBtn.classList.toggle('is-loading', s);
-    }
+    function setLoading(s) { setBtnLoading(submitBtn, s); }
   </script>
 </body>
 </html>

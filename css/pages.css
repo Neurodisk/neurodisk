@@ -1,0 +1,201 @@
+/* ─────────────────────────────────────────────────────────────
+   Pages d'information publiques (confidentialité, conditions, aide).
+   Reprend exactement les jetons visuels de la page de connexion.
+   Aucune dépendance : ne touche ni library.css ni brand.css.
+   ───────────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+img { display: block; max-width: 100%; }
+
+:root {
+  --blue:       #185FA5;
+  --blue-dark:  #0f4478;
+  --blue-mid:   #2272bb;
+  --blue-light: #e8f1fb;
+  --blue-soft:  #f0f6ff;
+  --white:      #ffffff;
+  --bg:         #f5f8fd;
+  --text:       #0d2137;
+  --muted:      #566b82;
+  --border:     #d1dff0;
+  --font:       'Montserrat', 'Segoe UI', Arial, sans-serif;
+  --radius:     14px;
+  --shadow-lg:  0 20px 60px rgba(13,33,55,0.14);
+}
+
+html, body { height: 100%; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  line-height: 1.7;
+}
+
+.wrap {
+  flex: 1;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+
+/* ── En-tête ── */
+.doc-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.doc-header a.logo-link {
+  display: inline-block;
+  border-radius: 8px;
+}
+.doc-header img {
+  width: 210px; height: auto;
+  margin: 0 auto 1.5rem;
+}
+.doc-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  margin-bottom: .6rem;
+}
+.doc-header p.lead {
+  font-size: 1.05rem;
+  color: var(--muted);
+}
+
+/* ── Carte de contenu ── */
+.doc {
+  background: var(--white);
+  border: 1px solid rgba(209,223,240,0.7);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 2.25rem 2.25rem 2rem;
+}
+.doc h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--blue-dark);
+  margin: 2rem 0 .75rem;
+  letter-spacing: -.02em;
+}
+.doc h2:first-child { margin-top: 0; }
+.doc h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 1.25rem 0 .4rem;
+}
+.doc p { font-size: 1.05rem; margin-bottom: 1rem; }
+.doc ul, .doc ol { margin: 0 0 1rem 1.35rem; font-size: 1.05rem; }
+.doc li { margin-bottom: .5rem; }
+.doc strong { font-weight: 700; }
+.doc a { color: var(--blue); text-underline-offset: 3px; }
+.doc a:hover { color: var(--blue-dark); }
+
+/* Encadré d'appel */
+.callout {
+  background: var(--blue-soft);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--blue);
+  border-radius: 10px;
+  padding: 1.1rem 1.25rem;
+  margin: 1.25rem 0;
+}
+.callout p:last-child { margin-bottom: 0; }
+
+/* ── Bloc contact cliquable ── */
+.contact-list { display: flex; flex-direction: column; gap: .6rem; margin: 1.25rem 0; }
+.contact-row {
+  display: flex; align-items: center; gap: .85rem;
+  min-height: 60px; padding: .75rem 1rem;
+  background: var(--blue-soft); border: 1px solid var(--border);
+  border-radius: var(--radius); text-decoration: none;
+  color: var(--text); transition: background 150ms, border-color 150ms;
+}
+.contact-row:hover { background: var(--blue-light); border-color: var(--blue); }
+.contact-icon {
+  flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%;
+  background: var(--white); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--blue);
+}
+.contact-icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.contact-label { font-size: 1.0625rem; font-weight: 600; line-height: 1.3; display: block; }
+.contact-value { font-size: .96rem; color: var(--muted); line-height: 1.4; word-break: break-word; display: block; }
+
+/* ── Étapes numérotées (page d'aide) ── */
+.steps { list-style: none; margin: 1.25rem 0 1rem; counter-reset: step; }
+.steps li {
+  position: relative;
+  padding-left: 3.25rem;
+  margin-bottom: 1.4rem;
+  font-size: 1.05rem;
+}
+.steps li::before {
+  counter-increment: step;
+  content: counter(step);
+  position: absolute; left: 0; top: -.1rem;
+  width: 2.25rem; height: 2.25rem; border-radius: 50%;
+  background: var(--blue); color: var(--white);
+  font-weight: 700; font-size: 1.05rem;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── Bouton retour ── */
+.btn-back {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 52px; padding: .85rem 1.75rem;
+  background: var(--blue); color: var(--white);
+  border-radius: 100px; text-decoration: none;
+  font-size: 1.0625rem; font-weight: 600;
+  box-shadow: 0 4px 20px rgba(24,95,165,.3);
+  transition: background 150ms;
+}
+.btn-back:hover { background: var(--blue-dark); }
+
+.doc-actions { text-align: center; margin-top: 2rem; }
+
+.doc-version {
+  font-size: .95rem; color: var(--muted);
+  margin-top: 2rem; padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Pied de page ── */
+.site-footer {
+  text-align: center; padding: 1.5rem 1rem 2rem;
+  font-size: .98rem; color: var(--muted);
+}
+.footer-links {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: .25rem 0; margin-bottom: .85rem;
+}
+.footer-links a {
+  color: var(--blue); text-decoration: underline; text-underline-offset: 3px;
+  padding: .6rem .9rem; min-height: 44px;
+  display: inline-flex; align-items: center;
+  font-size: 1rem; font-weight: 500;
+}
+.footer-links a:hover { color: var(--blue-dark); }
+
+:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+@media (max-width: 520px) {
+  .wrap { padding: 1.5rem .75rem 2.5rem; }
+  .doc { padding: 1.65rem 1.25rem 1.5rem; }
+  .doc-header img { width: 180px; }
+  .doc-header h1 { font-size: 1.4rem; }
+}
+@media (max-width: 360px) {
+  .doc { padding: 1.4rem 1rem 1.25rem; }
+  .doc-header img { width: 165px; }
+  .steps li { padding-left: 2.9rem; }
+}
