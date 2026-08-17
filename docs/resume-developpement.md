@@ -12,13 +12,65 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 - **034** = politique de rétention Loi 25 (dossiers 5 ans après dernier service, comptes inactifs désactivés à 24 mois, registre des incidents 5 ans, `request_account_deletion`, tout via pg_cron).
 - **035** = `get_programme_professional()` (RPC SECURITY DEFINER) pour afficher le vrai nom du clinicien dans le PDF patient malgré la RLS.
 
+- **036** = corrige la contrainte `video_requires_bunny_id` qui bloquait l'ajout de vidéos YouTube dans les ressources.
+
 **Actions en attente côté utilisateur :**
-1. **Courriels d'authentification (lien magique + mot de passe oublié)** : le domaine **`neurodisk.com` est vérifié dans Resend** (DKIM/SPF/MX de retour confirmés, DNS sur Cloudflare) — l'ancien plan `notify.cliniqueneurodisk.com` est abandonné. Code corrigé (expéditeur `no-reply@neurodisk.com` via secrets, support `recovery`, repli natif). **⚠️ Reste à faire dans le tableau de bord Supabase** : (a) activer le **SMTP personnalisé** (`smtp.resend.com`, port 465, user `resend`, mot de passe = clé API Resend), (b) **allowlister les Redirect URLs** pour `https://plateforme.neurodisk.com/` (⚠️ la plateforme est sur **plateforme.neurodisk.com**, pas cliniqueneurodisk.com qui est le site vitrine), (c) relever la limite « Emails per hour ». Procédure complète : **`docs/procedure-courriels-auth.md`**.
+1. **Courriels d'authentification — 2 réglages restants** (le reste fonctionne, confirmé par l'utilisateur) :
+   - a. **Nom d'expéditeur → « Neurodisk Chicoutimi »** (remplace « Clinique Neurodisk »), aux DEUX endroits :
+     · secret Resend : `supabase.cmd secrets set 'MAIL_FROM=Neurodisk Chicoutimi <no-reply@neurodisk.com>' --project-ref jqxykxkikvrgwnajhhbi` (effet immédiat, pas de redéploiement)
+     · [Auth → SMTP](https://supabase.com/dashboard/project/jqxykxkikvrgwnajhhbi/auth/smtp) → champ **Sender name**
+   - b. **Confirmer le Reply-To** : actuellement `info@cliniqueneurodisk.com`. ⚠️ Non vérifié que cette boîte existe — sinon les réponses de patients se perdent (`neurodisk.com` n'a aucun MX de réception, d'où le `no-reply`).
 2. **2FA obligatoire pour le staff** : reporté volontairement (« plus tard »). Actuellement optionnel.
 3. **Créer le bucket Storage `patient-files`** (PRIVÉ) s'il ne l'est pas déjà — nécessaire pour les pièces jointes du chat sécurisées (voir migration 033).
 4. Valider juridiquement les 4 documents Loi 25 (`docs/loi25/`) + accepter/classer le DPA Supabase.
 
 **Comptes de test utiles :** patient fictif « Ozzy Osbourne » (`gabrielgirard1@hotmail.fr`), admin (`gabrielgirard.kin@gmail.com`).
+
+**Domaines — ne pas confondre :**
+| Domaine | Rôle |
+|---|---|
+| `plateforme.neurodisk.com` | **L'application** (Cloudflare) — c'est ici que tournent index.html, library.html, /admin/ |
+| `neurodisk.com` | Domaine **d'envoi** des courriels, vérifié dans Resend (DKIM/SPF/MX de retour). Aucun MX de réception. |
+| `cliniqueneurodisk.com` | Site **vitrine** de la clinique, sans rapport avec l'app. A un MX (Pacifique Hosting). |
+
+**Environnement Windows (CLI Supabase) :** `npx supabase` et `supabase` échouent (scripts `.ps1` bloqués par la stratégie d'exécution PowerShell). → Utiliser **`supabase.cmd`**. Authentification : jeton créé sur https://supabase.com/dashboard/account/tokens puis `$env:SUPABASE_ACCESS_TOKEN = "sbp_…"` (le `supabase login` interactif ne fonctionne pas). Les arguments contenant `<` `>` doivent être entre **guillemets simples**. Projet déjà lié : `jqxykxkikvrgwnajhhbi`.
+
+---
+
+## Session — août 2026 (synthèse)
+
+Quatre chantiers : **rétention Loi 25**, **refonte du PDF de programme**, **fix vidéos YouTube**, **fix courriels d'authentification**. Détail de chacun dans les sections ci-dessous ; voici ce qu'il faut retenir pour reprendre.
+
+### Ce qui a été livré
+| Chantier | Livrable | Migration |
+|---|---|---|
+| Rétention Loi 25 | Purge dossiers 5 ans, désactivation comptes 24 mois, registre d'incidents, demande de suppression patient, UI admin (`legal_hold`, incidents) et patient (bouton « Confidentialité ») | **034** |
+| PDF programme | Génération vectorielle dans l'app (`js/program-pdf.js`, jsPDF), police **Inter incorporée**, format **Lettre**, 2 exercices/page, aperçu au lieu du téléchargement forcé, vrai nom du clinicien | **035** |
+| Vidéos YouTube | Contrainte SQL obsolète (ère Bunny) corrigée + titre de ressource devenu optionnel (auto-détecté via oEmbed YouTube) | **036** |
+| Courriels auth | Lien magique + mot de passe oublié réparés (voir ci-dessous) | — |
+
+### Décisions structurantes prises avec l'utilisateur
+- **PDF généré par l'app, pas un Word figé** : les données sont dynamiques par patient. Une maquette Word aurait été déconnectée des vraies données. (Question posée et tranchée en début de refonte.)
+- **Police Inter incorporée** dans le PDF plutôt que Helvetica, via un pipeline reproductible (`tools/build_inter_font.mjs` → `js/inter-font.js`, sous-ensemble français, ~230 Ko, sans Python).
+- **Format Lettre 8,5×11 par défaut** (clinique nord-américaine), A4 encore possible en option.
+- **SMTP personnalisé Supabase + edge function** pour les courriels : le SMTP répare les deux flux sans déploiement, l'edge function apporte le gabarit Resend brandé. Repli automatique de l'un vers l'autre.
+
+### Pièges rencontrés — à ne pas réapprendre
+1. **HTML : un enfant ne s'affiche pas si son parent est masqué.** Les écrans « Mot de passe oublié » et « Lien magique » apparaissaient **vides** parce que `#viewForgot`/`#viewMagicLink`/`#viewMfa` étaient imbriqués **dans** `#viewForm`, que le code masquait. Aucune erreur JS — symptôme : `display:block` + `height:auto` mais `offsetHeight = 0` (signature d'un ancêtre en `display:none`). Bug **antérieur**, présent depuis avant l'ajout du lien magique.
+2. **Resend refuse d'envoyer** à toute adresse autre que celle du compte tant qu'aucun domaine n'est vérifié (`onboarding@resend.dev`).
+3. **`resetPasswordForEmail()` n'utilise pas Resend** mais le serveur courriel intégré de Supabase (~2 courriels/h, non destiné à la production) — cause distincte du lien magique.
+4. **Supabase renvoie vers le « Site URL »** quand l'URL de redirection n'est pas dans la liste blanche — d'où un lien de courriel qui atterrit sur l'écran de connexion.
+5. **Réglages Auth déplacés** : SMTP / URL Configuration / Rate Limits sont dans la section **Authentication**, pas dans « Project Settings ».
+6. **jsPDF** : fixer `setLineHeightFactor` et mesurer avec le même interligne que le dessin, sinon les blocs se chevauchent ou laissent de grands vides.
+7. **`window.open()` après un `await`** est bloqué par le navigateur (perte du geste utilisateur) → ouvrir l'onglet d'aperçu immédiatement au clic, puis y injecter le PDF.
+8. **PowerShell** : `.ps1` bloqués (→ `supabase.cmd`), et `<` `>` sont des redirections (→ guillemets simples).
+
+### Sécurité corrigée en passant
+- **Énumération de comptes** sur les écrans d'authentification : un échec d'envoi renvoyait `502` alors qu'un compte inexistant renvoyait `200`, ce qui permettait d'identifier les adresses réellement patientes de la clinique (fuite de renseignements de santé, Loi 25). Réponses et messages désormais identiques dans tous les cas ; les erreurs réelles vont dans les logs serveur.
+- Repli du lien magique en `shouldCreateUser: false` : personne ne peut se créer un compte depuis l'écran de connexion.
+
+### Méthode de vérification employée
+Banc d'essai Node (`tools/gen_sample_program_pdf.mjs`) réutilisant **exactement** le layout du navigateur → 11 scénarios (1/2/3/6 exercices, note longue, sans note/vidéo/image, pro manquant, dosage varié, textes très longs, cas réel du brief) régénérés et **inspectés visuellement** à chaque itération. Pour les courriels : reproduction en navigateur avec `fetch` intercepté (aucun courriel réellement envoyé) pour valider le chemin principal ET le repli.
 
 ---
 
