@@ -457,6 +457,21 @@
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
     }) : null;
 
+    // Filet de sécurité indépendant du flux d'authentification.
+    // Selon la configuration du projet, le jeton de réinitialisation arrive
+    // soit dans le hash (#type=recovery), soit en paramètre PKCE (?code=…)
+    // — dans ce dernier cas l'URL est nettoyée aussitôt, donc la garde
+    // ci-dessus ne peut rien détecter. Cet évènement, lui, se déclenche dans
+    // les DEUX cas. La session est déjà en place : reset-password.html la
+    // retrouvera via getSession().
+    let _redirigeVersReset = false;
+    supabase?.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY' && !_redirigeVersReset) {
+        _redirigeVersReset = true;
+        window.location.replace('/reset-password.html');
+      }
+    });
+
     let loader           = document.getElementById('pageLoader');
     const form           = document.getElementById('loginForm');
     const emailInput     = document.getElementById('emailInput');
@@ -716,6 +731,9 @@
 
     // Décide, après une auth réussie, s'il faut un 2ᵉ facteur avant d'entrer.
     async function gateAfterAuth() {
+      // Une réinitialisation de mot de passe est en cours : ne pas filer vers
+      // la bibliothèque, la redirection vers reset-password.html s'en charge.
+      if (_redirigeVersReset) return;
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
