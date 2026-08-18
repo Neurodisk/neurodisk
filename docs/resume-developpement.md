@@ -25,11 +25,29 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 4. Valider juridiquement les 4 documents Loi 25 (`docs/loi25/`) + accepter/classer le DPA Supabase.
    ⚠️ S'y ajoutent les 2 pages web désormais publiées : `confidentialite.html` et `conditions.html`
    (textes de travail, mis en ligne en attendant la validation — décision de l'utilisateur, août 2026).
-5. **Migrer le logo HD partout (tâche décidée, non faite).** `assets/logo-neurodisk-hd.png` (690×218)
-   doit remplacer `assets/logo-neurodisk.png` (228×81, flou sur écran haute densité) dans ses ~25
-   références : `js/program-pdf.js`, en-tête des lettres admin, 11 fiches patient, `library.html`,
-   `reset-password.html`. ⚠️ Le rapport passe de 2,81 à 3,17 — tout placement à hauteur fixe
-   s'élargit d'environ 13 %, donc régénérer et inspecter les 11 scénarios PDF avant de conclure.
+5. ✅ **Migration du logo HD — faite** (août 2026). Les 29 références de
+   `assets/logo-neurodisk.png` pointent désormais vers `assets/logo-neurodisk-hd.png` dans 24
+   fichiers. Les 11 scénarios PDF ont été régénérés et le logo 690×218 est confirmé embarqué.
+   ⚠️ **Deux restes à traiter :**
+   - Les 11 `fiches/*.pdf` sont **pré-rendus** (`gen_fiches_patient.mjs` ne produit que du HTML) :
+     ils affichent encore l'ancien logo tant qu'ils ne sont pas réimprimés depuis le HTML.
+   - `tools/gen_rapport_neurodisk.mjs` et `tools/gen_feuille_tournage.mjs` n'ont **pas pu être
+     exécutés** (le paquet `docx` n'est pas installé, aucun `package.json` à la racine). Leur
+     ratio codé en dur a été corrigé (230×82 → 230×73 ; 200×71 → 200×63) mais le rendu reste à
+     vérifier visuellement au prochain lancement. Même correction appliquée à `js/rapport.js`
+     (version in-app, celle qui sert réellement aux cliniciens) — à confirmer par un vrai export.
+   - ⚠️ **Changement d'image de marque à valider** : l'ancien logo était la version **complète**
+     (avec « soins interdisciplinaires… » et les 3 services). Le nouveau est la version
+     **compacte**. Les documents cliniques (PDF patient, rapport Word, lettres, fiches) perdent
+     donc cette signature. Pour la rétablir : pointer ces fichiers vers
+     `assets/logo-neurodisk-complet.png` (1952×405) et ajuster les hauteurs — le ratio y est de
+     4,82, soit 71 % plus large à hauteur égale.
+6. **Tester la 2FA avec un vrai compte TOTP.** La refonte de la page de connexion a rebranché la
+   vue 2FA sur `showView()` et sur une soumission de formulaire. La logique Supabase
+   (`getAuthenticatorAssuranceLevel`, `listFactors`, `challenge`, `verify`) est **inchangée**, et
+   le parcours a été validé en simulation (vue affichée, code court rejeté sans appel réseau, code
+   refusé → nouveau défi + champ vidé, succès → redirection vers `library.html`). **Mais aucun
+   test avec un vrai facteur TOTP n'a été fait.** À faire avec le compte admin avant de déployer.
 
 **Comptes de test utiles :** patient fictif « Ozzy Osbourne » (`gabrielgirard1@hotmail.fr`), admin (`gabrielgirard.kin@gmail.com`).
 

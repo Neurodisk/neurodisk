@@ -10,7 +10,7 @@ const BLUE = '2563EB';
 const LIGHT = 'EEF2FB';
 const GREY = '5F6B7A';
 
-const logo = fs.readFileSync('assets/logo-neurodisk.png');
+const logo = fs.readFileSync('assets/logo-neurodisk-hd.png');
 
 // ---- helpers ---------------------------------------------------------------
 const H1 = (t) => new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(t)] });
@@ -73,7 +73,7 @@ const children = [];
 
 // ===== PAGE COUVERTURE =====
 children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 200, after: 80 },
-  children: [new ImageRun({ type: 'png', data: logo, transformation: { width: 230, height: 82 },
+  children: [new ImageRun({ type: 'png', data: logo, transformation: { width: 230, height: 73 },
     altText: { title: 'Neurodisk', description: 'Logo Clinique Neurodisk', name: 'logo' } })] }));
 children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 40 },
   children: [new TextRun({ text: 'Rapport des résultats et plan de traitement', bold: true, color: NAVY, size: 36 })] }));

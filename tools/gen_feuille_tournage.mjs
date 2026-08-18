@@ -6,7 +6,7 @@ import {
 } from 'docx';
 
 const NAVY = '1B2B6B', BLUE = '2563EB', LIGHT = 'EEF2FB', GREY = '5F6B7A';
-const logo = fs.readFileSync('assets/logo-neurodisk.png');
+const logo = fs.readFileSync('assets/logo-neurodisk-hd.png');
 
 const COND_LABEL = {
   trousse_depart: 'Trousse de départ', hernie_discale: 'Hernie discale', sciatique: 'Sciatique',
@@ -97,7 +97,7 @@ function section(title, subtitle, list, startNo) {
 
 const children = [];
 children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 60 },
-  children: [new ImageRun({ type: 'png', data: logo, transformation: { width: 200, height: 71 },
+  children: [new ImageRun({ type: 'png', data: logo, transformation: { width: 200, height: 63 },
     altText: { title: 'Neurodisk', description: 'Logo', name: 'logo' } })] }));
 children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 30 },
   children: [new TextRun({ text: 'Feuille de tournage — banque d’exercices', bold: true, color: NAVY, size: 32 })] }));

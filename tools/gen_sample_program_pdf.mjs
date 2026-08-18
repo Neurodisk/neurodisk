@@ -33,9 +33,9 @@ function loadLocal(rel) {
 
 // Logo couleur complet (couverture) + icône simplifiée (en-têtes p2/p3) +
 // une image d'exercice de substitution (logo mot-symbole, placeholder visuel).
-const logo = loadLocal('assets/logo-neurodisk.png');
+const logo = loadLocal('assets/logo-neurodisk-hd.png');
 const logoMark = loadLocal('assets/logo-neurodisk-mark.png');
-const demoImg = loadLocal('assets/logo-neurodisk.png');
+const demoImg = loadLocal('assets/logo-neurodisk-hd.png');
 
 const VIDEO = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 

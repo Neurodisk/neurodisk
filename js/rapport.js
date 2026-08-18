@@ -18,7 +18,7 @@ export async function buildRapportBlob(data) {
 
   // Logo
   let logoData = null;
-  try { logoData = new Uint8Array(await (await fetch('/assets/logo-neurodisk.png')).arrayBuffer()); } catch {}
+  try { logoData = new Uint8Array(await (await fetch('/assets/logo-neurodisk-hd.png')).arrayBuffer()); } catch {}
 
   const H1 = (t) => new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(t)] });
   const H2 = (t) => new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun(t)] });
@@ -59,7 +59,7 @@ export async function buildRapportBlob(data) {
   const children = [];
 
   // Couverture
-  if (logoData) children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 200, after: 80 }, children: [new ImageRun({ type: 'png', data: logoData, transformation: { width: 230, height: 82 }, altText: { title: 'Neurodisk', description: 'Logo', name: 'logo' } })] }));
+  if (logoData) children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 200, after: 80 }, children: [new ImageRun({ type: 'png', data: logoData, transformation: { width: 230, height: 73 }, altText: { title: 'Neurodisk', description: 'Logo', name: 'logo' } })] }));
   children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 40 }, children: [new TextRun({ text: 'Rapport des résultats et plan de traitement', bold: true, color: NAVY, size: 36 })] }));
   children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [new TextRun({ text: 'Décompression neuro-vertébrale et réadaptation active', color: BLUE, size: 24 })] }));
   children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 240 }, border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: BLUE, space: 8 } }, children: [new TextRun({ text: 'Clinique Neurodisk  ·  443 Racine Est, Chicoutimi (Québec) G7H 1T5  ·  418 543-1113', color: GREY, size: 18 })] }));

@@ -1,7 +1,7 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
     import { PROM_DEFS, PROM_LIST, renderPromForm, collectProm, renderPromChart } from '/js/proms.js?v=1';
     import { NEURODISK_CORE, QBPDS, STARTBACK, checkRedFlags, deriveDirectionalPattern, directionalPatternLabel, scoreQBPDS, scoreStartBack, renderPlaceholderScale, collectPlaceholderScale, renderAssessmentChart, ASSESS_CHART_DEFS, buildPainSerie } from '/js/assessments.js?v=4';
-    import { generateProgramPdf } from '/js/program-pdf.js?v=6';
+    import { generateProgramPdf } from '/js/program-pdf.js?v=7';
 
     // Conditions pour lesquelles le module lombaire (QBPDS + STarT Back) s'ajoute au bilan
     const LOMBAR_CONDITIONS = ['hernie_discale', 'sciatique', 'radiculopathie', 'stenose_foraminale', 'stenose_spinale', 'arthrose_lombaire', 'spondylolyse', 'spondylolisthesis'];
@@ -1316,7 +1316,7 @@
       btn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Préparation du PDF…';
       try {
         const input = await buildPdfInput();
-        await generateProgramPdf(input, { logoUrl: '/assets/logo-neurodisk.png' });
+        await generateProgramPdf(input, { logoUrl: '/assets/logo-neurodisk-hd.png' });
       } catch (err) {
         console.error('[pdf] génération échouée:', err);
         toast('Impossible de générer le PDF. Réessayez.', 'error');

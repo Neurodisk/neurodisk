@@ -89,7 +89,7 @@ const tpl = (f) => `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><
   footer { margin-top:2rem; border-top:1px solid #e5e7eb; padding-top:.7rem; font-size:.8rem; color:#6b7280; }
   .warn { color:#a32d2d; }
 </style></head><body>
-  <header><img src="../assets/logo-neurodisk.png" alt="Neurodisk">
+  <header><img src="../assets/logo-neurodisk-hd.png" alt="Neurodisk">
     <div><h1>${esc(f.cond)}</h1><div class="sub">Mes recommandations · Clinique Neurodisk</div></div>
   </header>
   <p class="intro">${esc(f.intro)}</p>

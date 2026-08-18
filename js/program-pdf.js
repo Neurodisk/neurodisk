@@ -631,7 +631,7 @@ export async function generateProgramPdf(input, opts = {}) {
     };
 
     const [logoData, logoMarkData] = await Promise.all([
-      loadImageData(opts.logoUrl || '/assets/logo-neurodisk.png'),
+      loadImageData(opts.logoUrl || '/assets/logo-neurodisk-hd.png'),
       loadImageData(opts.logoMarkUrl || '/assets/logo-neurodisk-mark.png'),
     ]);
     for (const ex of (input.exercises || [])) {

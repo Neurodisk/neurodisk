@@ -2515,7 +2515,7 @@
     import { PROM_DEFS, PROM_LIST, renderPromForm, collectProm, renderPromChart } from '/js/proms.js?v=1';
     import { NEURODISK_CORE, directionalPatternLabel, renderAssessmentChart, ASSESS_CHART_DEFS, buildScoreSerie, buildPainSerie } from '/js/assessments.js?v=4';
     import { TEMPLATE_PROFILES, PROGRAM_TEMPLATES, profileForConditions, profileLabel, normalizeTitle, selectAdaptedExercises, conditionRegion } from '/js/program-templates.js?v=4';
-    import { buildRapportBlob } from '/js/rapport.js?v=1';
+    import { buildRapportBlob } from '/js/rapport.js?v=2';
 
     const SUPABASE_URL      = 'https://jqxykxkikvrgwnajhhbi.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_t1EUH4wn9vtNBC7pUNbKOA_OhFfWsEi';
@@ -6621,7 +6621,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
           @media print{ body{padding:0} .noprint{display:none} }
         </style></head><body>
           <div class="hdr">
-            <img src="${origin}/assets/logo-neurodisk.png">
+            <img src="${origin}/assets/logo-neurodisk-hd.png">
             <div><h1>${esc(prog?.name || "Programme d'exercices")}</h1><div class="sub">${esc(patientName)} · ${new Date().toLocaleDateString('fr-CA')}</div></div>
           </div>
           ${prog?.description ? `<p style="font-size:12px;color:#475569;margin:0 0 14px">${esc(prog.description)}</p>` : ''}
@@ -8657,7 +8657,7 @@ En vous remerciant de votre précieuse collaboration, veuillez agréer l'express
 
     function buildAiPdfHtml(bodyText) {
       const esc2 = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      const logo = `${location.origin}/assets/logo-neurodisk.png`;
+      const logo = `${location.origin}/assets/logo-neurodisk-hd.png`;
       return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
         <title>Lettre — Clinique Neurodisk</title>
         <style>
