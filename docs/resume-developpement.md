@@ -23,6 +23,13 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 3. **Vérifier / créer le bucket Storage `patient-files`** (PRIVÉ) — nécessaire aux pièces jointes du chat sécurisées (migration 033).
    Vérification : [Storage](https://supabase.com/dashboard/project/jqxykxkikvrgwnajhhbi/storage/buckets) ou `supabase.cmd storage ls --linked`.
 4. Valider juridiquement les 4 documents Loi 25 (`docs/loi25/`) + accepter/classer le DPA Supabase.
+   ⚠️ S'y ajoutent les 2 pages web désormais publiées : `confidentialite.html` et `conditions.html`
+   (textes de travail, mis en ligne en attendant la validation — décision de l'utilisateur, août 2026).
+5. **Migrer le logo HD partout (tâche décidée, non faite).** `assets/logo-neurodisk-hd.png` (690×218)
+   doit remplacer `assets/logo-neurodisk.png` (228×81, flou sur écran haute densité) dans ses ~25
+   références : `js/program-pdf.js`, en-tête des lettres admin, 11 fiches patient, `library.html`,
+   `reset-password.html`. ⚠️ Le rapport passe de 2,81 à 3,17 — tout placement à hauteur fixe
+   s'élargit d'environ 13 %, donc régénérer et inspecter les 11 scénarios PDF avant de conclure.
 
 **Comptes de test utiles :** patient fictif « Ozzy Osbourne » (`gabrielgirard1@hotmail.fr`), admin (`gabrielgirard.kin@gmail.com`).
 
@@ -36,6 +43,30 @@ Résumé des travaux réalisés. Mis à jour au fil des sessions.
 **Environnement Windows (CLI Supabase) :** `npx supabase` et `supabase` échouent (scripts `.ps1` bloqués par la stratégie d'exécution PowerShell). → Utiliser **`supabase.cmd`**. Authentification : jeton créé sur https://supabase.com/dashboard/account/tokens puis `$env:SUPABASE_ACCESS_TOKEN = "sbp_…"` (le `supabase login` interactif ne fonctionne pas). Les arguments contenant `<` `>` doivent être entre **guillemets simples**. Projet déjà lié : `jqxykxkikvrgwnajhhbi`.
 
 ---
+
+### 🔑 Refonte de la page de connexion (août 2026)
+- **Lien courriel promu en action principale** : courriel → « Recevoir mon lien de connexion » →
+  séparateur « ou » → option secondaire « Se connecter avec un mot de passe ». Clientèle 55-70 ans.
+  Le mot de passe reste pleinement fonctionnel, simplement au second plan.
+- **Message toujours neutre** : un compte inexistant, une edge function absente et une panne réseau
+  totale produisent désormais le **même** message. Plus strict qu'avant, où une panne affichait
+  « L'envoi a échoué » — un signal encore exploitable pour l'énumération de comptes.
+- **Vues unifiées** via `showView()` (une seule classe CSS) : c'est la correction structurelle du
+  bug des écrans vides, qui venait du mélange `style.display` / classes.
+- **2FA inchangée dans sa logique** (`getAuthenticatorAssuranceLevel`, `listFactors`, `challenge`,
+  `verify` intacts) — seulement rebranchée sur `showView` et sur une soumission de formulaire.
+  ⚠️ Validée en simulation, **pas encore avec un vrai compte TOTP**.
+- **Logo** : nouvel actif `assets/logo-neurodisk-hd.png` (690×218, compact, transparent) à 230 px
+  bureau / 190 px mobile, soit 3,0× à 3,9× de densité. La version complète
+  (`assets/logo-neurodisk-complet.png`, 1952×405) n'est **pas** utilisable ici : sa signature
+  tomberait à 2,4 px de haut, il lui faudrait ~880 px de large.
+- **Nouvelles pages** `confidentialite.html`, `conditions.html`, `aide.html` + `css/pages.css`,
+  liées depuis le pied de page. Responsable Loi 25 identifié : Dr Christian Bergeron (D.C.).
+- **noindex** : meta sur index / reset-password / auth/callback + `X-Robots-Tag` dans la règle
+  **globale** `/*` de `_headers` (les règles par chemin ne sont pas fiables sur Workers).
+- Coordonnées retenues : **(418) 543-1113**, **info.neurodisk@gmail.com**,
+  443 Racine Est, bureau 201, Chicoutimi, Québec G7H 1T5.
+- Branche `refonte-page-connexion`, **non poussée** — pas de déploiement sans confirmation.
 
 ## Session — août 2026 (synthèse)
 
