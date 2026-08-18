@@ -105,9 +105,10 @@
     /* ── Header ── */
     .card__header { text-align: center; margin-bottom: 1.75rem; }
     /* Logo agrandi pour la clientèle 55-70 ans.
-       ⚠️ Le PNG source ne fait que 228×81 px : à cette taille il est au
-       maximum de sa définition. Un SVG officiel reste nécessaire pour un
-       rendu parfaitement net sur écrans haute densité. */
+       Source : logo-neurodisk-hd.png, 690×218 px — soit 3× la taille
+       d'affichage bureau (230 px), donc net jusqu'aux écrans 3×.
+       Version compacte volontairement : la signature du logo complet
+       tomberait sous 3 px de haut à cette largeur. */
     .logo-img {
       width: 230px; height: auto;
       margin: 0 auto 1.5rem;
@@ -372,9 +373,9 @@
       <header class="card__header">
         <img
           class="logo-img"
-          src="/assets/logo-neurodisk.png"
+          src="/assets/logo-neurodisk-hd.png"
           alt="Clinique Neurodisk"
-          width="230" height="82"
+          width="230" height="73"
           onerror="this.style.display='none'"
         >
         <h1 class="card__title">Votre bibliothèque clinique</h1>
